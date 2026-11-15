@@ -20,25 +20,65 @@ export function resolveDbPath(dataDir) {
 export function openDatabase(dbPath) {
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA journal_mode = WAL;');
-  db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
-  applyColumnMigrations(db);
+  const schemaSql = readFileSync(SCHEMA_PATH, 'utf8');
+  migrateTables(db, schemaSql); // bring existing tables to the shape in schema.sql (before indexes on new columns)
+  db.exec(schemaSql);           // create anything missing (new tables, indexes)
   seedDefaults(db);
   return db;
 }
 
-// Columns added after the first release. CREATE TABLE IF NOT EXISTS does not alter existing tables,
-// so each new column is added here when missing. Append only; never edit an entry.
-const COLUMN_MIGRATIONS = [
-  { table: 'approvals', column: 'original_content', definition: 'TEXT' },
-];
+// ------------------------------------------------------------------ schema migrations
+//
+// schema.sql is the single source of truth. On start-up every existing table is compared with its definition
+// there (column names + NOT NULL). If they differ, the table is rebuilt with SQLite's documented 12-step
+// procedure: create the new shape, copy every row of the shared columns, drop the old table, rename, then
+// verify all foreign keys before committing. No data is discarded.
 
-function applyColumnMigrations(db) {
-  for (const { table, column, definition } of COLUMN_MIGRATIONS) {
-    assertIdentifier(table);
-    assertIdentifier(column);
-    const exists = db.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).get(column);
-    if (!exists) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+function tableShape(db, table) {
+  return db.prepare(`SELECT name, "notnull" AS required FROM pragma_table_info('${table}') ORDER BY cid`).all()
+    .map((column) => `${column.name}:${column.required}`).join(',');
+}
+
+function rebuildTable(db, table, createSql) {
+  const columns = (shape) => shape.split(',').map((entry) => entry.split(':')[0]);
+  const reference = new DatabaseSync(':memory:');
+  reference.exec(createSql);
+  const shared = columns(tableShape(reference, table)).filter((name) => columns(tableShape(db, table)).includes(name));
+  reference.close();
+  const newSql = createSql.replace(/^CREATE TABLE (IF NOT EXISTS )?"?\w+"?/i, `CREATE TABLE ${table}__new`);
+
+  db.exec('PRAGMA foreign_keys = OFF'); // must be outside the transaction; otherwise DROP TABLE would cascade
+  db.exec('BEGIN');
+  try {
+    db.exec(newSql);
+    db.exec(`INSERT INTO ${table}__new (${shared.join(', ')}) SELECT ${shared.join(', ')} FROM ${table}`);
+    db.exec(`DROP TABLE ${table}`);
+    db.exec(`ALTER TABLE ${table}__new RENAME TO ${table}`);
+    const broken = db.prepare('PRAGMA foreign_key_check').all();
+    if (broken.length > 0) throw new Error(`Migration of ${table} would break ${broken.length} foreign key(s)`);
+    db.exec('COMMIT');
+  } catch (error) {
+    db.exec('ROLLBACK'); // undo the half-done rebuild and stop start-up with the original error
+    throw error;
+  } finally {
+    db.exec('PRAGMA foreign_keys = ON');
   }
+}
+
+function migrateTables(db, schemaSql) {
+  const reference = new DatabaseSync(':memory:');
+  reference.exec(schemaSql);
+  const tables = reference.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all();
+  const migrated = [];
+  for (const { name, sql } of tables) {
+    assertIdentifier(name);
+    const exists = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name);
+    if (!exists || tableShape(db, name) === tableShape(reference, name)) continue;
+    rebuildTable(db, name, sql);
+    migrated.push(name);
+  }
+  reference.close();
+  if (migrated.length > 0) console.log(`Database migrated: ${migrated.join(', ')}`);
 }
 
 function seedDefaults(db) {

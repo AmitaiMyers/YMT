@@ -18,7 +18,7 @@ const SELECT_APPROVALS = `
   SELECT a.*, c.name AS company_name, k.full_name AS contact_name, d.title AS deal_title,
     cu.display_name AS created_by_name, ru.display_name AS reviewed_by_name, su.display_name AS sent_by_name
   FROM approvals a
-  JOIN companies c ON c.id = a.company_id
+  LEFT JOIN companies c ON c.id = a.company_id
   LEFT JOIN contacts k ON k.id = a.contact_id
   LEFT JOIN deals d ON d.id = a.deal_id
   LEFT JOIN users cu ON cu.id = a.created_by

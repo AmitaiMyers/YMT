@@ -179,6 +179,21 @@ export function companyRoutes(db) {
     res.status(201).json({ id });
   });
 
+  /** People search for the meeting scheduler: any contact, with or without a company. */
+  router.get('/contacts', (req, res) => {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    if (q.length < 2) {
+      res.json([]);
+      return;
+    }
+    const like = `%${q}%`;
+    res.json(db.prepare(`SELECT k.id, k.full_name, k.email, k.phone, k.job_title, k.company_id, k.preferred_language,
+        c.name AS company_name
+      FROM contacts k LEFT JOIN companies c ON c.id = k.company_id
+      WHERE k.full_name LIKE ? OR k.email LIKE ? OR c.name LIKE ?
+      ORDER BY k.full_name LIMIT 20`).all(like, like, like));
+  });
+
   router.patch('/contacts/:id', (req, res) => {
     const id = parseId(req.params.id);
     const changes = parseBody(CONTACT_SPEC, req.body, { partial: true });

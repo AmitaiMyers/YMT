@@ -79,7 +79,12 @@ function baseContext(db, user) {
   };
 }
 
+const COMPANY_FIELDS = ['company_name', 'industry', 'country', 'website', 'employee_count', 'annual_revenue_usd',
+  'exports', 'export_markets', 'india_activity', 'notes'];
+
+/** Company placeholders; for a meeting with only a person they exist but are empty (rendered as "—"). */
 function companyContext(company, language) {
+  if (company === null) return Object.fromEntries(COMPANY_FIELDS.map((field) => [field, null]));
   const l = labels(language);
   return {
     company_name: company.name,
@@ -181,7 +186,7 @@ export function generateFollowupEmail(db, user, { deal, contact, language, follo
 }
 
 export function generateMeetingFollowupEmail(db, user, { meeting, contact, language }) {
-  const company = findById(db, 'companies', meeting.company_id);
+  const company = meeting.company_id ? findById(db, 'companies', meeting.company_id) : null;
   const context = {
     ...baseContext(db, user),
     ...companyContext(company, language),

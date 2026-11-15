@@ -26,7 +26,7 @@ function fileSize(filePath) {
   return filePath === ':memory:' ? 0 : statSync(filePath).size;
 }
 
-export function settingsRoutes(db, { dbPath, hostingLocation }) {
+export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled }) {
   const router = Router();
 
   router.get('/settings', (req, res) => res.json(getSettings(db)));
@@ -45,11 +45,14 @@ export function settingsRoutes(db, { dbPath, hostingLocation }) {
   /** Clear answer to "where is our data?" for the Data & Privacy page. */
   router.get('/settings/data-info', (req, res) => {
     res.json({
-      storage: 'SQLite database file on this server (no third-party cloud services, no AI/LLM providers)',
+      storage: 'SQLite database file on this server (no AI/LLM providers)',
       hosting_location: hostingLocation,
       database_path: dbPath,
       database_size_bytes: fileSize(dbPath),
-      external_services: [],
+      // Honest list of every outside service that can receive company data.
+      external_services: googleEnabled
+        ? ['Google Calendar – only for staff who connect it: meeting title, time, place, organisation and person name']
+        : [],
       row_counts: Object.fromEntries(COUNTED_TABLES.map((table) => [table, count(db, table)])),
     });
   });

@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS triggers (
 
 CREATE TABLE IF NOT EXISTS contacts (
   id INTEGER PRIMARY KEY,
-  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE, -- optional: people and meetings can exist before a company is known
   full_name TEXT NOT NULL,
   job_title TEXT,
   department TEXT NOT NULL CHECK (department IN ('sales', 'growth', 'asia_desk', 'management', 'other')),
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS contacts (
 CREATE TABLE IF NOT EXISTS approvals (
   id INTEGER PRIMARY KEY,
   kind TEXT NOT NULL CHECK (kind IN ('company_brief', 'outreach_email', 'followup_email', 'meeting_followup_email')),
-  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE, -- optional: people and meetings can exist before a company is known
   deal_id INTEGER REFERENCES deals(id) ON DELETE SET NULL,
   contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
   meeting_id INTEGER REFERENCES meetings(id) ON DELETE SET NULL,
@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS deals (
 
 CREATE TABLE IF NOT EXISTS interactions (
   id INTEGER PRIMARY KEY,
-  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE, -- optional: people and meetings can exist before a company is known
   deal_id INTEGER REFERENCES deals(id) ON DELETE SET NULL,
   contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
   channel TEXT NOT NULL CHECK (channel IN ('phone', 'email', 'linkedin', 'meeting', 'note')),
@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS interactions (
 
 CREATE TABLE IF NOT EXISTS meetings (
   id INTEGER PRIMARY KEY,
-  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE, -- optional: people and meetings can exist before a company is known
   deal_id INTEGER REFERENCES deals(id) ON DELETE SET NULL,
   title TEXT NOT NULL,
   scheduled_at TEXT NOT NULL,
@@ -159,12 +159,20 @@ CREATE TABLE IF NOT EXISTS meetings (
   status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'done', 'cancelled')),
   summary TEXT,
   decisions TEXT, -- newline separated
+  contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL, -- the person the meeting is with
+  duration_minutes INTEGER NOT NULL DEFAULT 60 CHECK (duration_minutes BETWEEN 5 AND 720),
+  organizer_id INTEGER REFERENCES users(id),
+  google_event_id TEXT,         -- event in the organizer's Google Calendar (when connected)
+  google_owner_id INTEGER REFERENCES users(id),
+  google_event_link TEXT,
+  invite_sent_to TEXT,          -- set only after a staff member confirmed sending a Google invitation
+  invite_sent_at TEXT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 CREATE TABLE IF NOT EXISTS tasks (
   id INTEGER PRIMARY KEY,
-  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE, -- optional: people and meetings can exist before a company is known
   meeting_id INTEGER REFERENCES meetings(id) ON DELETE SET NULL,
   description TEXT NOT NULL,
   assignee TEXT NOT NULL,
@@ -243,7 +251,26 @@ CREATE TABLE IF NOT EXISTS resources (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
+-- Google Calendar connection per staff member. Tokens are encrypted (AES-256-GCM) with TOKEN_ENCRYPTION_KEY.
+CREATE TABLE IF NOT EXISTS google_accounts (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  google_email TEXT NOT NULL,
+  refresh_token_enc TEXT NOT NULL,
+  access_token_enc TEXT,
+  access_expires_at TEXT,
+  connected_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- One-time OAuth "state" values (the Google redirect is cross-site, so the session cookie is not sent).
+CREATE TABLE IF NOT EXISTS oauth_states (
+  state TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_deals_company ON deals(company_id);
 CREATE INDEX IF NOT EXISTS idx_interactions_company ON interactions(company_id, occurred_at);
 CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals(status);
 CREATE INDEX IF NOT EXISTS idx_meetings_company ON meetings(company_id, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_meetings_time ON meetings(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(full_name);

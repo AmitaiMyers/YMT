@@ -18,12 +18,14 @@ import { dashboardRoutes } from './routes/dashboard.js';
 import { settingsRoutes } from './routes/settings.js';
 import { shareRoutes, publicShareRoutes } from './routes/share.js';
 import { inboxRoutes } from './routes/inbox.js';
+import { googleRoutes, googleCallbackRoutes } from './routes/google.js';
 
 /**
  * @param {import('node:sqlite').DatabaseSync} db
- * @param {{ dbPath: string, hostingLocation: string, clientDist?: string, trustProxy?: string | number }} options
+ * @param {{ dbPath: string, hostingLocation: string, clientDist?: string, trustProxy?: string | number,
+ *   google?: ReturnType<typeof import('./google.js').createGoogleClient> | null }} options
  */
-export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy = 'loopback' }) {
+export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy = 'loopback', google = null }) {
   const app = express();
   // Behind a hosting proxy/load balancer this must count its hops, or every visitor shares the proxy's IP
   // (one login rate-limit bucket for everybody).
@@ -46,15 +48,16 @@ export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy 
   app.use('/api/auth', authPublicRoutes(db));
   app.use('/api/public', publicSignRoutes(db));
   app.use('/api/public', publicShareRoutes(db));
+  app.use('/api', googleCallbackRoutes(db, { google })); // Google redirects here without our session cookie
   app.get('/api/health', (req, res) => res.json({ ok: true }));
 
   // Everything below requires a signed-in YMT staff member.
   const api = express.Router();
   api.use(requireAuth(db));
   for (const routes of [
-    userRoutes(db), companyRoutes(db), approvalRoutes(db), crmRoutes(db), meetingRoutes(db),
-    documentRoutes(db), directoryRoutes(db), dashboardRoutes(db), settingsRoutes(db, { dbPath, hostingLocation }),
-    shareRoutes(db), inboxRoutes(db),
+    userRoutes(db), companyRoutes(db), approvalRoutes(db), crmRoutes(db), meetingRoutes(db, { google }),
+    documentRoutes(db), directoryRoutes(db), dashboardRoutes(db), settingsRoutes(db, { dbPath, hostingLocation, googleEnabled: Boolean(google) }),
+    shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }),
   ]) {
     api.use(routes);
   }

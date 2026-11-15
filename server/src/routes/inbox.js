@@ -11,11 +11,12 @@ export function inboxRoutes(db) {
   const router = Router();
   const pendingApprovals = db.prepare(`SELECT a.id, a.kind, a.subject, a.created_at, a.company_id, c.name AS company_name,
       k.full_name AS contact_name
-    FROM approvals a JOIN companies c ON c.id = a.company_id LEFT JOIN contacts k ON k.id = a.contact_id
+    FROM approvals a LEFT JOIN companies c ON c.id = a.company_id LEFT JOIN contacts k ON k.id = a.contact_id
     WHERE a.status = 'pending' ORDER BY a.created_at`);
   const approvedNotSent = db.prepare(`SELECT COUNT(*) AS n FROM approvals WHERE status = 'approved' AND kind != 'company_brief'`);
-  const meetingsBetween = db.prepare(`SELECT m.id, m.title, m.scheduled_at, m.location, m.company_id, c.name AS company_name
-    FROM meetings m JOIN companies c ON c.id = m.company_id
+  const meetingsBetween = db.prepare(`SELECT m.id, m.title, m.scheduled_at, m.location, m.company_id, c.name AS company_name,
+      k.full_name AS contact_name
+    FROM meetings m LEFT JOIN companies c ON c.id = m.company_id LEFT JOIN contacts k ON k.id = m.contact_id
     WHERE m.status = 'scheduled' AND m.scheduled_at >= ? AND m.scheduled_at < ? ORDER BY m.scheduled_at`);
 
   function buildInbox() {

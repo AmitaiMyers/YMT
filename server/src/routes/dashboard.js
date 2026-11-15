@@ -32,7 +32,7 @@ export function dashboardRoutes(db) {
     res.json({
       stage_distribution: PIPELINE_STAGES.map((stage) => ({ stage, count: stageCounts[stage] ?? 0 })),
       upcoming_meetings: db.prepare(`SELECT m.id, m.title, m.scheduled_at, m.location, c.name AS company_name
-        FROM meetings m JOIN companies c ON c.id = m.company_id
+        FROM meetings m LEFT JOIN companies c ON c.id = m.company_id
         WHERE m.status = 'scheduled' AND m.scheduled_at >= ? AND m.scheduled_at <= ? ORDER BY m.scheduled_at`)
         .all(nowIso, upcomingEnd),
       open_proposals: db.prepare(`SELECT d.id, d.title, d.expected_value_usd, d.stage_changed_at, c.name AS company_name

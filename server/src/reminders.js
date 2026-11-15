@@ -31,7 +31,7 @@ export function buildReminders(db) {
       const committed = followupsCommitted(db, deal.id);
       return { ...deal, days_idle: daysSince(deal.last_activity_at), followups_committed: committed, can_followup: committed < maxFollowups };
     }),
-    overdue_tasks: db.prepare(`SELECT t.*, c.name AS company_name FROM tasks t JOIN companies c ON c.id = t.company_id
+    overdue_tasks: db.prepare(`SELECT t.*, c.name AS company_name FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
       WHERE t.done = 0 AND t.due_date IS NOT NULL AND t.due_date < ? ORDER BY t.due_date`).all(today),
   };
 }
