@@ -77,6 +77,10 @@ test('outreach drafts cannot be marked sent before human approval', async () => 
   const early = await call('POST', `/approvals/${draft.data.id}/mark-sent`, {});
   assert.equal(early.status, 409);
 
+  assert.equal((await call('PATCH', `/approvals/${draft.data.id}`, { content: 'Edited by reviewer' })).status, 200);
+  const edited = await call('GET', `/approvals/${draft.data.id}`);
+  assert.equal(edited.data.content, 'Edited by reviewer');
+  assert.match(edited.data.original_content, /Dana/, 'the generated text is kept for the "show changes" view');
   assert.equal((await call('POST', `/approvals/${draft.data.id}/approve`, {})).status, 200);
   assert.equal((await call('PATCH', `/approvals/${draft.data.id}`, { content: 'changed' })).status, 409, 'approved items are frozen');
   assert.equal((await call('POST', `/approvals/${draft.data.id}/mark-sent`, {})).status, 200);
@@ -174,7 +178,7 @@ test('unknown fields are rejected (fail fast)', async () => {
 test('read endpoints respond without errors', async () => {
   const { companyId } = await createCompanyWithContact();
   const meeting = await call('POST', '/meetings', { company_id: companyId, title: 'Prep me', scheduled_at: '2030-01-01T09:00' });
-  const paths = ['/me', '/dashboard', '/reminders', '/approvals?status=pending', '/deals', '/workflows', '/meetings', '/tasks',
+  const paths = ['/me', '/inbox', '/inbox/counts', '/search?q=Ac', '/dashboard', '/reminders', '/approvals?status=pending', '/deals', '/workflows', '/meetings', '/tasks',
     '/documents', '/templates', '/templates/placeholders', '/resources', '/resources/countries', '/settings',
     '/settings/data-info', '/audit-log', '/users', '/triggers', '/companies/industries',
     `/companies?industry=Valves&exports=no&min_employees=0`, `/companies/${companyId}/overview`,
@@ -183,4 +187,23 @@ test('read endpoints respond without errors', async () => {
     const response = await call('GET', path);
     assert.equal(response.status, 200, `${path}: ${JSON.stringify(response.data)}`);
   }
+});
+
+test('inbox ranks pending approvals and counts them for the navigation badge', async () => {
+  const { companyId } = await createCompanyWithContact();
+  await call('POST', `/companies/${companyId}/brief`, { language: 'en' });
+  const inbox = await call('GET', '/inbox');
+  assert.ok(inbox.data.approvals.some((a) => a.company_id === companyId));
+  const counts = await call('GET', '/inbox/counts');
+  assert.equal(counts.data.approvals, inbox.data.approvals.length);
+  assert.ok(counts.data.inbox >= counts.data.approvals);
+});
+
+test('search finds companies and open deals by name', async () => {
+  const company = await call('POST', '/companies', { name: 'Zebra Castings', industry: 'Metal', country: 'Israel', india_activity: 'none' });
+  await call('POST', '/deals', { company_id: company.data.id, workflow_id: 1, title: 'Zebra entry', deal_model: 'commission' });
+  const result = await call('GET', '/search?q=zebra');
+  assert.equal(result.data.companies[0].name, 'Zebra Castings');
+  assert.equal(result.data.deals[0].title, 'Zebra entry');
+  assert.equal((await call('GET', '/search')).status, 400);
 });

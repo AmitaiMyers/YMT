@@ -9,7 +9,7 @@ import { recordInteraction } from './timeline.js';
 import { EMAIL_KINDS } from './constants.js';
 
 export function enqueueApproval(db, userId, item) {
-  const id = insert(db, 'approvals', { ...item, created_by: userId, status: 'pending' });
+  const id = insert(db, 'approvals', { ...item, original_content: item.content, created_by: userId, status: 'pending' });
   audit(db, userId, 'approval.created', 'approvals', id, item.kind);
   return id;
 }

@@ -44,6 +44,14 @@ export function useFormat() {
   const locale = language === 'he' ? 'he-IL' : 'en-GB';
   return useMemo(() => ({
     date: (value) => (value ? new Date(value).toLocaleDateString(locale) : '—'),
+    longDate: (value) => new Date(value).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }),
+    relative: (value) => {
+      const minutes = Math.round((Date.parse(value) - Date.now()) / 60000);
+      const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+      if (Math.abs(minutes) < 60) return formatter.format(minutes, 'minute');
+      if (Math.abs(minutes) < 60 * 24) return formatter.format(Math.round(minutes / 60), 'hour');
+      return formatter.format(Math.round(minutes / 1440), 'day');
+    },
     dateTime: (value) => (value ? new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) : '—'),
     usd: (value) => (value === null || value === undefined ? '—' : new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)),
     number: (value) => (value === null || value === undefined ? '—' : new Intl.NumberFormat(locale).format(value)),

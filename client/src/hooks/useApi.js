@@ -1,18 +1,22 @@
 // Data-loading and action hooks. These are the single UI boundary where failed requests are turned into
 // visible error messages (instead of crashing the whole page); errors are never silently ignored.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { get } from '../api.js';
 
 /** Load JSON from `path` (re-loads when path changes). Pass null to skip loading. */
 export function useLoad(path) {
   const [state, setState] = useState({ data: null, error: null, loading: path !== null });
   const [version, setVersion] = useState(0);
+  const loadedPath = useRef(path);
 
   useEffect(() => {
     if (path === null) return undefined;
     let cancelled = false;
-    setState((previous) => ({ ...previous, loading: true, error: null }));
+    // A reload keeps the current data on screen (no flicker); a different path must not show stale data.
+    const samePath = loadedPath.current === path;
+    loadedPath.current = path;
+    setState((previous) => ({ data: samePath ? previous.data : null, loading: true, error: null }));
     get(path).then(
       (data) => !cancelled && setState({ data, error: null, loading: false }),
       (error) => !cancelled && setState({ data: null, error: error.message, loading: false }),

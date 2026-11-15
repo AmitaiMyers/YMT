@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS approvals (
   language TEXT NOT NULL CHECK (language IN ('he', 'en')),
   subject TEXT,
   content TEXT NOT NULL,
+  original_content TEXT, -- the text exactly as generated, so reviewers can see what was changed
   recipient_email TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'sent')),
   created_by INTEGER NOT NULL REFERENCES users(id),

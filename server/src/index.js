@@ -8,6 +8,11 @@ import { repoRoot, requireEnv, configuredDbPath } from './config.js';
 const port = Number(requireEnv('PORT', '3001'));
 if (!Number.isInteger(port)) throw new Error('PORT must be an integer');
 
+/** TRUST_PROXY: a hop count ("1" behind one proxy) or an Express trust-proxy keyword/CIDR list. */
+function parseTrustProxy(value) {
+  return /^\d+$/.test(value) ? Number(value) : value;
+}
+
 const dbPath = configuredDbPath();
 const db = openDatabase(dbPath);
 
@@ -15,6 +20,7 @@ const app = createApp(db, {
   dbPath,
   hostingLocation: requireEnv('HOSTING_LOCATION', 'Not specified – set HOSTING_LOCATION in .env'),
   clientDist: path.join(repoRoot, 'client/dist'),
+  trustProxy: parseTrustProxy(requireEnv('TRUST_PROXY', 'loopback')),
 });
 
 app.listen(port, () => {

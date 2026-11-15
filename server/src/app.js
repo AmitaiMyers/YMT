@@ -17,14 +17,17 @@ import { directoryRoutes } from './routes/directory.js';
 import { dashboardRoutes } from './routes/dashboard.js';
 import { settingsRoutes } from './routes/settings.js';
 import { shareRoutes, publicShareRoutes } from './routes/share.js';
+import { inboxRoutes } from './routes/inbox.js';
 
 /**
  * @param {import('node:sqlite').DatabaseSync} db
- * @param {{ dbPath: string, hostingLocation: string, clientDist?: string }} options
+ * @param {{ dbPath: string, hostingLocation: string, clientDist?: string, trustProxy?: string | number }} options
  */
-export function createApp(db, { dbPath, hostingLocation, clientDist }) {
+export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy = 'loopback' }) {
   const app = express();
-  app.set('trust proxy', 'loopback');
+  // Behind a hosting proxy/load balancer this must count its hops, or every visitor shares the proxy's IP
+  // (one login rate-limit bucket for everybody).
+  app.set('trust proxy', trustProxy);
   app.use(helmet());
   app.use(cookieParser());
   app.use(express.json({ limit: '1mb' }));
@@ -51,7 +54,7 @@ export function createApp(db, { dbPath, hostingLocation, clientDist }) {
   for (const routes of [
     userRoutes(db), companyRoutes(db), approvalRoutes(db), crmRoutes(db), meetingRoutes(db),
     documentRoutes(db), directoryRoutes(db), dashboardRoutes(db), settingsRoutes(db, { dbPath, hostingLocation }),
-    shareRoutes(db),
+    shareRoutes(db), inboxRoutes(db),
   ]) {
     api.use(routes);
   }

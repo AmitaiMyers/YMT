@@ -1,6 +1,6 @@
 # YMT Group PWA – Design System & UX Architecture (Phase 1)
 
-> Status: **proposal for review**. Nothing here is implemented yet. Phase 2 implements it in `client/`.
+> Status: **implemented (Phase 2)**. Deviations from the original proposal are listed in §5.
 
 ## 0. Design principles
 
@@ -212,3 +212,25 @@ client/src/
 - **The existing contracts stay:** `api.js`, `useLoad`, `useAction`, `EntityForm` (re-skinned onto the new `Field` primitives), i18n with the completeness check, and shared enums. The server API is unchanged.
 - **New dependencies (small, maintained, no CDN):** `@fontsource-variable/heebo`, `lucide-react`, `@dnd-kit/core` (accessible drag and drop for the pipeline). Dialogs, toasts, tooltips and the command palette are built in-house on native `<dialog>` + small hooks, to avoid a heavy UI kit.
 - **Quality gates:** Playwright smoke run in both languages, an axe-core accessibility check per page (no serious/critical violations), and visual screenshots at 390 / 1024 / 1440px.
+
+---
+
+## 5. Implementation notes (Phase 2)
+
+- **Folder layout:** primitives live in `client/src/ui/`, the shell in `client/src/app/`, and screens stay in `client/src/pages/` (not `features/`). Renaming the folders would only have moved files around.
+- **Tokens:** `client/src/design/tokens.css`, exposed to Tailwind through `@theme inline` in `index.css` (`bg-surface`, `text-muted`, `border-line`, …). The dark palette is defined once: `public/theme-init.js` (before first paint) and `ThemeProvider` always write the *resolved* theme to `html[data-theme]`.
+- **The meeting wizard autosaves to `sessionStorage`**, not `localStorage`, so confidential notes are cleared when the tab closes.
+- **Show changes:** approvals store `original_content` (the exact generated text) so reviewers see a line diff of what a person edited.
+- **Document lifecycle stepper:** Draft → Final → Signed by client. The YMT signature is optional in the signing model, so it is shown on the page rather than as a step.
+- **Accessibility gate:** every staff page is scanned with axe-core (WCAG 2.0/2.1/2.2 A+AA) in Hebrew/light and English/dark, with zero serious or critical findings at release.
+
+## 6. Mobile and desktop PWA
+
+| | Phone (< 768px) | Tablet (768–1279px) | Desktop (≥ 1280px) |
+|---|---|---|---|
+| Navigation | Top bar + bottom tab bar (Inbox, Approvals, Pipeline, Clients, More) | Icon rail with tooltips | Full grouped sidebar |
+| Touch targets | ≥ 44px | ≥ 44px | ≥ 40px |
+| Install | Android: "Install app" button; iOS/iPadOS: guided "Add to Home Screen" | same | Chrome/Edge: "Install app" button (sidebar footer and Settings) |
+| Extras | Safe areas (notch, home bar), `viewport-fit=cover` | | App shortcuts in the dock/taskbar (Inbox, Approvals, Pipeline, New company), Ctrl/⌘+K |
+
+The manifest provides `any` and `maskable` icons, install-dialog screenshots for both form factors (`narrow` and `wide`), and `display: standalone`. The service worker precaches only the app shell and the self-hosted font; API data is never cached. Each screen is code-split and downloads on first visit.

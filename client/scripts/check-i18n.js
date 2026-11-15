@@ -18,6 +18,15 @@ const DYNAMIC_KEYS = {
   meetingStatus: ['scheduled', 'done', 'cancelled'], role: ['admin', 'member'], share: ['active', 'expired', 'revoked'],
   companyTab: ['overview', 'contacts', 'triggers', 'pipeline', 'meetings', 'documents', 'matches', 'sharing'],
   privacy: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
+  navGroup: ['today', 'win', 'clients', 'manage'],
+  nav: ['inbox', 'approvals', 'calendar', 'leads', 'pipeline', 'clients', 'documents', 'network', 'dashboard', 'settings'],
+  theme: ['system', 'light', 'dark'],
+  'leads.tab': ['search', 'triggers', 'new'],
+  'clients.scope': ['clients', 'all'],
+  'complete.step': ['happened', 'tasks', 'followup'],
+  'document.step': ['draft', 'final', 'clientSigned'],
+  'approval.diff': ['added', 'removed'],
+  inbox: ['morning', 'afternoon', 'evening'],
 };
 
 function sourceFiles(dir) {
@@ -40,6 +49,7 @@ for (const language of Object.keys(STRINGS)) {
 }
 const he = Object.keys(STRINGS.he);
 const en = Object.keys(STRINGS.en);
+he.filter((key) => !usedKeys.has(key)).forEach((key) => problems.push(`unused key "${key}" (remove it from strings.js)`));
 he.filter((key) => !en.includes(key)).forEach((key) => problems.push(`[en] missing "${key}" (exists in he)`));
 en.filter((key) => !he.includes(key)).forEach((key) => problems.push(`[he] missing "${key}" (exists in en)`));
 

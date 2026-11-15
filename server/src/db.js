@@ -21,8 +21,24 @@ export function openDatabase(dbPath) {
   const db = new DatabaseSync(dbPath);
   db.exec('PRAGMA journal_mode = WAL;');
   db.exec(readFileSync(SCHEMA_PATH, 'utf8'));
+  applyColumnMigrations(db);
   seedDefaults(db);
   return db;
+}
+
+// Columns added after the first release. CREATE TABLE IF NOT EXISTS does not alter existing tables,
+// so each new column is added here when missing. Append only; never edit an entry.
+const COLUMN_MIGRATIONS = [
+  { table: 'approvals', column: 'original_content', definition: 'TEXT' },
+];
+
+function applyColumnMigrations(db) {
+  for (const { table, column, definition } of COLUMN_MIGRATIONS) {
+    assertIdentifier(table);
+    assertIdentifier(column);
+    const exists = db.prepare(`SELECT 1 FROM pragma_table_info('${table}') WHERE name = ?`).get(column);
+    if (!exists) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
 }
 
 function seedDefaults(db) {

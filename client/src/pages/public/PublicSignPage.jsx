@@ -2,42 +2,52 @@
 
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { ShieldCheck, ShieldAlert, PartyPopper } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useLoad } from '../../hooks/useApi.js';
 import { api } from '../../api.js';
-import { Card, Loaded, Notice } from '../../components/ui.jsx';
+import { Card, Loaded, Notice, GeneratedText, EmptyState, usePageTitle } from '../../ui/index.js';
 import { SignatureForm, SignatureList } from '../../components/SignatureForm.jsx';
+import { useSignatureLabels } from '../documents/DocumentPage.jsx';
 import { PublicLayout } from './PublicLayout.jsx';
 
 export function PublicSignPage() {
   const { token } = useParams();
   const { t } = useI18n();
   const format = useFormat();
+  const labels = useSignatureLabels();
   const result = useLoad(`/public/sign/${token}`);
   const [signed, setSigned] = useState(false);
+  usePageTitle(t('sign.title'));
 
   return (
     <PublicLayout>
       <Loaded result={result}>
         {(document) => (
           <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-brand-900">{document.title}</h1>
-            <p className="text-sm text-slate-500">{document.company_name}</p>
-            {!document.integrity_ok && <Notice color="amber">{t('document.integrityBroken')}</Notice>}
-            <Card>
-              <pre dir={document.language === 'he' ? 'rtl' : 'ltr'} className="prose-pre text-sm">{document.content}</pre>
-              <p className="mt-4 break-all text-xs text-slate-400">SHA-256: {document.content_hash}</p>
-            </Card>
-            {document.signatures.length > 0 && (
-              <Card title={t('document.signatures')}>
-                <SignatureList signatures={document.signatures} labels={{ ymt: 'YMT Group', client: t('document.client') }} formatDate={format.dateTime} />
-              </Card>
-            )}
-            {signed || document.status === 'signed' ? <Notice>{t('sign.thankYou')}</Notice> : (
+            <div>
+              <bdi className="text-[13px] text-subtle">{document.company_name}</bdi>
+              <h1 className="text-2xl font-bold"><bdi>{document.title}</bdi></h1>
+            </div>
+            {document.integrity_ok
+              ? <Notice icon={ShieldCheck}>{t('sign.integrityNote')}</Notice>
+              : <Notice tone="signal" icon={ShieldAlert}>{t('document.integrityBroken')}</Notice>}
+            <div className="rounded-[10px] border border-line bg-white p-6 text-slate-900 shadow-e1">
+              <GeneratedText text={document.content} language={document.language} className="!text-slate-900" />
+              <p dir="ltr" className="mt-6 break-all text-xs text-slate-500">SHA-256 {document.content_hash}</p>
+              {document.signatures.length > 0 && (
+                <div className="mt-6 border-t border-slate-200 pt-4">
+                  <SignatureList signatures={document.signatures} labels={{ ymt: 'YMT Group', client: t('document.client') }} formatDate={format.dateTime} />
+                </div>
+              )}
+            </div>
+            {signed || document.status === 'signed' ? (
+              <Card><EmptyState icon={PartyPopper} title={t('sign.thankYou')}>{t('sign.thankYouHint')}</EmptyState></Card>
+            ) : (
               <Card title={t('sign.title')}>
                 <SignatureForm
                   askEmail
-                  labels={{ name: t('sign.name'), email: t('sign.email'), drawHere: t('sign.drawHere'), consent: t('sign.consentClient'), sign: t('sign.sign'), clear: t('sign.clear') }}
+                  labels={{ ...labels, consent: t('sign.consentClient') }}
                   onSign={async (payload) => {
                     await api('POST', `/public/sign/${token}`, payload);
                     setSigned(true);

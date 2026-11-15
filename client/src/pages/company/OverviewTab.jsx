@@ -1,36 +1,41 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Pencil, FileText, Trash2 } from 'lucide-react';
+import { detectLanguage } from '../../lib/text.js';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useAction } from '../../hooks/useApi.js';
 import { patch, post, del } from '../../api.js';
 import { useAuth } from '../../auth/AuthProvider.jsx';
-import { Card, DefinitionList, Button, ErrorBox, Notice, Empty, ExternalLink } from '../../components/ui.jsx';
+import { Card, DefinitionList, Button, ErrorBox, EmptyState, ExternalLink, GeneratedText, useConfirm, useToast } from '../../ui/index.js';
 import { EntityForm } from '../../components/EntityForm.jsx';
 import { useCompanyFields } from '../../fields.js';
 
-export function OverviewTab({ data, reload }) {
+export function OverviewTab({ data, reload, flow }) {
   const { t } = useI18n();
   const format = useFormat();
   const navigate = useNavigate();
+  const confirm = useConfirm();
+  const toast = useToast();
   const { user } = useAuth();
   const fields = useCompanyFields();
   const [editing, setEditing] = useState(false);
   const company = data.company;
   const brief = useAction(async (language) => {
-    await post(`/companies/${company.id}/brief`, { language });
-    navigate('/approvals');
+    const { id } = await post(`/companies/${company.id}/brief`, { language });
+    reload();
+    flow.openDraft(id);
   });
   const remove = useAction(async () => {
+    const ok = await confirm({ title: t('company.delete'), body: t('company.confirmDelete', { name: company.name }), confirmLabel: t('common.delete'), tone: 'danger' });
+    if (!ok) return;
     await del(`/companies/${company.id}`);
-    navigate('/leads');
+    toast({ title: t('toast.deleted') });
+    navigate('/clients');
   });
 
   return (
     <div className="space-y-6">
-      <Card
-        title={t('company.details')}
-        actions={!editing && <Button variant="secondary" onClick={() => setEditing(true)}>{t('common.edit')}</Button>}
-      >
+      <Card title={t('company.details')} actions={!editing && <Button variant="secondary" size="sm" icon={Pencil} offlineOk onClick={() => setEditing(true)}>{t('common.edit')}</Button>}>
         {editing ? (
           <EntityForm
             fields={fields}
@@ -61,21 +66,21 @@ export function OverviewTab({ data, reload }) {
       <Card
         title={t('company.brief')}
         actions={<>
-          <Button variant="secondary" disabled={brief.busy} onClick={() => brief.run('he')}>{t('company.generateBriefHe')}</Button>
-          <Button variant="secondary" disabled={brief.busy} onClick={() => brief.run('en')}>{t('company.generateBriefEn')}</Button>
+          <Button variant="secondary" size="sm" loading={brief.busy} onClick={() => brief.run('he')}>{t('company.generateBriefHe')}</Button>
+          <Button variant="secondary" size="sm" loading={brief.busy} onClick={() => brief.run('en')}>{t('company.generateBriefEn')}</Button>
         </>}
       >
         <ErrorBox message={brief.error} />
-        <Notice>{t('company.briefHelp')}</Notice>
-        {company.approved_brief ? <pre className="prose-pre text-sm">{company.approved_brief}</pre> : <Empty>{t('company.noBrief')}</Empty>}
+        {company.approved_brief
+          ? <GeneratedText text={company.approved_brief} language={detectLanguage(company.approved_brief)} />
+          : <EmptyState icon={FileText} title={t('company.noBrief')}>{t('company.briefHelp')}</EmptyState>}
       </Card>
 
       {user.role === 'admin' && (
         <Card title={t('company.dangerZone')}>
           <ErrorBox message={remove.error} />
-          <Button variant="danger" disabled={remove.busy} onClick={() => window.confirm(t('company.confirmDelete')) && remove.run()}>
-            {t('company.delete')}
-          </Button>
+          <p className="mb-3 text-sm text-muted">{t('company.deleteHint')}</p>
+          <Button variant="danger" icon={Trash2} loading={remove.busy} onClick={remove.run}>{t('company.delete')}</Button>
         </Card>
       )}
     </div>

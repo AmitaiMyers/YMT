@@ -1,7 +1,8 @@
+import { Link2, Ban } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
-import { Card, Badge, Button, ErrorBox, Notice, Table } from '../../components/ui.jsx';
+import { Card, Button, ErrorBox, Notice, Table, StatusBadge, statusTone, EmptyState, useConfirm, useToast } from '../../ui/index.js';
 import { EntityForm } from '../../components/EntityForm.jsx';
 import { CopyButton } from '../../components/CopyButton.jsx';
 
@@ -10,13 +11,16 @@ function linkStatus(link) {
   return Date.parse(link.expires_at) < Date.now() ? 'expired' : 'active';
 }
 
-const STATUS_COLORS = { active: 'green', expired: 'gray', revoked: 'red' };
-
 export function SharingTab({ data, reload }) {
   const { t } = useI18n();
   const format = useFormat();
+  const confirm = useConfirm();
+  const toast = useToast();
   const revoke = useAction(async (link) => {
+    const ok = await confirm({ title: t('share.revokeTitle'), body: t('share.revokeBody', { label: link.label }), confirmLabel: t('share.revoke'), tone: 'danger' });
+    if (!ok) return;
     await post(`/share-links/${link.id}/revoke`);
+    toast({ title: t('toast.linkRevoked') });
     reload();
   });
   const fields = [
@@ -26,11 +30,11 @@ export function SharingTab({ data, reload }) {
   const columns = [
     { key: 'label', label: t('share.label') },
     { key: 'expires_at', label: t('share.expires'), render: (l) => format.dateTime(l.expires_at) },
-    { key: 'status', label: t('share.status'), render: (l) => <Badge color={STATUS_COLORS[linkStatus(l)]}>{t(`share.${linkStatus(l)}`)}</Badge> },
-    { key: 'actions', label: '', render: (l) => linkStatus(l) === 'active' && (
-      <div className="flex gap-1">
-        <CopyButton className="!px-2 !py-1 text-xs" text={`${window.location.origin}/share/${l.token}`} label={t('share.copyLink')} />
-        <Button variant="danger" className="!px-2 !py-1 text-xs" onClick={() => revoke.run(l)}>{t('share.revoke')}</Button>
+    { key: 'status', label: t('share.status'), render: (l) => <StatusBadge tone={statusTone('share', linkStatus(l))}>{t(`share.${linkStatus(l)}`)}</StatusBadge> },
+    { key: 'actions', label: <span className="sr-only">{t('common.actions')}</span>, render: (l) => linkStatus(l) === 'active' && (
+      <div className="flex flex-wrap gap-1">
+        <CopyButton size="sm" text={`${window.location.origin}/share/${l.token}`} label={t('share.copyLink')} />
+        <Button variant="ghost" size="sm" icon={Ban} className="text-danger-fg" onClick={() => revoke.run(l)}>{t('share.revoke')}</Button>
       </div>
     ) },
   ];
@@ -39,13 +43,14 @@ export function SharingTab({ data, reload }) {
       <Card title={t('share.title')}>
         <Notice>{t('share.help')}</Notice>
         <ErrorBox message={revoke.error} />
-        <Table columns={columns} rows={data.share_links} empty={t('share.none')} />
+        <Table caption={t('share.title')} columns={columns} rows={data.share_links} empty={<EmptyState icon={Link2} title={t('share.none')} />} />
       </Card>
       <Card title={t('share.create')}>
         <EntityForm
           fields={fields}
           resetOnSuccess
           submitLabel={t('share.createButton')}
+          successMessage={t('toast.linkCreated')}
           onSubmit={async (values) => {
             const result = await post(`/companies/${data.company.id}/share-links`, values);
             reload();

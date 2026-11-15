@@ -13,14 +13,14 @@ export function useCompanyFields() {
     { name: 'name', label: t('company.name'), type: 'text', required: true },
     { name: 'industry', label: t('company.industry'), type: 'text', required: true },
     { name: 'country', label: t('company.country'), type: 'text', required: true },
-    { name: 'website', label: t('company.website'), type: 'url' },
-    { name: 'employee_count', label: t('company.employees'), type: 'number' },
-    { name: 'annual_revenue_usd', label: t('company.revenue'), type: 'number' },
+    { name: 'website', label: t('company.website'), type: 'url', advanced: true },
+    { name: 'employee_count', label: t('company.employees'), type: 'number', advanced: true },
+    { name: 'annual_revenue_usd', label: t('company.revenue'), type: 'number', advanced: true },
     { name: 'india_activity', label: t('company.indiaActivity'), type: 'select', required: true, options: options('indiaActivity', INDIA_ACTIVITY) },
-    { name: 'export_markets', label: t('company.exportMarkets'), type: 'text' },
+    { name: 'export_markets', label: t('company.exportMarkets'), type: 'text', advanced: true },
     { name: 'exports', label: t('company.exports'), type: 'checkbox' },
     { name: 'is_client', label: t('company.isClient'), type: 'checkbox' },
-    { name: 'notes', label: t('company.notes'), type: 'textarea', wide: true },
+    { name: 'notes', label: t('company.notes'), type: 'textarea', wide: true, advanced: true },
   ];
 }
 
@@ -47,7 +47,7 @@ export function useContactFields() {
     { name: 'preferred_language', label: t('contact.language'), type: 'select', required: true, options: options('language', LANGUAGES) },
     { name: 'email', label: t('contact.email'), type: 'email' },
     { name: 'phone', label: t('contact.phone'), type: 'text' },
-    { name: 'linkedin_url', label: t('contact.linkedin'), type: 'url', wide: true },
+    { name: 'linkedin_url', label: t('contact.linkedin'), type: 'url', wide: true, advanced: true },
     { name: 'verified', label: t('contact.verified'), type: 'checkbox' },
     { name: 'verified_source', label: t('contact.verifiedSource'), type: 'text', help: t('contact.verifiedHelp') },
   ];
@@ -107,7 +107,7 @@ export function useResourceFields() {
     { name: 'contact_name', label: t('resource.contactName'), type: 'text' },
     { name: 'email', label: t('contact.email'), type: 'email' },
     { name: 'phone', label: t('contact.phone'), type: 'text' },
-    { name: 'website', label: t('company.website'), type: 'url' },
+    { name: 'website', label: t('company.website'), type: 'url', advanced: true },
     { name: 'rating', label: t('resource.rating'), type: 'number', min: 1 },
     { name: 'nda_signed', label: t('resource.ndaSigned'), type: 'checkbox' },
     { name: 'notes', label: t('company.notes'), type: 'textarea', wide: true, rows: 2 },

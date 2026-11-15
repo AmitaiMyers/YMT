@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { useLoad } from '../hooks/useApi.js';
 import { post } from '../api.js';
-import { Loaded } from './ui.jsx';
+import { Loaded } from '../ui/index.js';
 import { EntityForm } from './EntityForm.jsx';
 import { withIds } from '../fields.js';
 import { DOCUMENT_KINDS } from '../../../shared/enums.js';
@@ -30,6 +30,7 @@ export function NewDocumentForm({ companyId, deals, meetings }) {
           <EntityForm
             fields={fields}
             submitLabel={t('document.createDraft')}
+            successMessage={t('toast.draftCreated')}
             onSubmit={async (values) => {
               const { id } = await post('/documents', withIds({ ...values, company_id: companyId }, ['template_id', 'deal_id', 'meeting_id']));
               navigate(`/documents/${id}`);
