@@ -73,7 +73,7 @@ shared/   enums.js – the single list of stages, statuses, channels… used by 
 - Change wording of emails, quotes, agreements, summaries, briefs: Settings → Templates.
 - Change targets, reminder days, follow-up cap, share-link validity: Settings → General.
 - Add a service type: Settings → Workflows.
-- Backup: Settings → Data & privacy → *Back up now*, then copy `data/backups/*.db` to encrypted storage. Restore = stop the server and replace `data/ymt.db`.
+- Backup: Settings → Data & privacy → *Download backup* (admins). It saves a complete, consistent copy of the database to your computer; keep it in an encrypted folder. *Back up on server* also keeps a copy in `data/backups/`. Restore = stop the server and replace `data/ymt.db` with the backup file.
 
 ## Deliberate MVP limits / next steps
 

@@ -5,6 +5,9 @@ import assert from 'node:assert/strict';
 import { openDatabase } from '../src/db.js';
 import { createApp } from '../src/app.js';
 import { createUser } from '../src/auth.js';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgo=';
 let server;
@@ -33,7 +36,10 @@ before(async () => {
   cookie = login.headers.get('set-cookie').split(';')[0];
 });
 
-after(() => server.close());
+after(() => {
+  server.closeAllConnections();
+  server.close();
+});
 
 async function createCompanyWithContact() {
   const company = await call('POST', '/companies', { name: 'Acme', industry: 'Valves', country: 'Israel', india_activity: 'none' });
@@ -206,4 +212,41 @@ test('search finds companies and open deals by name', async () => {
   assert.equal(result.data.companies[0].name, 'Zebra Castings');
   assert.equal(result.data.deals[0].title, 'Zebra entry');
   assert.equal((await call('GET', '/search')).status, 400);
+});
+
+test('admins can download a complete database backup (file-based database)', async (t) => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'ymt-backup-'));
+  const fileDbPath = path.join(dir, 'ymt.db');
+  const fileDb = openDatabase(fileDbPath);
+  createUser(fileDb, { username: 'boss', display_name: 'Boss', password: 'correct-horse', role: 'admin' });
+  createUser(fileDb, { username: 'staff', display_name: 'Staff', password: 'correct-horse', role: 'member' });
+  const fileServer = createApp(fileDb, { dbPath: fileDbPath, hostingLocation: 'test' }).listen(0);
+  await new Promise((resolve) => fileServer.once('listening', resolve));
+  t.after(() => {
+    fileServer.closeAllConnections();
+    fileServer.close();
+    rmSync(dir, { recursive: true, force: true });
+  });
+  const url = `http://127.0.0.1:${fileServer.address().port}/api`;
+  const loginAs = async (username) => {
+    const response = await fetch(`${url}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password: 'correct-horse' }) });
+    return response.headers.get('set-cookie').split(';')[0];
+  };
+
+  const memberResponse = await fetch(`${url}/settings/backup/download`, { headers: { Cookie: await loginAs('staff') } });
+  assert.equal(memberResponse.status, 403, 'members cannot download the database');
+
+  const response = await fetch(`${url}/settings/backup/download`, { headers: { Cookie: await loginAs('boss') } });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-disposition'), /attachment; filename="?ymt-[0-9TZ-]+\.db"?/);
+  const bytes = Buffer.from(await response.arrayBuffer());
+  assert.equal(bytes.subarray(0, 16).toString('latin1'), 'SQLite format 3\u0000', 'the download is a real SQLite database');
+  writeFileSync(path.join(dir, 'restored.db'), bytes);
+  const check = openDatabase(path.join(dir, 'restored.db'));
+  assert.equal(check.prepare('SELECT COUNT(*) AS n FROM users').get().n, 2, 'the backup contains the data');
+
+});
+
+test('backups are refused for an in-memory database', async () => {
+  assert.equal((await call('GET', '/settings/backup/download')).status, 400);
 });

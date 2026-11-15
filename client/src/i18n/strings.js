@@ -162,8 +162,8 @@ const he = {
   'privacy.p1': 'כניסה עם שם משתמש וסיסמה בלבד; סיסמאות מוצפנות (scrypt).', 'privacy.p2': 'עוגיית התחברות מאובטחת (HttpOnly, SameSite) עם תפוגה אחרי יום עבודה.',
   'privacy.p3': 'נתוני API אינם נשמרים במטמון הדפדפן או ב-Service Worker.', 'privacy.p4': 'כל אישור, שליחה, שיתוף וחתימה נרשמים ביומן ביקורת.',
   'privacy.p5': 'קישורי שיתוף מציגים רק מידע שאושר לשיתוף, פגי תוקף וניתנים לביטול.', 'privacy.p6': 'שום הודעה אינה יוצאת מהמערכת ללא פעולה ידנית של איש צוות.',
-  'privacy.backup': 'גיבוי', 'privacy.backupHelp': 'יוצר עותק מלא של מסד הנתונים בתיקיית backups שליד הקובץ. מומלץ להעתיק גיבויים לאחסון מוצפן.',
-  'privacy.backupNow': 'גיבוי עכשיו', 'privacy.backupDone': 'הגיבוי נשמר: {path}',
+  'privacy.backup': 'גיבוי', 'privacy.backupHelp': '"הורדת גיבוי" שומר עותק מלא של כל המידע במחשב שלך – כך קיים עותק גם אם השרת יאבד. "גיבוי בשרת" שומר עותק נוסף על דיסק השרת בלבד.',
+  'privacy.backupNow': 'גיבוי בשרת', 'privacy.backupDone': 'הגיבוי נשמר: {path}',
 
   'audit.when': 'מתי', 'audit.who': 'מי', 'audit.action': 'פעולה', 'audit.entity': 'רשומה', 'audit.detail': 'פרטים', 'audit.external': 'חיצוני (לקוח)',
 
@@ -381,6 +381,9 @@ const he = {
   'users.statusInactive': "מושבת",
   'theme.switchLight': "מעבר לערכה בהירה",
   'theme.switchDark': "מעבר לערכה כהה",
+  'privacy.downloadBackup': "הורדת גיבוי",
+  'privacy.downloadHint': "שמרו את הקובץ בתיקייה מוצפנת (לא במייל). זהו עותק מלא של כל המידע הסודי.",
+  'toast.backupDownloading': "הגיבוי יורד למחשב",
 };
 
 const en = {
@@ -544,8 +547,8 @@ const en = {
   'privacy.p1': 'Sign-in with username and password only; passwords are hashed (scrypt).', 'privacy.p2': 'Secure session cookie (HttpOnly, SameSite) that expires after a working day.',
   'privacy.p3': 'API data is never cached by the browser or the service worker.', 'privacy.p4': 'Every approval, send, share and signature is recorded in the audit log.',
   'privacy.p5': 'Share links show only data approved for sharing, expire, and can be revoked.', 'privacy.p6': 'No message leaves the system without a manual action by a team member.',
-  'privacy.backup': 'Backup', 'privacy.backupHelp': 'Creates a full copy of the database in a backups folder next to the file. Copy backups to encrypted storage.',
-  'privacy.backupNow': 'Back up now', 'privacy.backupDone': 'Backup saved: {path}',
+  'privacy.backup': 'Backup', 'privacy.backupHelp': '"Download backup" saves a complete copy of all data to your computer, so a copy exists even if the server is lost. "Back up on server" keeps an extra copy on the server disk only.',
+  'privacy.backupNow': 'Back up on server', 'privacy.backupDone': 'Backup saved: {path}',
 
   'audit.when': 'When', 'audit.who': 'Who', 'audit.action': 'Action', 'audit.entity': 'Record', 'audit.detail': 'Details', 'audit.external': 'External (client)',
   // ---- Phase 2 (design system, inbox, PWA)
@@ -762,6 +765,9 @@ const en = {
   'users.statusInactive': "Inactive",
   'theme.switchLight': "Switch to light theme",
   'theme.switchDark': "Switch to dark theme",
+  'privacy.downloadBackup': "Download backup",
+  'privacy.downloadHint': "Keep the file in an encrypted folder (not in email). It is a full copy of all confidential data.",
+  'toast.backupDownloading': "Backup is downloading",
 };
 
 export const STRINGS = { he, en };

@@ -4,14 +4,14 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light dark" />
-<title>Hosting Options · YMT Group</title>
+<title>System Design Options · YMT Group</title>
 <style>
-  /* Same palette as the YMT app (docs/DESIGN_SYSTEM.md). Self-contained: no external fonts or scripts. */
+  /* Same palette as the YMT app (docs/DESIGN_SYSTEM.md). Self-contained: no external fonts, scripts or images. */
   :root {
     --canvas: #F7F8FA; --surface: #FFFFFF; --sunken: #F1F5F9; --line: #E2E8F0; --line-strong: #CBD5E1;
     --fg: #1E293B; --muted: #475569; --subtle: #5B6B82;
     --primary: #0F2A4A; --on-primary: #FFFFFF; --link: #1D4F8C; --focus: #1D4F8C;
-    --info-soft: #EEF4FB; --info-line: #C7D7EE;
+    --info-soft: #EEF4FB; --info-line: #C7D7EE; --chart: #2E6FBF;
     --signal: #F59E0B; --signal-fg: #92400E; --signal-soft: #FFF7E6;
     --success: #047857; --success-fg: #047857; --success-soft: #ECFDF5;
     --danger-fg: #B91C1C; --danger-soft: #FEF2F2;
@@ -22,7 +22,7 @@
       --canvas: #0B1220; --surface: #111A2E; --sunken: #0E1628; --line: #1F2A44; --line-strong: #2C3A5A;
       --fg: #E2E8F0; --muted: #94A3B8; --subtle: #8796AD;
       --primary: #0A1426; --on-primary: #E2E8F0; --link: #7EB3F2; --focus: #7EB3F2;
-      --info-soft: #13233F; --info-line: #23395F;
+      --info-soft: #13233F; --info-line: #23395F; --chart: #5B9BE6;
       --signal: #FBBF24; --signal-fg: #FBBF24; --signal-soft: #2A2110;
       --success: #047857; --success-fg: #34D399; --success-soft: #0F2A22;
       --danger-fg: #F87171; --danger-soft: #2D1517;
@@ -34,31 +34,33 @@
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
   a { color: var(--link); }
   code { font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
-  .wrap { max-width: 1040px; margin: 0 auto; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
   header.hero { background: var(--primary); color: var(--on-primary); padding: 32px 16px; }
   .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; font-size: 14px; opacity: .9; }
   .brand svg { width: 28px; height: 28px; }
   h1 { margin: 14px 0 8px; font-size: 30px; line-height: 1.2; }
-  .lede { margin: 0; max-width: 68ch; color: #C7D7EE; }
-  @media (prefers-color-scheme: dark) { .lede { color: var(--muted); } }
+  .lede { margin: 0; max-width: 70ch; color: #C7D7EE; }
   .meta { margin-top: 14px; font-size: 13px; color: #C7D7EE; }
-  @media (prefers-color-scheme: dark) { .meta { color: var(--subtle); } }
+  @media (prefers-color-scheme: dark) { .lede { color: var(--muted); } .meta { color: var(--subtle); } }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  nav.toc a { color: var(--on-primary); text-decoration: none; border: 1px solid rgb(255 255 255 / .3); border-radius: 999px; padding: 4px 12px; font-size: 13px; }
+  nav.toc a:hover { background: rgb(255 255 255 / .1); }
   main { padding: 28px 16px 56px; }
-  h2 { font-size: 21px; margin: 0 0 12px; }
-  h3 { font-size: 16px; margin: 20px 0 8px; }
-  section { margin-bottom: 36px; }
-  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--e1); padding: 20px; }
+  h2 { font-size: 22px; margin: 0 0 6px; }
+  h3 { font-size: 16px; margin: 22px 0 8px; }
+  section { margin-bottom: 44px; scroll-margin-top: 12px; }
   .muted { color: var(--muted); }
   .small { font-size: 13px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--e1); padding: 20px; }
 
-  /* Summary: three option cards */
+  /* At a glance */
   .options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
   .opt { display: flex; flex-direction: column; text-decoration: none; color: inherit; transition: box-shadow 160ms, transform 160ms; }
   .opt:hover { box-shadow: var(--e2); transform: translateY(-2px); }
   .opt.recommended { border: 2px solid var(--signal); }
   .tier { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--subtle); }
-  .opt h3 { margin: 4px 0 2px; font-size: 19px; }
-  .price { font-size: 28px; font-weight: 800; margin: 10px 0 0; font-variant-numeric: tabular-nums; }
+  .opt h3 { margin: 4px 0 2px; font-size: 18px; }
+  .price { font-size: 26px; font-weight: 800; margin: 8px 0 0; font-variant-numeric: tabular-nums; }
   .price small { font-size: 14px; font-weight: 500; color: var(--muted); }
   .opt p { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
   .pill { display: inline-block; align-self: flex-start; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; margin-bottom: 10px; }
@@ -67,45 +69,62 @@
   .pill.info { background: var(--info-soft); color: var(--link); }
   .go { margin-top: auto; padding-top: 14px; font-weight: 600; color: var(--link); font-size: 14px; }
 
+  /* Diagrams: inline SVG coloured by the same tokens, so they follow light/dark mode */
+  figure.diagram { margin: 16px 0 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--e1); padding: 12px; }
+  .diagram-scroll { overflow-x: auto; }
+  .diagram svg { display: block; width: 100%; min-width: 760px; height: auto; }
+  figcaption { font-size: 13px; color: var(--muted); padding: 10px 6px 2px; }
+  svg text { font-family: system-ui, "Segoe UI", Arial, sans-serif; }
+  .z { fill: var(--sunken); stroke: var(--line-strong); stroke-dasharray: 6 5; stroke-width: 1.2; }
+  .zl { fill: var(--subtle); font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+  .b { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.4; }
+  .b-app { fill: var(--info-soft); stroke: var(--chart); stroke-width: 1.6; }
+  .b-data { fill: var(--success-soft); stroke: var(--success-fg); stroke-width: 1.6; }
+  .b-ext { fill: var(--signal-soft); stroke: var(--signal); stroke-width: 1.4; }
+  .b-new { fill: var(--surface); stroke: var(--signal); stroke-width: 2; stroke-dasharray: 5 3; }
+  .t { fill: var(--fg); font-size: 14px; font-weight: 700; }
+  .s { fill: var(--muted); font-size: 12px; }
+  .ln { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+  .ln-d { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+  .ln-data { stroke: var(--success-fg); stroke-width: 1.8; fill: none; }
+  .ah { fill: var(--muted); }
+  .ah-data { fill: var(--success-fg); }
+  .el { fill: var(--subtle); font-size: 11px; font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); padding: 8px 6px 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .sw { width: 14px; height: 10px; border-radius: 3px; border: 1.5px solid; display: inline-block; }
+
   /* Tables */
-  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--e1); }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: var(--e1); margin-top: 12px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  caption { text-align: start; padding: 12px 16px 0; font-weight: 600; }
   th, td { padding: 10px 16px; text-align: start; border-bottom: 1px solid var(--line); vertical-align: top; }
   thead th { font-size: 13px; color: var(--subtle); font-weight: 600; background: var(--sunken); }
   tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
-  tbody th { font-weight: 600; }
+  tbody th { font-weight: 600; white-space: nowrap; }
   td.num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
   tr.total td, tr.total th { font-weight: 700; background: var(--sunken); }
   .yes { color: var(--success-fg); font-weight: 600; }
   .no { color: var(--danger-fg); font-weight: 600; }
   .partial { color: var(--signal-fg); font-weight: 600; }
 
-  /* Option detail */
-  .option-detail { scroll-margin-top: 16px; }
-  .option-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
-  .option-head h2 { margin: 0; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid2 > * { min-width: 0; }
   .pros, .cons { margin: 0; padding-inline-start: 20px; }
   .pros li::marker { color: var(--success-fg); }
   .cons li::marker { color: var(--danger-fg); }
-  ol.steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: grid; gap: 10px; }
-  ol.steps li { counter-increment: step; display: grid; grid-template-columns: 30px 1fr; gap: 10px; }
-  ol.steps li::before { content: counter(step); display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-size: 13px; font-weight: 700; }
-  @media (prefers-color-scheme: dark) { ol.steps li::before { background: var(--link); color: #0B1220; } }
-  .step-title { font-weight: 600; }
-  .step-text { color: var(--muted); font-size: 14px; }
+  .option-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
   .fit { background: var(--info-soft); border: 1px solid var(--info-line); border-radius: 10px; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
   .warn { background: var(--signal-soft); border: 1px solid color-mix(in srgb, var(--signal) 40%, transparent); color: var(--signal-fg); border-radius: 10px; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
-
-  .path { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
-  .path .stage { position: relative; padding: 16px; border: 1px solid var(--line); background: var(--surface); }
+  .flow { counter-reset: f; list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .flow li { counter-increment: f; display: grid; grid-template-columns: 26px 1fr; gap: 10px; font-size: 14px; }
+  .flow li::before { content: counter(f); width: 24px; height: 24px; border-radius: 50%; background: var(--sunken); border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .path { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .path .stage { padding: 16px; border: 1px solid var(--line); background: var(--surface); }
   .path .stage:first-child { border-radius: 10px 0 0 10px; }
   .path .stage:last-child { border-radius: 0 10px 10px 0; }
-  .path .when { font-size: 12px; font-weight: 700; color: var(--subtle); text-transform: uppercase; letter-spacing: .05em; }
-  .path .what { font-weight: 700; margin: 4px 0; }
-  .path .why { font-size: 14px; color: var(--muted); }
-
+  .when { font-size: 12px; font-weight: 700; color: var(--subtle); text-transform: uppercase; letter-spacing: .05em; }
+  .what { font-weight: 700; margin: 4px 0; }
+  .why { font-size: 14px; color: var(--muted); }
   footer { color: var(--subtle); font-size: 13px; padding: 0 16px 40px; }
   @media (max-width: 820px) {
     .options, .grid2, .path { grid-template-columns: 1fr; }
@@ -115,273 +134,524 @@
   @media print {
     body { background: #fff; color: #000; }
     header.hero { background: #fff; color: #000; border-bottom: 2px solid #000; }
-    .lede, .meta { color: #333; }
-    .card, .table-wrap { box-shadow: none; break-inside: avoid; }
-    .option-detail { break-before: page; }
-    .opt:hover { transform: none; }
+    .lede, .meta { color: #333; } nav.toc { display: none; }
+    .card, .table-wrap, figure.diagram { box-shadow: none; break-inside: avoid; }
+    .option { break-before: page; }
+    .diagram svg { min-width: 0; }
   }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah" /></marker>
+    <marker id="ahd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-data" /></marker>
+  </defs>
+</svg>
+
 <header class="hero">
   <div class="wrap">
     <div class="brand">
       <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="96" fill="#0F2A4A" stroke="#ffffff33" stroke-width="16"/><path d="M96 352 L208 224 L288 296 L416 160" fill="none" stroke="#F59E0B" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/></svg>
       YMT GROUP · MANAGEMENT BRIEF
     </div>
-    <h1>Where should the YMT app live?<br />Three hosting options</h1>
-    <p class="lede">The YMT app (lead research, CRM pipeline and client service hub) is built and running. This brief compares three ways to host it for the team: <strong>cheap</strong>, <strong>medium</strong> and <strong>expensive</strong>. Each option lists the monthly cost, what you get, what you give up, and the first-week steps.</p>
-    <div class="meta">Prices checked November 2026, in US dollars, excluding VAT. Sources are listed at the end. Items marked “est.” are estimates, not quotes.</div>
+    <h1>System design options for the YMT web app</h1>
+    <p class="lede">The YMT app (lead research, CRM pipeline, client service hub, and the installable app for phone and desktop) is built and running. This brief shows how the whole system fits together, then three ways to run it in production, <strong>cheap</strong>, <strong>medium</strong> and <strong>expensive</strong>, each with an architecture diagram, how data moves, how it is protected and backed up, and what it costs.</p>
+    <div class="meta">Prices checked November 2026, in US dollars, excluding VAT. Items marked “est.” are estimates, not quotes. Sources are listed at the end.</div>
+    <nav class="toc" aria-label="Sections">
+      <a href="#app">The app itself</a><a href="#glance">At a glance</a><a href="#cheap">1 · Cheap</a><a href="#medium">2 · Medium</a><a href="#expensive">3 · Expensive</a><a href="#compare">Comparison</a><a href="#path">Recommendation</a>
+    </nav>
   </div>
 </header>
 
 <main class="wrap">
 
-  <section aria-labelledby="summary">
-    <h2 id="summary">At a glance</h2>
-    <div class="options">
+  <!-- ===================================================== LOGICAL ARCHITECTURE -->
+  <section id="app" aria-labelledby="h-app">
+    <h2 id="h-app">The app itself (the same in every option)</h2>
+    <p class="muted">Whichever option you choose, the app is the same three layers: <strong>who uses it</strong>, <strong>one server application</strong> containing every business module, and <strong>one database</strong>. The options only change where these layers run and what protects them.</p>
+    <figure class="diagram">
+      <div class="diagram-scroll">
+      <svg viewBox="0 0 1000 470" role="img" aria-labelledby="d0t d0d">
+        <title id="d0t">Logical architecture of the YMT web app</title>
+        <desc id="d0d">Three groups of users (staff using the installable app on phone and desktop, foreign partners using read-only share links, and clients using signing links) connect over HTTPS to one server application. It contains login and sessions, the human approval queue, lead research, CRM and pipeline, meetings, documents and e-signatures, the supplier network, and settings with the audit log. The server stores everything in one database. Outgoing emails are never sent by the server; a staff member sends them from their own mailbox after approval.</desc>
+
+        <rect class="z" x="10" y="20" width="230" height="430" rx="12" /><text class="zl" x="26" y="44">WHO USES IT</text>
+        <rect class="b" x="26" y="62" width="198" height="104" rx="8" />
+        <text class="t" x="40" y="88">YMT staff</text>
+        <text class="s" x="40" y="108">Installable app (PWA)</text>
+        <text class="s" x="40" y="126">Phone · tablet · desktop</text>
+        <text class="s" x="40" y="144">Hebrew (RTL) / English (LTR)</text>
+        <rect class="b" x="26" y="184" width="198" height="88" rx="8" />
+        <text class="t" x="40" y="210">Foreign partners</text>
+        <text class="s" x="40" y="230">Read-only share link</text>
+        <text class="s" x="40" y="248">Expires · can be revoked</text>
+        <rect class="b" x="26" y="290" width="198" height="88" rx="8" />
+        <text class="t" x="40" y="316">Clients</text>
+        <text class="s" x="40" y="336">Signing link for quotes</text>
+        <text class="s" x="40" y="354">and agreements</text>
+        <text class="s" x="26" y="410">Phone/desktop keep only the</text>
+        <text class="s" x="26" y="426">app shell offline, never client data.</text>
+
+        <path class="ln" d="M224 114 H300" marker-end="url(#ah)" />
+        <path class="ln" d="M224 228 H300" marker-end="url(#ah)" />
+        <path class="ln" d="M224 334 H300" marker-end="url(#ah)" />
+        <text class="el" x="238" y="106">HTTPS</text>
+
+        <rect class="z" x="302" y="20" width="456" height="430" rx="12" /><text class="zl" x="318" y="44">ONE SERVER APPLICATION</text>
+        <rect class="b-app" x="318" y="62" width="424" height="46" rx="8" />
+        <text class="t" x="334" y="90">Login &amp; sessions · roles · rate limiting · security headers</text>
+        <g>
+          <rect class="b" x="318" y="122" width="206" height="62" rx="8" /><text class="t" x="332" y="148">Lead research</text><text class="s" x="332" y="168">criteria · triggers · contacts</text>
+          <rect class="b-ext" x="536" y="122" width="206" height="62" rx="8" /><text class="t" x="550" y="148">Human approval queue</text><text class="s" x="550" y="168">every draft waits for a person</text>
+          <rect class="b" x="318" y="196" width="206" height="62" rx="8" /><text class="t" x="332" y="222">CRM &amp; pipeline</text><text class="s" x="332" y="242">workflows · follow-ups (max 3)</text>
+          <rect class="b" x="536" y="196" width="206" height="62" rx="8" /><text class="t" x="550" y="222">Meetings &amp; tasks</text><text class="s" x="550" y="242">prep sheet · summary wizard</text>
+          <rect class="b" x="318" y="270" width="206" height="62" rx="8" /><text class="t" x="332" y="296">Documents &amp; e-sign</text><text class="s" x="332" y="316">templates · SHA-256 seal</text>
+          <rect class="b" x="536" y="270" width="206" height="62" rx="8" /><text class="t" x="550" y="296">Supplier network</text><text class="s" x="550" y="316">manufacturers · experts · NDA</text>
+          <rect class="b" x="318" y="344" width="424" height="46" rx="8" /><text class="t" x="332" y="372">Settings · audit log · backups · dashboard · inbox</text>
+        </g>
+        <text class="s" x="318" y="420">Generated text uses templates only; no AI provider,</text>
+        <text class="s" x="318" y="436">no third-party service receives company data.</text>
+
+        <path class="ln-data" d="M758 236 H830" marker-end="url(#ahd)" />
+        <text class="el" x="764" y="228">read/write</text>
+
+        <rect class="z" x="820" y="20" width="174" height="430" rx="12" /><text class="zl" x="834" y="44">DATA</text>
+        <rect class="b-data" x="832" y="176" width="152" height="118" rx="8" />
+        <text class="t" x="846" y="204">Database</text>
+        <text class="s" x="846" y="224">companies · contacts</text>
+        <text class="s" x="846" y="242">deals · approvals</text>
+        <text class="s" x="846" y="260">documents · audit</text>
+        <text class="s" x="846" y="278">signatures</text>
+        <rect class="b" x="832" y="320" width="152" height="58" rx="8" />
+        <text class="t" x="846" y="344">Backups</text>
+        <text class="s" x="846" y="364">database copies</text>
+        <path class="ln-d" d="M908 294 V318" marker-end="url(#ah)" />
+
+        <rect class="b-ext" x="832" y="62" width="152" height="80" rx="8" />
+        <text class="t" x="846" y="88">Email</text>
+        <text class="s" x="846" y="108">sent by a person</text>
+        <text class="s" x="846" y="126">from own mailbox</text>
+        <path class="ln-d" d="M742 140 C790 140 800 102 830 102" marker-end="url(#ah)" />
+        <text class="el" x="764" y="160">after approval</text>
+      </svg>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--info-soft);border-color:var(--chart)"></i>Access control</span>
+        <span><i class="sw" style="background:var(--signal-soft);border-color:var(--signal)"></i>Human decision point</span>
+        <span><i class="sw" style="background:var(--success-soft);border-color:var(--success-fg)"></i>Company data</span>
+        <span>— — dashed = manual / occasional</span>
+      </div>
+      <figcaption>Figure 1. Logical architecture. Nothing leaves the system automatically: emails, share links and signing links are always sent by a staff member.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ===================================================== AT A GLANCE -->
+  <section id="glance" aria-labelledby="h-glance">
+    <h2 id="h-glance">Three ways to run it</h2>
+    <div class="options" style="margin-top:14px">
       <a class="card opt recommended" href="#cheap">
         <span class="pill rec">Recommended to start</span>
         <span class="tier">Option 1 · Cheap</span>
-        <h3>Render Starter</h3>
+        <h3>Single container on Render</h3>
         <div class="price">≈ $8 <small>/ month</small></div>
-        <p>Live in an afternoon. Good for the pilot and the first months with a small team.</p>
-        <span class="go">See details →</span>
+        <p>One managed server and one disk in Frankfurt (EU). Backups are downloaded by an admin.</p>
+        <span class="go">See the design →</span>
       </a>
       <a class="card opt" href="#medium">
         <span class="pill ok">Next step</span>
         <span class="tier">Option 2 · Medium</span>
-        <h3>Render Standard, with backups and support</h3>
-        <div class="price">≈ $30 <small>/ month + support</small></div>
-        <p>The same setup with more capacity, your own domain, automatic off-site backups, monitoring and a few hours of expert help each month.</p>
-        <span class="go">See details →</span>
+        <h3>Render, hardened</h3>
+        <div class="price">≈ $30–45 <small>/ month + support</small></div>
+        <p>A bigger server, your own domain, automatic daily encrypted off-site backups, uptime alerts and a part-time freelancer.</p>
+        <span class="go">See the design →</span>
       </a>
       <a class="card opt" href="#expensive">
         <span class="pill info">For enterprise clients</span>
         <span class="tier">Option 3 · Expensive</span>
-        <h3>AWS Tel Aviv, enterprise grade</h3>
+        <h3>High availability on AWS Tel Aviv</h3>
         <div class="price">≈ $200–400 <small>/ month + partner</small></div>
-        <p>Data stays in Israel, with company single sign-on (Microsoft or Google), a high-availability database and an IT partner. Requires a development project first.</p>
-        <span class="go">See details →</span>
+        <p>Data stays in Israel. Two app servers, a managed database with a standby copy, a web firewall and company sign-on.</p>
+        <span class="go">See the design →</span>
       </a>
     </div>
   </section>
 
-  <section aria-labelledby="compare">
-    <h2 id="compare">Side-by-side comparison</h2>
-    <div class="table-wrap">
-      <table>
-        <caption class="muted small">What each option gives the business</caption>
-        <thead><tr><th scope="col"></th><th scope="col">1 · Cheap</th><th scope="col">2 · Medium</th><th scope="col">3 · Expensive</th></tr></thead>
-        <tbody>
-          <tr><th scope="row">Monthly hosting</th><td>≈ $8</td><td>≈ $30</td><td>≈ $200–400 (est.)</td></tr>
-          <tr><th scope="row">People cost</th><td>None (founder does it)</td><td>Freelancer, ~4 h/month (est.)</td><td>IT partner retainer + one-time project (est.)</td></tr>
-          <tr><th scope="row">Time to go live</th><td>1 afternoon</td><td>1 week</td><td>1–2 months</td></tr>
-          <tr><th scope="row">Code changes needed</th><td class="yes">None</td><td class="yes">None</td><td class="no">Yes (database, sign-on)</td></tr>
-          <tr><th scope="row">Where data is stored</th><td>EU (Frankfurt)</td><td>EU (Frankfurt) + EU backup copy</td><td>Israel (Tel Aviv)</td></tr>
-          <tr><th scope="row">Backups</th><td class="partial">Manual, monthly</td><td class="yes">Automatic, daily, off-site</td><td class="yes">Automatic, point-in-time</td></tr>
-          <tr><th scope="row">Users it handles comfortably</th><td>~1–10</td><td>~10–40</td><td>40+ and multiple offices</td></tr>
-          <tr><th scope="row">Downtime when updating</th><td class="partial">Under a minute</td><td class="partial">Under a minute</td><td class="yes">None</td></tr>
-          <tr><th scope="row">Company sign-on (Microsoft/Google)</th><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
-          <tr><th scope="row">Who to call when it breaks</th><td>Render support (email)</td><td>Your freelancer</td><td>IT partner, with agreed response times</td></tr>
-          <tr><th scope="row">Upgrade path</th><td>→ Medium: change settings, about 1 hour</td><td>→ Expensive: a project</td><td>—</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
   <!-- ===================================================== OPTION 1 -->
-  <section id="cheap" class="option-detail" aria-labelledby="h-cheap">
-    <div class="option-head">
-      <h2 id="h-cheap">Option 1 · Cheap: Render Starter</h2>
-      <span class="pill rec">Recommended to start</span>
-    </div>
-    <p class="muted">Render is a managed hosting service: it builds the app from GitHub and runs it, so there are no servers to look after. The app runs as one container with a small permanent disk for the database. This is what the repository is set up for today.</p>
+  <section id="cheap" class="option" aria-labelledby="h-cheap">
+    <div class="option-head"><h2 id="h-cheap">Option 1 · Cheap: single container on Render</h2><span class="pill rec">Recommended to start</span></div>
+    <p class="muted">The whole app runs as <strong>one container</strong> on Render, a managed hosting service that builds it straight from GitHub. The database is a single file (SQLite) on a small permanent disk next to it. This is exactly how the repository is set up today.</p>
 
-    <div class="table-wrap">
-      <table>
-        <caption class="muted small">Monthly cost</caption>
-        <thead><tr><th scope="col">Item</th><th scope="col">What it is</th><th scope="col" class="num">Per month</th></tr></thead>
-        <tbody>
-          <tr><th scope="row">Web service – Starter</th><td>512 MB memory, 0.5 CPU, region Frankfurt (EU)</td><td class="num">$7.00</td></tr>
-          <tr><th scope="row">Persistent disk – 1 GB</th><td>Where all company data lives ($0.25 per GB). 1 GB holds years of CRM data.</td><td class="num">$0.25</td></tr>
-          <tr><th scope="row">Web address</th><td>Free <code>…onrender.com</code> address with HTTPS included</td><td class="num">$0</td></tr>
-          <tr class="total"><th scope="row">Total</th><td></td><td class="num">≈ $7.25 (≈ $87 / year)</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="small muted">Render's free plan is <strong>not</strong> an option: free services sleep when idle and cannot have a disk, so the data would be wiped on every restart.</p>
+    <figure class="diagram">
+      <div class="diagram-scroll">
+      <svg viewBox="0 0 1000 330" role="img" aria-labelledby="d1t d1d">
+        <title id="d1t">Option 1 deployment on Render</title>
+        <desc id="d1d">Users connect over HTTPS to Render's edge, which handles the security certificate and forwards traffic to one Docker container in Frankfurt. The container runs the server application and serves the app. It reads and writes one SQLite database file on a 1 GB persistent disk mounted at /data, which also holds backup copies. An admin downloads a backup to an encrypted folder on their computer. GitHub pushes trigger automatic deploys.</desc>
+
+        <rect class="b" x="14" y="40" width="160" height="96" rx="8" />
+        <text class="t" x="28" y="66">Staff · partners</text><text class="t" x="28" y="84">· clients</text>
+        <text class="s" x="28" y="106">phone &amp; desktop</text><text class="s" x="28" y="122">browsers / installed app</text>
+
+        <path class="ln" d="M174 88 H232" marker-end="url(#ah)" /><text class="el" x="182" y="80">HTTPS</text>
+
+        <rect class="z" x="234" y="14" width="560" height="300" rx="12" /><text class="zl" x="250" y="38">RENDER · FRANKFURT (EU)</text>
+        <rect class="b-app" x="252" y="56" width="140" height="64" rx="8" />
+        <text class="t" x="266" y="82">Render edge</text><text class="s" x="266" y="102">HTTPS certificate</text>
+        <path class="ln" d="M392 88 H436" marker-end="url(#ah)" />
+        <rect class="b" x="438" y="52" width="338" height="140" rx="8" />
+        <text class="t" x="454" y="78">Web service · Starter (512 MB)</text>
+        <text class="s" x="454" y="98">One Docker container:</text>
+        <text class="s" x="454" y="116">• Node.js server (API + all modules)</text>
+        <text class="s" x="454" y="134">• serves the installable app (PWA)</text>
+        <text class="s" x="454" y="152">• env vars: ADMIN_USERNAME, ADMIN_PASSWORD,</text>
+        <text class="s" x="454" y="170">  HOSTING_LOCATION, TRUST_PROXY=1</text>
+        <path class="ln-data" d="M606 192 V226" marker-end="url(#ahd)" />
+        <rect class="b-data" x="438" y="228" width="338" height="70" rx="8" />
+        <text class="t" x="454" y="254">Persistent disk 1 GB · /data</text>
+        <text class="s" x="454" y="274">ymt.db (SQLite) · backups/ (server-side copies)</text>
+
+        <rect class="b" x="822" y="52" width="164" height="70" rx="8" />
+        <text class="t" x="836" y="78">GitHub</text><text class="s" x="836" y="98">push → auto deploy</text>
+        <path class="ln-d" d="M822 88 H778" marker-end="url(#ah)" />
+
+        <rect class="b-ext" x="822" y="228" width="164" height="76" rx="8" />
+        <text class="t" x="836" y="254">Admin laptop</text><text class="s" x="836" y="274">“Download backup”</text><text class="s" x="836" y="290">→ encrypted folder</text>
+        <path class="ln-d" d="M776 263 H820" marker-end="url(#ah)" />
+      </svg>
+      </div>
+      <figcaption>Figure 2. One machine, one disk. Simple and cheap; the disk is the single point of failure, so admins download backups regularly.</figcaption>
+    </figure>
 
     <div class="grid2">
       <div>
-        <h3>What you get</h3>
-        <ul class="pros">
-          <li>Live the same day, with no code changes.</li>
-          <li>HTTPS and an installable app on phones and computers.</li>
-          <li>Every push to GitHub updates the app automatically.</li>
-          <li>Data in one place, in the EU, visible on the app's Data &amp; Privacy page.</li>
-        </ul>
+        <h3>How it works</h3>
+        <ol class="flow">
+          <li>Render receives the request over HTTPS and passes it to the container.</li>
+          <li>The server checks the session cookie, runs the business rules and reads or writes the SQLite file.</li>
+          <li>Every push to GitHub rebuilds and restarts the container (under a minute of downtime).</li>
+          <li>Admins use <strong>Settings → Data &amp; Privacy → Download backup</strong> to keep a full copy off the server.</li>
+        </ol>
       </div>
       <div>
-        <h3>What you give up</h3>
-        <ul class="cons">
-          <li>Backups are manual (Settings → Data &amp; Privacy → Back up now, then download).</li>
-          <li>Small machine: fine for a handful of users, not for a large team.</li>
-          <li>Updates restart the app, causing under a minute of downtime.</li>
-          <li>No one is on call; Render support is by email.</li>
-        </ul>
+        <h3>Monthly cost</h3>
+        <div class="table-wrap" style="margin-top:0">
+          <table>
+            <tbody>
+              <tr><th scope="row">Web service – Starter</th><td class="num">$7.00</td></tr>
+              <tr><th scope="row">Persistent disk 1 GB ($0.25/GB)</th><td class="num">$0.25</td></tr>
+              <tr><th scope="row">HTTPS + <code>…onrender.com</code> address</th><td class="num">$0</td></tr>
+              <tr><th scope="row">SQLite database software</th><td class="num">$0 (free)</td></tr>
+              <tr class="total"><th scope="row">Total</th><td class="num">≈ $7.25</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="small muted">Render's free plan cannot be used: it has no disk, so every restart would erase the data.</p>
       </div>
     </div>
 
-    <h3>Week 1: Go live</h3>
-    <ol class="steps">
-      <li><div><div class="step-title">Open a Render account</div><div class="step-text">Use a company email and turn on two-factor login.</div></div></li>
-      <li><div><div class="step-title">Create a Web Service from GitHub</div><div class="step-text">Repository <code>amitaimyers/ymt</code>, runtime <strong>Docker</strong>, region <strong>Frankfurt</strong>, plan <strong>Starter</strong>.</div></div></li>
-      <li><div><div class="step-title">Add a 1 GB disk mounted at <code>/data</code></div><div class="step-text">Without the disk, data is lost on every deploy.</div></div></li>
-      <li><div><div class="step-title">Set the environment variables</div><div class="step-text"><code>ADMIN_USERNAME</code>, <code>ADMIN_PASSWORD</code> (10+ characters), optionally <code>ADMIN_NAME</code>, and <code>HOSTING_LOCATION</code> = “Render, Frankfurt EU”.</div></div></li>
-      <li><div><div class="step-title">Set the start command</div><div class="step-text"><code>npm run demo:start</code> (creates the admin and demo data on the first start; safe on every restart). For real use without demo data, use <code>node server/src/index.js</code> and create the admin from Render's Shell.</div></div></li>
-      <li><div><div class="step-title">Log in and install the app</div><div class="step-text">Open the <code>…onrender.com</code> address, log in, and tap <strong>Install app</strong> on your phone and computer.</div></div></li>
-    </ol>
-    <div class="fit"><strong>Best for:</strong> the pilot, demos to partners, and the first months with up to about 10 users.</div>
+    <div class="grid2">
+      <div>
+        <h3>Strengths</h3>
+        <ul class="pros">
+          <li>No servers to manage, and no code changes.</li>
+          <li>Data in one place in the EU, visible on the app's Data &amp; Privacy page.</li>
+          <li>All security built into the app is active: hashed passwords, secure cookies, audit log, human approval of every message.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Limits</h3>
+        <ul class="cons">
+          <li>Backups depend on someone clicking <em>Download backup</em>.</li>
+          <li>One small machine: comfortable for about 10 users.</li>
+          <li>Disk or region failure = restore from the last downloaded backup.</li>
+          <li>Updates cause under a minute of downtime.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="fit"><strong>Best for:</strong> the pilot, partner demos and the first months with up to about 10 users.</div>
   </section>
 
   <!-- ===================================================== OPTION 2 -->
-  <section id="medium" class="option-detail" aria-labelledby="h-medium">
-    <div class="option-head">
-      <h2 id="h-medium">Option 2 · Medium: Render Standard, with backups and support</h2>
-      <span class="pill ok">Next step</span>
-    </div>
-    <p class="muted">The same Render setup as Option 1, made dependable for daily use by the whole team. Upgrading from Option 1 is a settings change: same code, same data.</p>
+  <section id="medium" class="option" aria-labelledby="h-medium">
+    <div class="option-head"><h2 id="h-medium">Option 2 · Medium: Render, hardened</h2><span class="pill ok">Next step</span></div>
+    <p class="muted">The same single-container design as Option 1, with the weak points closed: more capacity, a company domain, <strong>automatic daily encrypted backups to separate EU storage</strong>, outage alerts, and a person responsible for it. Upgrading keeps the same data.</p>
 
-    <div class="table-wrap">
-      <table>
-        <caption class="muted small">Monthly cost</caption>
-        <thead><tr><th scope="col">Item</th><th scope="col">What it is</th><th scope="col" class="num">Per month</th></tr></thead>
-        <tbody>
-          <tr><th scope="row">Web service – Standard</th><td>2 GB memory, 1 CPU (4× the memory of Starter), Frankfurt</td><td class="num">$25.00</td></tr>
-          <tr><th scope="row">Persistent disk – 5 GB</th><td>Room for documents, signatures and years of history</td><td class="num">$1.25</td></tr>
-          <tr><th scope="row">Automatic off-site backups</th><td>A scheduled job copies the encrypted database daily to EU cloud storage (e.g. Backblaze B2 or AWS S3)</td><td class="num">≈ $2–5 (est.)</td></tr>
-          <tr><th scope="row">Own domain</th><td>e.g. <code>app.ymt-group.com</code> (≈ $15 / year)</td><td class="num">≈ $1.25</td></tr>
-          <tr><th scope="row">Uptime monitoring</th><td>Sends an alert by SMS/email if the app goes down (free tiers exist)</td><td class="num">$0–10</td></tr>
-          <tr class="total"><th scope="row">Hosting total</th><td></td><td class="num">≈ $30–45</td></tr>
-          <tr><th scope="row">Freelance developer (est.)</th><td>~4 hours/month: updates, backup checks, small changes. Typical Israeli rates ₪250–400/hour.</td><td class="num">≈ ₪1,000–1,600</td></tr>
-        </tbody>
-      </table>
+    <figure class="diagram">
+      <div class="diagram-scroll">
+      <svg viewBox="0 0 1000 390" role="img" aria-labelledby="d2t d2d">
+        <title id="d2t">Option 2 deployment on Render, hardened</title>
+        <desc id="d2d">Users reach app.ymt-group.com through the company's DNS, then Render's edge, then a Standard web service with 2 GB memory in Frankfurt that reads and writes SQLite on a 5 GB disk. A nightly backup job makes an encrypted copy of the database and uploads it to EU object storage in a different company, with 30 days of versions kept. An uptime monitor checks the health endpoint every few minutes and alerts the founder and a freelancer. Admins can still download a backup manually.</desc>
+
+        <rect class="b" x="14" y="56" width="160" height="80" rx="8" />
+        <text class="t" x="28" y="82">Users</text><text class="s" x="28" y="102">app.ymt-group.com</text><text class="s" x="28" y="120">phone &amp; desktop</text>
+        <path class="ln" d="M174 96 H206" marker-end="url(#ah)" />
+        <rect class="b" x="208" y="66" width="108" height="60" rx="8" />
+        <text class="t" x="220" y="92">DNS</text><text class="s" x="220" y="110">your domain</text>
+        <path class="ln" d="M316 96 H344" marker-end="url(#ah)" />
+
+        <rect class="z" x="346" y="14" width="440" height="360" rx="12" /><text class="zl" x="362" y="38">RENDER · FRANKFURT (EU)</text>
+        <rect class="b-app" x="362" y="62" width="120" height="68" rx="8" />
+        <text class="t" x="374" y="88">Render edge</text><text class="s" x="374" y="108">HTTPS</text>
+        <path class="ln" d="M482 96 H514" marker-end="url(#ah)" />
+        <rect class="b" x="516" y="52" width="254" height="104" rx="8" />
+        <text class="t" x="530" y="78">Web service · Standard</text>
+        <text class="s" x="530" y="98">2 GB memory, 1 CPU</text>
+        <text class="s" x="530" y="116">Same Docker container</text>
+        <text class="s" x="530" y="134">/api/health for monitoring</text>
+        <path class="ln-data" d="M643 156 V188" marker-end="url(#ahd)" />
+        <rect class="b-data" x="516" y="190" width="254" height="62" rx="8" />
+        <text class="t" x="530" y="216">Persistent disk 5 GB · /data</text>
+        <text class="s" x="530" y="236">ymt.db (SQLite)</text>
+        <rect class="b-new" x="516" y="284" width="254" height="74" rx="8" />
+        <text class="t" x="530" y="310">Nightly backup job</text>
+        <text class="s" x="530" y="330">copy → encrypt → upload</text>
+        <text class="s" x="530" y="348">(small addition, ≈ 1 day)</text>
+        <path class="ln-d" d="M643 252 V282" marker-end="url(#ah)" />
+
+        <rect class="z" x="810" y="14" width="180" height="200" rx="12" /><text class="zl" x="824" y="38">SEPARATE EU STORAGE</text>
+        <rect class="b-data" x="824" y="56" width="152" height="140" rx="8" />
+        <text class="t" x="838" y="82">Object storage</text>
+        <text class="s" x="838" y="102">e.g. Backblaze B2 or</text>
+        <text class="s" x="838" y="120">AWS S3 Frankfurt</text>
+        <text class="s" x="838" y="140">encrypted copies</text>
+        <text class="s" x="838" y="158">30 daily versions</text>
+        <path class="ln-data" d="M770 321 C800 321 800 170 822 170" marker-end="url(#ahd)" />
+
+        <rect class="b-ext" x="810" y="240" width="180" height="118" rx="8" />
+        <text class="t" x="824" y="266">Uptime monitor</text>
+        <text class="s" x="824" y="286">checks every few min</text>
+        <text class="s" x="824" y="304">alert → founder +</text>
+        <text class="s" x="824" y="322">freelancer (SMS/email)</text>
+        <path class="ln-d" d="M808 300 C790 300 790 120 772 120" marker-end="url(#ah)" />
+
+        <rect class="b" x="14" y="220" width="300" height="138" rx="8" />
+        <text class="t" x="28" y="246">Freelancer · ~4 h / month</text>
+        <text class="s" x="28" y="266">• checks backups, tests a restore</text>
+        <text class="s" x="28" y="284">• applies updates, small changes</text>
+        <text class="s" x="28" y="302">• first responder to alerts</text>
+        <text class="s" x="28" y="320">• keeps the “if it breaks” note</text>
+      </svg>
+      </div>
+      <div class="legend"><span><i class="sw" style="border-color:var(--signal);border-style:dashed"></i>New compared to Option 1</span></div>
+      <figcaption>Figure 3. Same app, same single disk, but a daily encrypted copy lives with a different provider. A total loss costs at most one day of data.</figcaption>
+    </figure>
+
+    <div class="grid2">
+      <div>
+        <h3>How it works</h3>
+        <ol class="flow">
+          <li>Users open the company address; DNS points it to Render, which handles HTTPS.</li>
+          <li>The container runs exactly as in Option 1, with 4× the memory.</li>
+          <li>Every night a backup job makes a consistent copy of the database, encrypts it and uploads it to EU storage at another company. 30 versions are kept.</li>
+          <li>An uptime monitor calls <code>/api/health</code>; if it fails, the founder and the freelancer get an alert.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Monthly cost</h3>
+        <div class="table-wrap" style="margin-top:0">
+          <table>
+            <tbody>
+              <tr><th scope="row">Web service – Standard</th><td class="num">$25.00</td></tr>
+              <tr><th scope="row">Persistent disk 5 GB</th><td class="num">$1.25</td></tr>
+              <tr><th scope="row">Off-site backup storage (est.)</th><td class="num">≈ $2–5</td></tr>
+              <tr><th scope="row">Own domain (≈ $15 / year)</th><td class="num">≈ $1.25</td></tr>
+              <tr><th scope="row">Uptime monitoring</th><td class="num">$0–10</td></tr>
+              <tr class="total"><th scope="row">Hosting total</th><td class="num">≈ $30–45</td></tr>
+              <tr><th scope="row">Freelancer ~4 h at ₪250–400 (est.)</th><td class="num">≈ ₪1,000–1,600</td></tr>
+              <tr><th scope="row">One-time: backup job (est.)</th><td class="num">≈ 1 day of work</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div class="grid2">
       <div>
-        <h3>What you get</h3>
+        <h3>Strengths</h3>
         <ul class="pros">
-          <li>Comfortable for the whole team every day.</li>
-          <li>Daily automatic backups kept outside Render. A disaster costs at most one day of data.</li>
-          <li>A professional web address on your own domain.</li>
-          <li>Alerts when something breaks, and a named person to fix it.</li>
-          <li>Still no code changes; one afternoon of setup on top of Option 1.</li>
+          <li>Comfortable for the whole team every day (~10–40 users).</li>
+          <li>Backups no longer depend on anyone remembering; they are encrypted and stored with a second provider.</li>
+          <li>Outages are noticed in minutes, and someone is responsible for fixing them.</li>
+          <li>Professional company address.</li>
         </ul>
       </div>
       <div>
-        <h3>What you give up</h3>
+        <h3>Limits</h3>
         <ul class="cons">
-          <li>Still one machine: updates cause under a minute of downtime.</li>
-          <li>Data is in the EU, not in Israel. This is fine for most partners; check NDA wording.</li>
+          <li>Still one machine: updates cause under a minute of downtime, and recovery from a failure takes up to a few hours.</li>
+          <li>Data is in the EU, not in Israel. This is acceptable to most partners; check NDA wording.</li>
           <li>Login is still username and password (no Microsoft/Google sign-on).</li>
-          <li>Depends on one freelancer's availability.</li>
         </ul>
       </div>
     </div>
-
-    <h3>Week 1: Upgrade from Option 1</h3>
-    <ol class="steps">
-      <li><div><div class="step-title">Change the plan to Standard and the disk to 5 GB</div><div class="step-text">In Render: Settings → Instance type, and Disks → Size. Data is kept.</div></div></li>
-      <li><div><div class="step-title">Connect your domain</div><div class="step-text">Render → Custom Domains, then add the record it shows at your domain provider. HTTPS is set up automatically.</div></div></li>
-      <li><div><div class="step-title">Hire a freelancer for ~4 hours/month</div><div class="step-text">Their first task is to set up the daily encrypted backup job and test a restore; then a monthly check.</div></div></li>
-      <li><div><div class="step-title">Turn on uptime monitoring</div><div class="step-text">Point it at <code>/api/health</code> and send alerts to you and the freelancer.</div></div></li>
-      <li><div><div class="step-title">Write a one-page “if it breaks” note</div><div class="step-text">Who to call, where the backups are, and how to restore. Keep it next to this brief.</div></div></li>
-    </ol>
-    <div class="fit"><strong>Best for:</strong> when the team relies on the app every day, roughly 10–40 users, and when clients start asking “where is our data and how is it backed up?”</div>
+    <div class="fit"><strong>Best for:</strong> when the team relies on the app every day, and clients start asking “where is our data and how is it backed up?”</div>
   </section>
 
   <!-- ===================================================== OPTION 3 -->
-  <section id="expensive" class="option-detail" aria-labelledby="h-expensive">
-    <div class="option-head">
-      <h2 id="h-expensive">Option 3 · Expensive: AWS Tel Aviv, enterprise grade</h2>
-      <span class="pill info">For enterprise clients</span>
-    </div>
-    <p class="muted">Amazon Web Services has a region in Israel (Tel Aviv). This option keeps all data inside Israel, uses a managed high-availability database, and lets staff sign in with company Microsoft or Google accounts. <strong>It is a project, not a settings change:</strong> the app needs some development work first.</p>
+  <section id="expensive" class="option" aria-labelledby="h-expensive">
+    <div class="option-head"><h2 id="h-expensive">Option 3 · Expensive: high availability on AWS Tel Aviv</h2><span class="pill info">For enterprise clients</span></div>
+    <p class="muted">Amazon Web Services' <strong>Israel (Tel Aviv)</strong> region keeps all data inside Israel. The app runs on <strong>two servers in two separate data centers</strong> behind a load balancer and web firewall, with a managed PostgreSQL database that has a live standby copy. Staff sign in with their company Microsoft or Google account. <strong>This is a development project, not a settings change.</strong></p>
 
-    <div class="table-wrap">
-      <table>
-        <caption class="muted small">Monthly cost (estimates – get a quote from the AWS Pricing Calculator or the IT partner)</caption>
-        <thead><tr><th scope="col">Item</th><th scope="col">What it is</th><th scope="col" class="num">Per month</th></tr></thead>
-        <tbody>
-          <tr><th scope="row">App servers (2, managed containers)</th><td>Two copies of the app, so updates and failures cause no downtime</td><td class="num">≈ $60–120 (est.)</td></tr>
-          <tr><th scope="row">Managed PostgreSQL database, high availability</th><td>Standby copy in a second data center, point-in-time recovery</td><td class="num">≈ $30–120 (est.)</td></tr>
-          <tr><th scope="row">Load balancer + web firewall</th><td>HTTPS entry point with protection against common attacks</td><td class="num">≈ $30–60 (est.)</td></tr>
-          <tr><th scope="row">Backups, logs, monitoring, data transfer</th><td>Kept for 30 days or more, with alerts</td><td class="num">≈ $20–60 (est.)</td></tr>
-          <tr class="total"><th scope="row">Hosting total</th><td></td><td class="num">≈ $200–400 (est.)</td></tr>
-          <tr><th scope="row">IT partner retainer (est.)</th><td>Monitoring, security updates, agreed response times</td><td class="num">≈ ₪3,000–8,000</td></tr>
-          <tr><th scope="row">One-time project (est.)</th><td>Move the database to PostgreSQL, add Microsoft/Google sign-on, set up the infrastructure, security review. About 3–6 weeks of developer time.</td><td class="num">≈ ₪40,000–90,000 once</td></tr>
-        </tbody>
-      </table>
+    <figure class="diagram">
+      <div class="diagram-scroll">
+      <svg viewBox="0 0 1000 470" role="img" aria-labelledby="d3t d3d">
+        <title id="d3t">Option 3 deployment on AWS Israel (Tel Aviv)</title>
+        <desc id="d3d">Users reach the company domain through AWS DNS. Requests pass a web application firewall and a load balancer, which spreads them across two app containers, one in each of two availability zones (separate data centers) in the Tel Aviv region. Both containers use a managed PostgreSQL database: a primary in zone A that continuously replicates to a standby in zone B, which takes over automatically on failure. Documents and backups go to S3 storage. Passwords and keys are kept in a secrets vault. Logs and alarms go to monitoring, which alerts an IT partner. Staff sign in through the company identity provider, Microsoft Entra ID or Google Workspace.</desc>
+
+        <rect class="b" x="14" y="60" width="150" height="80" rx="8" />
+        <text class="t" x="28" y="86">Users</text><text class="s" x="28" y="106">company domain</text><text class="s" x="28" y="124">phone &amp; desktop</text>
+        <path class="ln" d="M164 100 H196" marker-end="url(#ah)" />
+
+        <rect class="b-ext" x="14" y="300" width="150" height="104" rx="8" />
+        <text class="t" x="28" y="326">Company sign-on</text>
+        <text class="s" x="28" y="346">Microsoft Entra ID</text>
+        <text class="s" x="28" y="364">or Google Workspace</text>
+        <text class="s" x="28" y="382">new · no passwords</text>
+
+        <rect class="z" x="198" y="14" width="788" height="440" rx="12" /><text class="zl" x="214" y="38">AWS · ISRAEL (TEL AVIV) REGION</text>
+        <rect class="b-app" x="214" y="56" width="146" height="88" rx="8" />
+        <text class="t" x="228" y="82">DNS + firewall</text><text class="s" x="228" y="102">Route 53 · WAF</text><text class="s" x="228" y="120">blocks attacks</text>
+        <path class="ln" d="M360 100 H392" marker-end="url(#ah)" />
+        <rect class="b-app" x="394" y="56" width="150" height="88" rx="8" />
+        <text class="t" x="408" y="82">Load balancer</text><text class="s" x="408" y="102">HTTPS · spreads</text><text class="s" x="408" y="120">traffic over 2 zones</text>
+
+        <rect class="z" x="214" y="170" width="356" height="270" rx="10" /><text class="zl" x="228" y="192">ZONE A</text>
+        <rect class="z" x="590" y="170" width="380" height="270" rx="10" /><text class="zl" x="604" y="192">ZONE B (separate data center)</text>
+
+        <rect class="b" x="230" y="204" width="210" height="76" rx="8" />
+        <text class="t" x="244" y="230">App container 1</text><text class="s" x="244" y="250">ECS Fargate</text><text class="s" x="244" y="268">same app code</text>
+        <rect class="b" x="606" y="204" width="210" height="76" rx="8" />
+        <text class="t" x="620" y="230">App container 2</text><text class="s" x="620" y="250">ECS Fargate</text><text class="s" x="620" y="268">same app code</text>
+        <path class="ln" d="M440 144 L340 202" marker-end="url(#ah)" />
+        <path class="ln" d="M500 144 L700 202" marker-end="url(#ah)" />
+
+        <rect class="b-data" x="230" y="326" width="210" height="96" rx="8" />
+        <text class="t" x="244" y="352">PostgreSQL primary</text><text class="s" x="244" y="372">Amazon RDS (managed)</text><text class="s" x="244" y="390">point-in-time recovery</text><text class="s" x="244" y="408">(new: replaces SQLite)</text>
+        <rect class="b-data" x="606" y="326" width="210" height="96" rx="8" />
+        <text class="t" x="620" y="352">PostgreSQL standby</text><text class="s" x="620" y="372">live copy, takes over</text><text class="s" x="620" y="390">automatically on failure</text>
+        <path class="ln-data" d="M335 280 V324" marker-end="url(#ahd)" />
+        <path class="ln-data" d="M711 280 C711 300 420 300 380 324" marker-end="url(#ahd)" />
+        <path class="ln-data" d="M440 374 H604" marker-end="url(#ahd)" />
+        <text class="el" x="470" y="366">continuous replication</text>
+
+        <rect class="b-data" x="836" y="204" width="134" height="76" rx="8" />
+        <text class="t" x="848" y="230">S3 storage</text><text class="s" x="848" y="250">documents</text><text class="s" x="848" y="268">backups · versions</text>
+        <rect class="b" x="836" y="326" width="134" height="96" rx="8" />
+        <text class="t" x="848" y="352">Operations</text><text class="s" x="848" y="372">secrets vault</text><text class="s" x="848" y="390">logs · alarms</text><text class="s" x="848" y="408">→ IT partner</text>
+
+        <path class="ln-d" d="M164 340 C200 340 200 250 228 250" marker-end="url(#ah)" />
+        <rect class="b" x="580" y="56" width="390" height="88" rx="8" />
+        <text class="t" x="594" y="82">IT partner (AWS-certified, retainer)</text>
+        <text class="s" x="594" y="102">monitoring · security updates · agreed response times</text>
+        <text class="s" x="594" y="120">yearly security review you can show clients</text>
+      </svg>
+      </div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--signal-soft);border-color:var(--signal)"></i>New capability (requires development)</span>
+        <span><i class="sw" style="background:var(--success-soft);border-color:var(--success-fg)"></i>Company data, all inside Israel</span>
+      </div>
+      <figcaption>Figure 4. No single point of failure: if a server or a whole data center fails, the other zone keeps serving and the standby database takes over.</figcaption>
+    </figure>
+
+    <div class="grid2">
+      <div>
+        <h3>How it works</h3>
+        <ol class="flow">
+          <li>The firewall filters attacks; the load balancer sends each request to a healthy container in either zone.</li>
+          <li>Staff are redirected to Microsoft/Google to sign in; leavers lose access as soon as IT disables their company account.</li>
+          <li>Both containers share one managed PostgreSQL database, which keeps a live standby in the other zone.</li>
+          <li>Updates roll out one container at a time, so there is no downtime.</li>
+          <li>Backups allow recovery to any minute in the retention window; documents and backup copies live in S3.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Monthly cost (estimates)</h3>
+        <div class="table-wrap" style="margin-top:0">
+          <table>
+            <tbody>
+              <tr><th scope="row">2 app containers (est.)</th><td class="num">≈ $60–120</td></tr>
+              <tr><th scope="row">PostgreSQL primary + standby (est.)</th><td class="num">≈ $30–120</td></tr>
+              <tr><th scope="row">Load balancer + firewall (est.)</th><td class="num">≈ $30–60</td></tr>
+              <tr><th scope="row">S3, logs, alarms, traffic (est.)</th><td class="num">≈ $20–60</td></tr>
+              <tr class="total"><th scope="row">Hosting total (est.)</th><td class="num">≈ $200–400</td></tr>
+              <tr><th scope="row">IT partner retainer (est.)</th><td class="num">≈ ₪3,000–8,000</td></tr>
+              <tr><th scope="row">One-time project, 3–6 weeks (est.)</th><td class="num">≈ ₪40,000–90,000</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div class="grid2">
       <div>
-        <h3>What you get</h3>
+        <h3>Strengths</h3>
         <ul class="pros">
-          <li>Data stays in Israel. This is the strongest answer for NDA partners and enterprise clients.</li>
-          <li>No downtime during updates; survives a data-center failure.</li>
-          <li>Staff log in with their company account; leavers lose access automatically.</li>
-          <li>Recovery to any moment in the last days or weeks.</li>
-          <li>Formal support with agreed response times, plus a security review you can show clients.</li>
+          <li>Data stays in Israel. This is the strongest answer for NDA partners and enterprise contracts.</li>
+          <li>Survives a server or data-center failure, with no downtime for updates.</li>
+          <li>Company sign-on; access ends automatically when someone leaves.</li>
+          <li>Formal support with agreed response times, plus a security review.</li>
         </ul>
       </div>
       <div>
-        <h3>What you give up</h3>
+        <h3>Limits</h3>
         <ul class="cons">
-          <li>Roughly 25–50× the monthly cost of Option 1, plus a one-time project.</li>
-          <li>Takes 1–2 months before it is live.</li>
-          <li>More moving parts: it needs the IT partner and can't be run without one.</li>
-          <li>Overkill for a team of under ~40 people unless clients require it.</li>
+          <li>Roughly 25–50× the monthly hosting cost of Option 1, plus the one-time project.</li>
+          <li>1–2 months before go-live.</li>
+          <li>Needs code changes: move from SQLite to PostgreSQL, add Microsoft/Google sign-on, store documents in S3.</li>
+          <li>Cannot be run without the IT partner.</li>
         </ul>
       </div>
     </div>
-
-    <h3>Getting started (about 1–2 months)</h3>
-    <ol class="steps">
-      <li><div><div class="step-title">Confirm the trigger</div><div class="step-text">Do this when a client or partner contract requires data in Israel, company sign-on or an SLA. Get it in writing; it justifies the budget.</div></div></li>
-      <li><div><div class="step-title">Choose an IT partner (AWS-certified, Israel-based)</div><div class="step-text">Ask for a fixed-price quote for the one-time project and a monthly retainer with response times.</div></div></li>
-      <li><div><div class="step-title">Open a company AWS account</div><div class="step-text">Owned by the company, not the partner. Turn on billing alerts and two-factor login for the account owner.</div></div></li>
-      <li><div><div class="step-title">Development project</div><div class="step-text">Move the database from SQLite to PostgreSQL, add Microsoft/Google sign-on, deploy to the Tel Aviv region, and commission a security review.</div></div></li>
-      <li><div><div class="step-title">Migrate and switch over</div><div class="step-text">Copy the data from Option 1 or 2, test with 2–3 users for a week, then point the domain at AWS.</div></div></li>
-      <li><div><div class="step-title">Install the app on everyone's devices</div><div class="step-text">Same app, same address; only the login screen changes to “Sign in with Microsoft/Google”.</div></div></li>
-    </ol>
-    <div class="warn"><strong>Note:</strong> the costs for this option are planning estimates based on typical AWS list prices and Israeli market rates. Get a real quote before deciding.</div>
-    <div class="fit"><strong>Best for:</strong> enterprise or government-linked clients, requirements to keep data in Israel, 40+ users, or several offices.</div>
+    <div class="warn"><strong>Note:</strong> the costs for this option are planning estimates based on typical AWS list prices and Israeli market rates. Get a quote from the AWS Pricing Calculator (region “Israel (Tel Aviv)”) and from an IT partner before deciding.</div>
+    <div class="fit"><strong>Best for:</strong> enterprise or government-linked clients, contracts that require data in Israel or an SLA, 40+ users, or several offices.</div>
   </section>
 
-  <section aria-labelledby="path">
-    <h2 id="path">Recommendation: grow in steps</h2>
-    <div class="path">
-      <div class="stage"><div class="when">Now</div><div class="what">Option 1 · Cheap</div><div class="why">Go live this week for about $8/month. Prove the team uses it.</div></div>
-      <div class="stage"><div class="when">When daily use starts</div><div class="what">Option 2 · Medium</div><div class="why">One afternoon to upgrade, with no code changes. Adds automatic backups and someone to call.</div></div>
-      <div class="stage"><div class="when">Only if clients require it</div><div class="what">Option 3 · Expensive</div><div class="why">Start the project when a contract demands data in Israel, company sign-on or an SLA.</div></div>
+  <!-- ===================================================== COMPARISON -->
+  <section id="compare" aria-labelledby="h-compare">
+    <h2 id="h-compare">Side-by-side comparison</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col"></th><th scope="col">1 · Cheap</th><th scope="col">2 · Medium</th><th scope="col">3 · Expensive</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Monthly hosting</th><td>≈ $8</td><td>≈ $30–45</td><td>≈ $200–400 (est.)</td></tr>
+          <tr><th scope="row">People cost</th><td>None</td><td>Freelancer ~4 h/month (est.)</td><td>IT partner + one-time project (est.)</td></tr>
+          <tr><th scope="row">App servers</th><td>1</td><td>1 (bigger)</td><td>2, in separate data centers</td></tr>
+          <tr><th scope="row">Database</th><td>SQLite file on disk</td><td>SQLite file on disk</td><td>Managed PostgreSQL + standby</td></tr>
+          <tr><th scope="row">Where data is stored</th><td>EU (Frankfurt)</td><td>EU (Frankfurt) + EU backup provider</td><td>Israel (Tel Aviv)</td></tr>
+          <tr><th scope="row">Backups</th><td class="partial">Manual download</td><td class="yes">Automatic daily, encrypted, off-site</td><td class="yes">Continuous, point-in-time</td></tr>
+          <tr><th scope="row">Worst-case data loss</th><td class="partial">Since the last download</td><td class="yes">Up to 1 day</td><td class="yes">Minutes</td></tr>
+          <tr><th scope="row">Downtime during updates</th><td class="partial">Under a minute</td><td class="partial">Under a minute</td><td class="yes">None</td></tr>
+          <tr><th scope="row">Outage alerts</th><td class="no">No</td><td class="yes">Yes</td><td class="yes">Yes, with an on-call partner</td></tr>
+          <tr><th scope="row">Login</th><td>Username + password</td><td>Username + password</td><td class="yes">Microsoft / Google sign-on</td></tr>
+          <tr><th scope="row">Users it handles comfortably</th><td>~1–10</td><td>~10–40</td><td>40+, several offices</td></tr>
+          <tr><th scope="row">Code changes</th><td class="yes">None</td><td class="partial">Small (backup job, ≈ 1 day)</td><td class="no">Project (3–6 weeks)</td></tr>
+          <tr><th scope="row">Human-approval rules, audit log, bilingual app</th><td class="yes">Included</td><td class="yes">Included</td><td class="yes">Included</td></tr>
+        </tbody>
+      </table>
     </div>
-    <p class="muted small">Every option uses the same app and the same data. Moving up never means starting over, and the human-approval rules, audit log and bilingual interface stay the same at every tier.</p>
+  </section>
+
+  <section id="path" aria-labelledby="h-path">
+    <h2 id="h-path">Recommendation: grow in steps</h2>
+    <div class="path" style="margin-top:12px">
+      <div class="stage"><div class="when">Now</div><div class="what">Option 1 · Cheap</div><div class="why">About $8/month. Prove the team uses it; download a backup weekly.</div></div>
+      <div class="stage"><div class="when">When daily use starts</div><div class="what">Option 2 · Medium</div><div class="why">Same design and data, made dependable: automatic off-site backups, alerts, and a responsible person.</div></div>
+      <div class="stage"><div class="when">Only if a client requires it</div><div class="what">Option 3 · Expensive</div><div class="why">Start the project when a contract demands data in Israel, company sign-on or an SLA.</div></div>
+    </div>
+    <p class="muted small">Moving up never means starting over: Options 1 and 2 share the same design, and Option 3 migrates the same data into PostgreSQL.</p>
   </section>
 
   <section aria-labelledby="sources">
     <h2 id="sources">Sources and notes</h2>
     <ul class="small muted">
       <li>Render prices (Starter $7, Standard $25, disk $0.25/GB/month, no disks on free services): <a href="https://render.com/pricing">render.com/pricing</a>, cross-checked with <a href="https://actualdatabase.com/render-disk-and-bandwidth-cost/">Actual Database</a> and <a href="https://www.srvrlss.io/provider/render/">srvrlss.io</a>. Confirm on Render's page before ordering.</li>
-      <li>AWS Tel Aviv (il-central-1) database prices: <a href="https://www.bytebase.com/dbcost/rds/instance/db.t4g.micro/">Bytebase RDS pricing table</a> and <a href="https://aws.amazon.com/rds/postgresql/pricing">AWS RDS PostgreSQL pricing</a>. The Option 3 totals are estimates; use the <a href="https://calculator.aws/">AWS Pricing Calculator</a> with region “Israel (Tel Aviv)” for a quote.</li>
-      <li>Freelancer and IT-partner amounts are typical Israeli market ranges, not quotes.</li>
-      <li>All prices exclude VAT. Hosting is billed in US dollars.</li>
+      <li>AWS Tel Aviv (il-central-1) database prices: <a href="https://www.bytebase.com/dbcost/rds/instance/db.t4g.micro/">Bytebase RDS pricing table</a> and <a href="https://aws.amazon.com/rds/postgresql/pricing">AWS RDS PostgreSQL pricing</a>. Option 3 totals are estimates; use the <a href="https://calculator.aws/">AWS Pricing Calculator</a>.</li>
+      <li>SQLite is free, open-source software built into the app's runtime; it has no license cost.</li>
+      <li>Freelancer and IT-partner amounts are typical Israeli market ranges, not quotes. All prices exclude VAT; hosting is billed in US dollars.</li>
     </ul>
   </section>
 </main>
 
-<footer class="wrap">YMT Group · Hosting options brief · November 2026</footer>
+<footer class="wrap">YMT Group · System design options brief · November 2026</footer>
 </body>
 </html>

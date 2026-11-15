@@ -1,18 +1,19 @@
 // "Where is our data?" – full visibility for management, plus backups and the audit trail.
 
 import { useState } from 'react';
-import { HardDrive, ShieldCheck, DatabaseBackup, ScrollText } from 'lucide-react';
+import { HardDrive, ShieldCheck, DatabaseBackup, ScrollText, Download } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useAuth } from '../../auth/AuthProvider.jsx';
 import { useLoad, useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
-import { Card, Loaded, DefinitionList, Button, ErrorBox, Notice, Table, EmptyState, useToast } from '../../ui/index.js';
+import { Card, Loaded, DefinitionList, Button, ErrorBox, Notice, Table, EmptyState, buttonClasses, useOnline, useToast } from '../../ui/index.js';
 
 export function PrivacySettings() {
   const { t } = useI18n();
   const format = useFormat();
   const toast = useToast();
   const { user } = useAuth();
+  const online = useOnline();
   const result = useLoad('/settings/data-info');
   const [lastBackup, setLastBackup] = useState(null);
   const backup = useAction(async () => {
@@ -55,7 +56,22 @@ export function PrivacySettings() {
         <Card title={t('privacy.backup')}>
           <ErrorBox message={backup.error} />
           <p className="mb-4 text-sm text-muted">{t('privacy.backupHelp')}</p>
-          <Button icon={DatabaseBackup} loading={backup.busy} loadingLabel={t('privacy.backingUp')} onClick={backup.run}>{t('privacy.backupNow')}</Button>
+          <div className="flex flex-wrap gap-2">
+            {/* A plain link: the browser downloads the file with the signed-in session cookie. */}
+            <a
+              href="/api/settings/backup/download"
+              download
+              aria-disabled={online ? undefined : 'true'}
+              onClick={(event) => {
+                if (!online) event.preventDefault();
+                else toast({ title: t('toast.backupDownloading'), body: t('privacy.downloadHint') });
+              }}
+              className={`${buttonClasses({ variant: 'primary' })} ${online ? '' : 'cursor-not-allowed opacity-45'}`}
+            >
+              <Download aria-hidden="true" size={16} />{t('privacy.downloadBackup')}
+            </a>
+            <Button variant="secondary" icon={DatabaseBackup} loading={backup.busy} loadingLabel={t('privacy.backingUp')} onClick={backup.run}>{t('privacy.backupNow')}</Button>
+          </div>
           {lastBackup && <p className="animate-rise mt-3 text-sm text-success-fg">{t('privacy.backupDone', { path: lastBackup.backup_path })}</p>}
         </Card>
       )}

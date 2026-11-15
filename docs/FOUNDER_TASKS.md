@@ -33,7 +33,7 @@ Estimated total: half a day spread over 1–2 weeks.
 13. **Daily:** start the day in the **Inbox**. Approve or edit drafts, tick off tasks, and draft follow-ups for stale leads.
 14. **After every meeting:** open *Calendar → Summarize* and complete the 3-step form while it's fresh.
 15. **Weekly:** look at the **Dashboard** with the team (pipeline by stage, targets, revenue by deal model).
-16. **Monthly:** go to Settings → Data & Privacy → *Back up now*, then copy the backup file to encrypted storage.
+16. **Monthly:** go to Settings → Data & Privacy → *Download backup*, and keep the file in an encrypted folder (not in email).
 
 ## Decisions to make (no rush)
 

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { parseBody } from '../validate.js';
 import { getSettings, count, audit } from '../db.js';
 import { requireAdmin } from '../auth.js';
+import { badRequest } from '../http.js';
 import { MAX_FOLLOWUPS_HARD_LIMIT } from '../constants.js';
 
 const SETTINGS_SPEC = {
@@ -53,17 +54,27 @@ export function settingsRoutes(db, { dbPath, hostingLocation }) {
     });
   });
 
-  router.post('/settings/backup', requireAdmin, (req, res) => {
-    if (dbPath === ':memory:') {
-      res.status(400).json({ error: 'In-memory database cannot be backed up' });
-      return;
-    }
+  /** Consistent snapshot of the live database (VACUUM INTO) in DATA_DIR/backups. Returns the file path. */
+  function createBackup(userId) {
+    if (dbPath === ':memory:') throw badRequest('In-memory database cannot be backed up');
     const backupDir = path.join(path.dirname(dbPath), 'backups');
     mkdirSync(backupDir, { recursive: true });
     const backupPath = path.join(backupDir, `ymt-${new Date().toISOString().replace(/[:.]/g, '-')}.db`);
     db.prepare('VACUUM INTO ?').run(backupPath);
-    audit(db, req.user.id, 'backup.created', 'settings', null, backupPath);
+    audit(db, userId, 'backup.created', 'settings', null, backupPath);
+    return backupPath;
+  }
+
+  router.post('/settings/backup', requireAdmin, (req, res) => {
+    const backupPath = createBackup(req.user.id);
     res.json({ backup_path: backupPath, size_bytes: fileSize(backupPath) });
+  });
+
+  /** Fresh backup streamed to the admin's computer, so a copy exists outside the server's disk. */
+  router.get('/settings/backup/download', requireAdmin, (req, res) => {
+    const backupPath = createBackup(req.user.id);
+    audit(db, req.user.id, 'backup.downloaded', 'settings', null, path.basename(backupPath));
+    res.download(backupPath, path.basename(backupPath), { headers: { 'Content-Type': 'application/vnd.sqlite3' } });
   });
 
   router.get('/audit-log', requireAdmin, (req, res) => {
