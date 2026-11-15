@@ -17,7 +17,7 @@
     "test": "npm test -w server",
     "user:create": "npm run user:create -w server --",
     "seed:demo": "npm run seed:demo -w server",
-    "demo:start": "node --disable-warning=ExperimentalWarning server/scripts/create-user.js --username admin --name Admin --password \"$ADMIN_PASSWORD\" --admin && node --disable-warning=ExperimentalWarning server/scripts/seed-demo.js && node --disable-warning=ExperimentalWarning server/src/index.js"
+    "demo:start": "node --disable-warning=ExperimentalWarning server/scripts/demo-bootstrap.js && node --disable-warning=ExperimentalWarning server/src/index.js"
   },
   "devDependencies": {
     "concurrently": "^9.2.5"

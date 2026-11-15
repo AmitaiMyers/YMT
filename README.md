@@ -36,7 +36,9 @@ The repository includes a `Dockerfile` that builds one container serving both th
 1. Use any host that runs a container **and gives you a persistent disk**, mounted at `/data`. The SQLite database lives there; without a persistent disk, data is lost on every restart.
 2. Set the environment variables: `HOSTING_LOCATION` (for example "Render, Frankfurt EU"). `TRUST_PROXY=1` is already set in the image and is correct behind a single HTTPS proxy.
 3. The host must serve the app over **HTTPS**. Secure session cookies and PWA installation both require it.
-4. After the first deploy, create the first admin from the host's shell: `node server/scripts/create-user.js --username admin --name "…" --password "…" --admin`.
+4. Create the first admin in one of two ways:
+   - **Demo hosting (Render):** set the Docker command to `npm run demo:start` and add the environment variables `ADMIN_USERNAME`, `ADMIN_PASSWORD` (at least 10 characters) and, optionally, `ADMIN_NAME`. On every start this creates that admin **only if the username doesn't exist yet** and loads the demo data **only into an empty database**, so restarts and redeploys are safe. Changing the variables later never changes an existing account; use Settings → Users for that.
+   - **Without demo data:** from the host's shell, run `node server/scripts/create-user.js --username … --name "…" --password "…" --admin`.
 
 A step-by-step founder checklist is in [`docs/FOUNDER_TASKS.md`](docs/FOUNDER_TASKS.md).
 
