@@ -115,10 +115,12 @@
   .option-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
   .fit { background: var(--info-soft); border: 1px solid var(--info-line); border-radius: 10px; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
   .warn { background: var(--signal-soft); border: 1px solid color-mix(in srgb, var(--signal) 40%, transparent); color: var(--signal-fg); border-radius: 10px; padding: 12px 16px; margin-top: 16px; font-size: 14px; }
-  .flow { counter-reset: f; list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-  /* Block (not grid) items: inline <code>/<strong> must stay inside the sentence, not become separate grid cells. */
-  .flow li { counter-increment: f; position: relative; padding-inline-start: 36px; min-height: 24px; font-size: 14px; }
-  .flow li::before { content: counter(f); position: absolute; inset-inline-start: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--sunken); border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--muted); }
+  /* Numbered steps. The number is real markup and the whole sentence is ONE element, so inline
+     <code>/<strong> always stay inside the sentence in every browser (no counters, no logical properties). */
+  .flow { list-style: none; padding: 0; margin: 0; }
+  .flow li { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 8px; font-size: 14px; }
+  .flow .n { flex: 0 0 24px; width: 24px; height: 24px; line-height: 22px; text-align: center; border-radius: 50%; background: var(--sunken); border: 1px solid var(--line-strong); font-size: 12px; font-weight: 700; color: var(--muted); }
+  .flow .tx { flex: 1 1 auto; min-width: 0; }
   .path { display: grid; grid-template-columns: repeat(3, 1fr); }
   .path .stage { padding: 16px; border: 1px solid var(--line); background: var(--surface); }
   .path .stage:first-child { border-radius: 10px 0 0 10px; }
@@ -327,10 +329,10 @@
       <div>
         <h3>How it works</h3>
         <ol class="flow">
-          <li>Render receives the request over HTTPS and passes it to the container.</li>
-          <li>The server checks the session cookie, runs the business rules and reads or writes the SQLite file.</li>
-          <li>Every push to GitHub rebuilds and restarts the container (under a minute of downtime).</li>
-          <li>Admins use <strong>Settings → Data &amp; Privacy → Download backup</strong> to keep a full copy off the server.</li>
+          <li><span class="n" aria-hidden="true">1</span><span class="tx">Render receives the request over HTTPS and passes it to the container.</span></li>
+          <li><span class="n" aria-hidden="true">2</span><span class="tx">The server checks the session cookie, runs the business rules and reads or writes the SQLite file.</span></li>
+          <li><span class="n" aria-hidden="true">3</span><span class="tx">Every push to GitHub rebuilds and restarts the container (under a minute of downtime).</span></li>
+          <li><span class="n" aria-hidden="true">4</span><span class="tx">Admins use <strong>Settings → Data &amp; Privacy → Download backup</strong> to keep a full copy off the server.</span></li>
         </ol>
       </div>
       <div>
@@ -441,10 +443,10 @@
       <div>
         <h3>How it works</h3>
         <ol class="flow">
-          <li>Users open the company address; DNS points it to Render, which handles HTTPS.</li>
-          <li>The container runs exactly as in Option 1, with 4× the memory.</li>
-          <li>Every night a backup job makes a consistent copy of the database, encrypts it and uploads it to EU storage at another company. 30 versions are kept.</li>
-          <li>An uptime monitor calls <code>/api/health</code>; if it fails, the founder and the freelancer get an alert.</li>
+          <li><span class="n" aria-hidden="true">1</span><span class="tx">Users open the company address; DNS points it to Render, which handles HTTPS.</span></li>
+          <li><span class="n" aria-hidden="true">2</span><span class="tx">The container runs exactly as in Option 1, with 4× the memory.</span></li>
+          <li><span class="n" aria-hidden="true">3</span><span class="tx">Every night a backup job makes a consistent copy of the database, encrypts it and uploads it to EU storage at another company. 30 versions are kept.</span></li>
+          <li><span class="n" aria-hidden="true">4</span><span class="tx">An uptime monitor calls <code>/api/health</code>; if it fails, the founder and the freelancer get an alert.</span></li>
         </ol>
       </div>
       <div>
@@ -558,11 +560,11 @@
       <div>
         <h3>How it works</h3>
         <ol class="flow">
-          <li>The firewall filters attacks; the load balancer sends each request to a healthy container in either zone.</li>
-          <li>Staff are redirected to Microsoft/Google to sign in; leavers lose access as soon as IT disables their company account.</li>
-          <li>Both containers share one managed PostgreSQL database, which keeps a live standby in the other zone.</li>
-          <li>Updates roll out one container at a time, so there is no downtime.</li>
-          <li>Backups allow recovery to any minute in the retention window; documents and backup copies live in S3.</li>
+          <li><span class="n" aria-hidden="true">1</span><span class="tx">The firewall filters attacks; the load balancer sends each request to a healthy container in either zone.</span></li>
+          <li><span class="n" aria-hidden="true">2</span><span class="tx">Staff are redirected to Microsoft/Google to sign in; leavers lose access as soon as IT disables their company account.</span></li>
+          <li><span class="n" aria-hidden="true">3</span><span class="tx">Both containers share one managed PostgreSQL database, which keeps a live standby in the other zone.</span></li>
+          <li><span class="n" aria-hidden="true">4</span><span class="tx">Updates roll out one container at a time, so there is no downtime.</span></li>
+          <li><span class="n" aria-hidden="true">5</span><span class="tx">Backups allow recovery to any minute in the retention window; documents and backup copies live in S3.</span></li>
         </ol>
       </div>
       <div>
