@@ -26,7 +26,7 @@ function ApprovalCard({ item, onLeave, onReload }) {
               <StatusBadge tone={statusTone('approval', item.status)}>{t(`approvalStatus.${item.status}`)}</StatusBadge>
               <span>{t(`approvalKind.${item.kind}`)}</span>
               <span aria-hidden="true" className="text-subtle">·</span>
-              <Link className="text-link hover:underline" to={`/companies/${item.company_id}`}><bdi>{item.company_name}</bdi></Link>
+              {item.company_id && <Link className="text-link hover:underline" to={`/companies/${item.company_id}`}><bdi>{item.company_name}</bdi></Link>}
               {item.contact_name && <span className="text-sm font-normal text-muted">→ <bdi>{item.contact_name}</bdi></span>}
             </span>
           }

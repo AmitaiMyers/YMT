@@ -16,7 +16,7 @@ export function DraftSheet({ approvalId, onClose, onChanged }) {
       onClose={onClose}
       variant="sheet"
       title={item ? t(`approvalKind.${item.kind}`) : t('common.loading')}
-      description={item ? <span className="inline-flex flex-wrap items-center gap-2"><StatusBadge tone={statusTone('approval', item.status)}>{t(`approvalStatus.${item.status}`)}</StatusBadge><bdi>{item.company_name}</bdi>{item.contact_name && <bdi>→ {item.contact_name}</bdi>}</span> : undefined}
+      description={item ? <span className="inline-flex flex-wrap items-center gap-2"><StatusBadge tone={statusTone('approval', item.status)}>{t(`approvalStatus.${item.status}`)}</StatusBadge>{item.company_name && <bdi>{item.company_name}</bdi>}{item.contact_name && <bdi>→ {item.contact_name}</bdi>}</span> : undefined}
     >
       <Loaded result={result}>
         {(loaded) => (

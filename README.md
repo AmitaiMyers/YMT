@@ -42,6 +42,32 @@ The repository includes a `Dockerfile` that builds one container serving both th
 
 A step-by-step founder checklist is in [`docs/FOUNDER_TASKS.md`](docs/FOUNDER_TASKS.md).
 
+## Google Calendar (optional)
+
+The Calendar page shows day, week and month views of YMT meetings and, for each staff member who connects their own Google account, their Google events. Meetings scheduled in YMT are added to the organizer's Google Calendar. **Google sends an invitation e-mail to an outside person only if the staff member ticks "Send a Google invitation" and confirms a dialog that names the recipient.** Without these settings the calendar works normally; only the Google features are hidden.
+
+One-time setup (about 30 minutes, in [Google Cloud Console](https://console.cloud.google.com/)):
+
+1. Create a project, e.g. "YMT App".
+2. Go to **APIs & Services → Library** and enable **Google Calendar API**.
+3. Set up the **OAuth consent screen** (Google Auth Platform):
+   - **If you use Google Workspace:** choose audience **Internal**. Only your organisation's accounts can connect, and Google review is not needed.
+   - **If you use personal Gmail accounts:** choose **External**, then **publish the app (In production)**. While the app is in "Testing" mode, Google expires the connection every 7 days. Until Google verifies the app, staff see a "Google hasn't verified this app" screen once (Advanced → Continue).
+   - Scopes: `openid`, `email` and `https://www.googleapis.com/auth/calendar.events`. These allow events only: no e-mail, Drive or calendar settings.
+4. Under **Clients**, create an **OAuth client** of type **Web application** with this **authorized redirect URI**: `https://<your-app-address>/api/google/callback`
+5. Add these four environment variables on the host (all four, or none; a partial setup stops start-up with a clear message):
+
+   | Variable | Value |
+   |---|---|
+   | `GOOGLE_CLIENT_ID` | from step 4 |
+   | `GOOGLE_CLIENT_SECRET` | from step 4 |
+   | `PUBLIC_URL` | the app address, e.g. `https://ymt-app.onrender.com` (no trailing slash) |
+   | `TOKEN_ENCRYPTION_KEY` | a random secret of 32+ characters (Render's **Generate** button works). Keep it: changing it disconnects everyone. |
+
+6. After the redeploy, each staff member opens **Calendar → Connect Google Calendar** once.
+
+What leaves YMT: only the meeting title, time, place, organisation and person name, plus a link back to YMT, and only for people who connected Google. Notes, decisions and contact details stay in YMT. Google tokens are stored encrypted (AES-256-GCM). **Disconnect** revokes access at Google.
+
 ## What is in the MVP
 
 | Module | Screens | Key rules |

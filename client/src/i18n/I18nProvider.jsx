@@ -52,6 +52,7 @@ export function useFormat() {
       if (Math.abs(minutes) < 60 * 24) return formatter.format(Math.round(minutes / 60), 'hour');
       return formatter.format(Math.round(minutes / 1440), 'day');
     },
+    time: (value) => new Date(value).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
     dateTime: (value) => (value ? new Date(value).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' }) : '—'),
     usd: (value) => (value === null || value === undefined ? '—' : new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value)),
     number: (value) => (value === null || value === undefined ? '—' : new Intl.NumberFormat(locale).format(value)),

@@ -61,7 +61,7 @@ function Outcome({ outcome, companyId }) {
     { icon: CircleCheck, text: t('complete.doneTimeline') },
     outcome.approval_id && { icon: ClipboardCheck, text: t('complete.doneApproval'), to: '/approvals' },
     outcome.document_id && { icon: FileText, text: t('complete.doneDocument'), to: `/documents/${outcome.document_id}` },
-    { icon: Building2, text: t('complete.backToClient'), to: `/companies/${companyId}` },
+    companyId && { icon: Building2, text: t('complete.backToClient'), to: `/companies/${companyId}` },
   ].filter(Boolean);
   return (
     <Card>
@@ -88,14 +88,17 @@ function CompleteWizard({ prep, workflows }) {
   const options = useEnumOptions();
   const meetingId = prep.meeting.id;
   const workflow = prep.deal ? workflows.find((w) => w.id === prep.deal.workflow_id) : null;
-  const contactsWithEmail = prep.contacts.filter((c) => c.email);
+  // The person the meeting was with comes first as the follow-up recipient.
+  const contactsWithEmail = prep.contacts.filter((c) => c.email)
+    .sort((a, b) => Number(b.id === prep.meeting.contact_id) - Number(a.id === prep.meeting.contact_id));
+  const hasCompany = prep.company !== null;
   const initial = {
     step: 0,
     form: {
       summary: '', decisions: '', new_stage: '',
       followup_contact_id: contactsWithEmail[0] ? String(contactsWithEmail[0].id) : '',
       language: contactsWithEmail[0]?.preferred_language ?? language,
-      create_summary_document: true,
+      create_summary_document: hasCompany, // a summary document belongs to a company file
     },
     tasks: [],
   };
@@ -119,11 +122,11 @@ function CompleteWizard({ prep, workflows }) {
     new_stage: form.new_stage || null,
     followup_contact_id: form.followup_contact_id ? Number(form.followup_contact_id) : null,
     language: form.language,
-    create_summary_document: form.create_summary_document,
+    create_summary_document: hasCompany && form.create_summary_document,
     tasks: tasks.map((task) => ({ ...task, due_date: task.due_date || null })),
   }));
 
-  if (outcome) return <Outcome outcome={outcome} companyId={prep.company.id} />;
+  if (outcome) return <Outcome outcome={outcome} companyId={hasCompany ? prep.company.id : null} />;
 
   function next() {
     if (step === 0 && !form.summary.trim()) {
@@ -153,7 +156,7 @@ function CompleteWizard({ prep, workflows }) {
     { name: 'followup_contact_id', label: t('complete.followupContact'), type: 'select', help: t('complete.followupHelp'),
       options: contactsWithEmail.map((c) => ({ value: String(c.id), label: `${c.full_name} <${c.email}>` })) },
     { name: 'language', label: t('contact.language'), type: 'select', required: true, options: options('language', LANGUAGES) },
-    { name: 'create_summary_document', label: t('complete.createDocument'), type: 'checkbox', wide: true },
+    ...(hasCompany ? [{ name: 'create_summary_document', label: t('complete.createDocument'), type: 'checkbox', wide: true }] : []),
   ];
   const renderFields = (fields) => (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -213,7 +216,7 @@ export function MeetingCompletePage() {
     <Loaded result={prep}>
       {(data) => (
         <>
-          <PageHeader eyebrow={t('complete.title')} title={data.meeting.title} subtitle={<bdi>{data.company.name}</bdi>} />
+          <PageHeader eyebrow={t('complete.title')} title={data.meeting.title} subtitle={<bdi>{[data.person && data.person.full_name, data.company && data.company.name].filter(Boolean).join(' · ')}</bdi>} />
           {data.meeting.status !== 'scheduled'
             ? <Notice>{t('complete.alreadyDone')}</Notice>
             : <Loaded result={workflows}>{(rows) => <CompleteWizard prep={data} workflows={rows} />}</Loaded>}

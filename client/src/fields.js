@@ -82,17 +82,6 @@ export function useInteractionFields(contacts) {
   ];
 }
 
-export function useMeetingFields(deals) {
-  const { t } = useI18n();
-  return [
-    { name: 'title', label: t('meeting.title'), type: 'text', required: true },
-    { name: 'scheduled_at', label: t('meeting.scheduledAt'), type: 'datetime', required: true },
-    { name: 'location', label: t('meeting.location'), type: 'text' },
-    { name: 'attendees', label: t('meeting.attendees'), type: 'text' },
-    { name: 'deal_id', label: t('meeting.deal'), type: 'select', options: deals.map((d) => ({ value: String(d.id), label: d.title })) },
-  ];
-}
-
 export function useResourceFields() {
   const { t } = useI18n();
   const options = useEnumOptions();

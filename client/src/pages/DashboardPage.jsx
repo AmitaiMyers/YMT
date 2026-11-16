@@ -78,7 +78,7 @@ export function DashboardPage() {
                           <li key={meeting.id} className="flex items-center justify-between gap-3 px-4 py-3 text-sm sm:px-6">
                             <div className="min-w-0">
                               <span dir="auto" className="block truncate align-parent font-medium">{meeting.title}</span>
-                              <div className="text-[13px] text-subtle"><bdi>{meeting.company_name}</bdi> · {format.dateTime(meeting.scheduled_at)}</div>
+                              <div className="text-[13px] text-subtle">{meeting.company_name && <><bdi>{meeting.company_name}</bdi> · </>}{format.dateTime(meeting.scheduled_at)}</div>
                             </div>
                             <ButtonLink size="sm" to={`/meetings/${meeting.id}/prep`}>{t('meetings.prep')}</ButtonLink>
                           </li>

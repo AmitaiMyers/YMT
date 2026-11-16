@@ -53,7 +53,7 @@ export function TaskList({ tasks, onChanged, showCompany = false }) {
                 <span>{t('task.assignee')}: <bdi>{task.assignee}</bdi></span>
                 {task.due_date && <span className={overdue ? 'font-semibold text-danger-fg' : ''}>{t('task.due')}: {format.date(task.due_date)}</span>}
                 {task.is_client_commitment ? <Badge tone="signal">{t('task.commitment')}</Badge> : null}
-                {showCompany && <Link className="text-link underline" to={`/companies/${task.company_id}`}><bdi>{task.company_name}</bdi></Link>}
+                {showCompany && task.company_id && <Link className="text-link underline" to={`/companies/${task.company_id}`}><bdi>{task.company_name}</bdi></Link>}
               </div>
             </div>
           </li>

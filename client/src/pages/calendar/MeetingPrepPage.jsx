@@ -29,13 +29,14 @@ export function MeetingPrepPage() {
           <PageHeader
             eyebrow={t('prep.title')}
             title={data.meeting.title}
-            subtitle={<bdi>{data.company.name} · {format.dateTime(data.meeting.scheduled_at)}{data.meeting.location ? ` · ${data.meeting.location}` : ''}</bdi>}
+            subtitle={<bdi>{[data.person && data.person.full_name, data.company && data.company.name, format.dateTime(data.meeting.scheduled_at), data.meeting.location].filter(Boolean).join(' · ')}</bdi>}
             actions={<>
               <Button variant="secondary" icon={Printer} offlineOk onClick={() => window.print()}>{t('common.print')}</Button>
               {data.meeting.status === 'scheduled' && <ButtonLink variant="primary" icon={NotebookPen} to={`/meetings/${id}/complete`}>{t('meetings.complete')}</ButtonLink>}
             </>}
           />
           <div className="grid gap-6 lg:grid-cols-2">
+            {data.company ? (
             <Card title={t('prep.company')}>
               <DefinitionList items={[
                 [t('company.industry'), data.company.industry],
@@ -51,6 +52,18 @@ export function MeetingPrepPage() {
                 </div>
               )}
             </Card>
+            ) : (
+              <Card title={t('prep.person')}>
+                <DefinitionList items={[
+                  [t('contact.fullName'), data.person ? data.person.full_name : null],
+                  [t('contact.jobTitle'), data.person ? data.person.job_title : null],
+                  [t('contact.email'), data.person && data.person.email ? <bdi key="e" dir="ltr">{data.person.email}</bdi> : null],
+                  [t('contact.phone'), data.person && data.person.phone ? <bdi key="p" dir="ltr">{data.person.phone}</bdi> : null],
+                  [t('meeting.attendees'), data.meeting.attendees],
+                ]} />
+                <p className="mt-4 text-[13px] text-subtle">{t('prep.noOrganization')}</p>
+              </Card>
+            )}
             <ListCard
               title={t('prep.contacts')} items={data.contacts} empty={t('contact.none')}
               render={(c) => (

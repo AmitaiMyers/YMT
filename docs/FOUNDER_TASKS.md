@@ -19,6 +19,10 @@ Estimated total: half a day spread over 1–2 weeks.
    `node server/scripts/create-user.js --username <you> --name "<your name>" --password "<10+ characters>" --admin`
 6. **Open the URL on your phone and on your computer, and install it** using the *Install app* button (on iPhone: Share → Add to Home Screen).
 
+## Optional – Google Calendar
+
+6b. **Connect Google Calendar** (about 30 minutes, once). Follow README → "Google Calendar": create a Google Cloud project, enable the Calendar API, set up the consent screen (Workspace → *Internal*; Gmail → *External* and *publish*), create a Web OAuth client with redirect `https://<your-app>/api/google/callback`, then add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PUBLIC_URL` and `TOKEN_ENCRYPTION_KEY` on Render. After that, each person clicks **Calendar → Connect Google Calendar**.
+
 ## Week 1 – Set it up for the team
 
 7. **Settings → Users:** create an account for each team member. Hand over passwords in person or by phone, never by email.

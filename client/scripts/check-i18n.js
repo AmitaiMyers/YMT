@@ -27,6 +27,8 @@ const DYNAMIC_KEYS = {
   'document.step': ['draft', 'final', 'clientSigned'],
   'approval.diff': ['added', 'removed'],
   inbox: ['morning', 'afternoon', 'evening'],
+  calendarState: ['scheduled', 'needsSummary', 'done', 'cancelled'],
+  'calendar.view': ['day', 'week', 'month'],
 };
 
 function sourceFiles(dir) {

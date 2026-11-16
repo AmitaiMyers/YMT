@@ -77,12 +77,13 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={show}>
       {children}
       <div className="no-print pointer-events-none fixed bottom-20 end-4 z-[60] flex flex-col items-end gap-2 md:bottom-4">
-        <ol role="status" aria-live="polite" className="flex flex-col gap-2">
-          {polite.map((item) => <ToastItem key={item.id} toast={item} onDismiss={dismiss} />)}
-        </ol>
-        <ol role="alert" aria-live="assertive" className="flex flex-col gap-2">
-          {assertive.map((item) => <ToastItem key={item.id} toast={item} onDismiss={dismiss} />)}
-        </ol>
+        {/* Live regions wrap the lists: a role on the <ol> itself would hide its list semantics from screen readers. */}
+        <div role="status" aria-live="polite">
+          <ol className="flex flex-col gap-2">{polite.map((item) => <ToastItem key={item.id} toast={item} onDismiss={dismiss} />)}</ol>
+        </div>
+        <div role="alert" aria-live="assertive">
+          <ol className="flex flex-col gap-2">{assertive.map((item) => <ToastItem key={item.id} toast={item} onDismiss={dismiss} />)}</ol>
+        </div>
       </div>
     </ToastContext.Provider>
   );

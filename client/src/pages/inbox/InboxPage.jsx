@@ -82,7 +82,7 @@ export function InboxPage() {
                 {inbox.approvals.map((item) => (
                   <InboxRow
                     key={item.id}
-                    title={`${t(`approvalKind.${item.kind}`)} · ${item.company_name}`}
+                    title={[t(`approvalKind.${item.kind}`), item.company_name ?? item.contact_name].filter(Boolean).join(' · ')}
                     meta={<>{item.contact_name && <><bdi>{item.contact_name}</bdi> · </>}{t('inbox.waitingSince', { date: format.relative(item.created_at) })}</>}
                     action={<Button size="sm" onClick={() => flow.openDraft(item.id)}>{t('inbox.review')}</Button>}
                   />
@@ -99,7 +99,7 @@ export function InboxPage() {
                 {inbox.meetings_to_prep.map((meeting) => (
                   <InboxRow
                     key={meeting.id}
-                    title={`${meeting.title} · ${meeting.company_name}`}
+                    title={[meeting.title, meeting.company_name ?? meeting.contact_name].filter(Boolean).join(' · ')}
                     meta={format.dateTime(meeting.scheduled_at)}
                     action={<ButtonLink size="sm" to={`/meetings/${meeting.id}/prep`}>{t('meetings.prep')}</ButtonLink>}
                   />
@@ -110,7 +110,7 @@ export function InboxPage() {
                 {inbox.meetings_to_summarize.map((meeting) => (
                   <InboxRow
                     key={meeting.id}
-                    title={`${meeting.title} · ${meeting.company_name}`}
+                    title={[meeting.title, meeting.company_name ?? meeting.contact_name].filter(Boolean).join(' · ')}
                     meta={format.dateTime(meeting.scheduled_at)}
                     action={<ButtonLink size="sm" variant="primary" to={`/meetings/${meeting.id}/complete`}>{t('meetings.complete')}</ButtonLink>}
                   />

@@ -125,8 +125,8 @@
 
 <div class="progress-card" role="region" aria-label="Progress">
   <div class="wrap progress-row">
-    <span class="progress-label" id="progress-label">0 of 16 done</span>
-    <div class="bar" id="bar" role="progressbar" aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="16" aria-valuenow="0"><span></span></div>
+    <span class="progress-label" id="progress-label">0 of 17 done</span>
+    <div class="bar" id="bar" role="progressbar" aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="17" aria-valuenow="0"><span></span></div>
     <button type="button" class="reset" id="reset">Reset</button>
   </div>
 </div>
@@ -178,6 +178,17 @@
       <li class="task"><label><input type="checkbox" data-id="t6" /><div>
         <span class="num">6.</span><span class="title">Install it on your phone and computer</span>
         <div class="detail">Open the URL and tap <strong>Install app</strong> (sidebar footer or Settings). On iPhone/iPad: Share → <em>Add to Home Screen</em>.</div>
+      </div></label></li>
+      <li class="task"><label><input type="checkbox" data-id="t6b" /><div>
+        <span class="num">6b.</span><span class="title">Optional: connect Google Calendar</span>
+        <div class="detail">About 30 minutes, once. Follow README → "Google Calendar":
+          <ul>
+            <li>In Google Cloud: create a project, enable <strong>Google Calendar API</strong>, and set up the consent screen (Workspace → <em>Internal</em>; Gmail → <em>External</em> and <em>publish</em>; otherwise connections expire after 7 days).</li>
+            <li>Create a <strong>Web</strong> OAuth client with redirect URI <code>https://&lt;your-app&gt;/api/google/callback</code>.</li>
+            <li>On Render add <code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>, <code>PUBLIC_URL</code> and <code>TOKEN_ENCRYPTION_KEY</code> (use Render's Generate button).</li>
+            <li>Each person then clicks <strong>Calendar → Connect Google Calendar</strong>. Invitations to outside people are sent only after a confirmation.</li>
+          </ul>
+        </div>
       </div></label></li>
     </ol>
   </section>
