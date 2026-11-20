@@ -1,0 +1,1358 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Growth Platform Design · YMT Group</title>
+<style>
+  /* Same palette as the YMT app (docs/DESIGN_SYSTEM.md). Self-contained: no external fonts, scripts or images.
+     Bilingual: every text exists twice, marked data-l="en" / data-l="he"; the <html lang> value hides the other one. */
+  :root {
+    --canvas: #F7F8FA; --surface: #FFFFFF; --sunken: #F1F5F9; --line: #E2E8F0; --line-strong: #CBD5E1;
+    --fg: #1E293B; --muted: #475569; --subtle: #5B6B82;
+    --primary: #0F2A4A; --on-primary: #FFFFFF; --hero-muted: #C7D7EE; --link: #1D4F8C; --focus: #1D4F8C;
+    --info-soft: #EEF4FB; --info-line: #C7D7EE; --chart: #2E6FBF;
+    --signal: #F59E0B; --signal-fg: #92400E; --signal-soft: #FFF7E6;
+    --success: #047857; --success-fg: #047857; --success-soft: #ECFDF5;
+    --danger-fg: #B91C1C; --danger-soft: #FEF2F2;
+    --e1: 0 1px 2px rgb(15 42 74 / .06); --e2: 0 6px 16px rgb(15 42 74 / .10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: #0B1220; --surface: #111A2E; --sunken: #0E1628; --line: #1F2A44; --line-strong: #2C3A5A;
+      --fg: #E2E8F0; --muted: #94A3B8; --subtle: #8796AD;
+      --primary: #0A1426; --on-primary: #E2E8F0; --hero-muted: #94A3B8; --link: #7EB3F2; --focus: #7EB3F2;
+      --info-soft: #13233F; --info-line: #23395F; --chart: #5B9BE6;
+      --signal: #FBBF24; --signal-fg: #FBBF24; --signal-soft: #2A2110;
+      --success: #047857; --success-fg: #34D399; --success-soft: #0F2A22;
+      --danger-fg: #F87171; --danger-soft: #2D1517;
+      --e1: 0 1px 2px rgb(0 0 0 / .3); --e2: 0 6px 16px rgb(0 0 0 / .35);
+    }
+  }
+  html[lang="en"] [data-l="he"], html[lang="he"] [data-l="en"] { display: none !important; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--canvas); color: var(--fg); font: 15px/1.6 system-ui, "Segoe UI", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  a { color: var(--link); overflow-wrap: anywhere; }
+  code { font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--sunken); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; direction: ltr; unicode-bidi: isolate; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  header.hero { background: var(--primary); color: var(--on-primary); padding: 28px 16px 0; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; font-size: 14px; opacity: .9; }
+  .brand svg { width: 28px; height: 28px; flex: none; }
+  .lang-btn { font: inherit; font-size: 14px; font-weight: 600; color: var(--on-primary); background: transparent; border: 1px solid rgb(255 255 255 / .4); border-radius: 999px; padding: 6px 14px; min-height: 36px; cursor: pointer; }
+  .lang-btn:hover { background: rgb(255 255 255 / .1); }
+  h1 { margin: 14px 0 8px; font-size: 30px; line-height: 1.2; }
+  .lede { margin: 0; max-width: 75ch; color: var(--hero-muted); }
+  .meta { margin-top: 12px; font-size: 13px; color: var(--hero-muted); }
+  [role="tablist"] { display: flex; gap: 4px; margin-top: 22px; overflow-x: auto; }
+  [role="tab"] { font: inherit; font-weight: 600; font-size: 15px; color: var(--hero-muted); background: transparent; border: 0; border-bottom: 3px solid transparent; padding: 10px 16px; min-height: 44px; cursor: pointer; white-space: nowrap; }
+  [role="tab"][aria-selected="true"] { color: var(--on-primary); border-bottom-color: var(--signal); }
+  [role="tab"]:hover { color: var(--on-primary); }
+  main { padding: 28px 16px 56px; }
+  h2 { font-size: 22px; margin: 0 0 6px; line-height: 1.3; }
+  h3 { font-size: 17px; margin: 22px 0 8px; }
+  h4 { font-size: 15px; margin: 14px 0 6px; }
+  section { margin-bottom: 44px; scroll-margin-top: 12px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--e1); padding: 18px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; padding: 0; list-style: none; }
+  .toc a { display: inline-block; text-decoration: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: 4px 12px; font-size: 13px; background: var(--surface); }
+  .note { border-inline-start: 4px solid var(--signal); background: var(--signal-soft); padding: 12px 16px; border-radius: 8px; margin: 14px 0; }
+  .note.info { border-color: var(--chart); background: var(--info-soft); }
+  .note.danger { border-color: var(--danger-fg); background: var(--danger-soft); }
+  .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+  .pill.ok { background: var(--success-soft); color: var(--success-fg); }
+  .pill.warn { background: var(--signal-soft); color: var(--signal-fg); }
+  .pill.bad { background: var(--danger-soft); color: var(--danger-fg); }
+  .pill.info { background: var(--info-soft); color: var(--link); }
+  ul.tight { margin: 6px 0; padding-inline-start: 20px; }
+  ul.tight li { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: start; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--subtle); background: var(--sunken); }
+  .table-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--e1); }
+  .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* End-to-end flow (HTML, so it mirrors correctly in Hebrew) */
+  .flow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; counter-reset: st; }
+  .step { position: relative; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; padding: 12px 10px; box-shadow: var(--e1); }
+  .step b { display: block; font-size: 14px; line-height: 1.3; }
+  .step .n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: var(--on-primary); font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+  .step .hc { display: block; margin-top: 8px; font-size: 12px; color: var(--signal-fg); font-weight: 600; }
+  .step:not(:last-child)::after { content: "→"; position: absolute; inset-inline-end: -12px; top: 38%; color: var(--muted); font-weight: 700; z-index: 1; }
+  html[dir="rtl"] .step:not(:last-child)::after { content: "←"; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+
+  /* Stage option cards */
+  .stage { margin-bottom: 26px; }
+  .stage-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+  .stage-head h3 { margin: 0; }
+  .stage-goal { margin: 6px 0 4px; color: var(--muted); max-width: 90ch; }
+  .checkpoint { font-size: 14px; margin: 6px 0 12px; }
+  .opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .opt { display: flex; flex-direction: column; }
+  .opt.rec { border: 2px solid var(--signal); }
+  .opt h4 { margin: 4px 0 6px; font-size: 16px; }
+  .opt-kind { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--subtle); }
+  .opt .what { margin: 0 0 8px; font-size: 14px; }
+  .opt dl { margin: 8px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 13px; }
+  .opt dt { color: var(--subtle); font-weight: 600; }
+  .opt dd { margin: 0; }
+  .proscons { font-size: 13px; }
+  .proscons h5 { margin: 8px 0 2px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+  .proscons .pro { color: var(--success-fg); }
+  .proscons .con { color: var(--danger-fg); }
+  .meter { letter-spacing: 2px; color: var(--chart); }
+  .eng-note { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line-strong); font-size: 13px; }
+
+  /* Architecture (HTML boxes) */
+  .arch { display: grid; grid-template-columns: 1fr 2.4fr 1.3fr; gap: 14px; align-items: stretch; }
+  .zone { border: 1.5px dashed var(--line-strong); border-radius: 12px; padding: 12px; background: var(--sunken); }
+  .zone > .zl { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--subtle); margin-bottom: 8px; }
+  .box { background: var(--surface); border: 1.5px solid var(--line-strong); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; font-size: 13px; }
+  .box b { display: block; font-size: 14px; }
+  .box.app { background: var(--info-soft); border-color: var(--chart); }
+  .box.data { background: var(--success-soft); border-color: var(--success-fg); }
+  .box.ext { background: var(--signal-soft); border-color: var(--signal); }
+  .box.new { border-style: dashed; border-color: var(--signal); border-width: 2px; }
+  .mods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 8px; }
+
+  /* Data model cards */
+  .models { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .model h4 { margin: 0 0 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; direction: ltr; text-align: start; }
+  .model p { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
+  .model .cols { font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--sunken); padding: 8px 10px; border-radius: 6px; direction: ltr; text-align: left; overflow-wrap: anywhere; }
+  pre.code { font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--sunken); border: 1px solid var(--line); padding: 12px 14px; border-radius: 8px; overflow-x: auto; direction: ltr; text-align: left; margin: 8px 0; }
+
+  ol.road { list-style: none; padding: 0; margin: 0; counter-reset: ph; }
+  ol.road > li { position: relative; padding: 0 0 18px; padding-inline-start: 34px; border-inline-start: 2px solid var(--line-strong); margin-inline-start: 11px; }
+  ol.road > li:last-child { border-color: transparent; }
+  ol.road > li::before { counter-increment: ph; content: counter(ph); position: absolute; inset-inline-start: -13px; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; font-size: 12px; font-weight: 700; }
+  ol.road b { display: block; }
+  footer { border-top: 1px solid var(--line); padding: 20px 16px 40px; font-size: 13px; color: var(--muted); }
+
+  @media (max-width: 980px) {
+    .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .step:not(:last-child)::after { display: none; }
+    .opts, .grid3, .arch { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 680px) {
+    h1 { font-size: 24px; }
+    .grid2, .models, .mods, .flow { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media print {
+    header.hero { background: none; color: #000; padding-top: 0; }
+    .lang-btn, [role="tablist"], .toc { display: none; }
+    [role="tabpanel"][hidden] { display: block !important; }
+    [role="tabpanel"] { break-before: page; }
+    .card, .step, .table-scroll { box-shadow: none; }
+    .stage, .card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#F59E0B"/><path d="M8 9l5 7v7h3v-7l5-7h-3.4L14.5 13.6 11.4 9z" fill="#0F2A4A"/></svg>
+        <span>YMT GROUP</span>
+      </div>
+      <button type="button" class="lang-btn" id="lang-btn" aria-label="Switch language / החלפת שפה"><span data-l="en">עברית</span><span data-l="he">English</span></button>
+    </div>
+    <h1><span data-l="en">Adaptive Growth Platform: System Design</span><span data-l="he">פלטפורמת צמיחה אדפטיבית: תכנון מערכת</span></h1>
+    <p class="lede">
+      <span data-l="en">How the existing YMT CRM grows into a general, domain-agnostic platform: from finding companies to a signed quote, with low-cost automation and a person in control at every decision. Each stage offers options so the YMT team can choose speed, cost and risk.</span>
+      <span data-l="he">איך מערכת ה-CRM הקיימת של YMT מתפתחת לפלטפורמה כללית שמתאימה לכל תחום: מאיתור חברות ועד הצעת מחיר חתומה, באוטומציה זולה ועם אדם ששולט בכל החלטה. בכל שלב מוצגות כמה אפשרויות, כדי שצוות YMT יבחר את המהירות, העלות ורמת הסיכון.</span>
+    </p>
+    <p class="meta">
+      <span data-l="en">Status: discovery draft, no code written yet · Prices checked 20 November 2026 (sources at the end of each tab) · For: YMT management and the developer</span>
+      <span data-l="he">סטטוס: טיוטת אפיון, עדיין לא נכתב קוד · המחירים נבדקו ב-20 בנובמבר 2026 (מקורות בסוף כל לשונית) · מיועד ל: הנהלת YMT והמפתח</span>
+    </p>
+    <div role="tablist" aria-label="Audience">
+      <button type="button" role="tab" id="tab-mgmt" aria-controls="panel-mgmt" aria-selected="true"><span data-l="en">Management level</span><span data-l="he">רמת הנהלה</span></button>
+      <button type="button" role="tab" id="tab-eng" aria-controls="panel-eng" aria-selected="false" tabindex="-1"><span data-l="en">Software engineer level</span><span data-l="he">רמת מהנדס תוכנה</span></button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+<!-- ===================================================== MANAGEMENT ===================================================== -->
+<div role="tabpanel" id="panel-mgmt" aria-labelledby="tab-mgmt" tabindex="0">
+  <ul class="toc">
+    <li><a href="#m-value"><span data-l="en">Value</span><span data-l="he">ערך</span></a></li>
+    <li><a href="#m-flow"><span data-l="en">Business flow</span><span data-l="he">תהליך עסקי</span></a></li>
+    <li><a href="#m-tiers"><span data-l="en">Budget tiers</span><span data-l="he">רמות תקציב</span></a></li>
+    <li><a href="#m-stages"><span data-l="en">Options per stage</span><span data-l="he">אפשרויות לכל שלב</span></a></li>
+    <li><a href="#m-modes"><span data-l="en">Sending modes</span><span data-l="he">מצבי שליחה</span></a></li>
+    <li><a href="#m-linkedin">LinkedIn</a></li>
+    <li><a href="#m-hitl"><span data-l="en">Human checkpoints</span><span data-l="he">נקודות אישור</span></a></li>
+    <li><a href="#m-costs"><span data-l="en">Cost drivers</span><span data-l="he">גורמי עלות</span></a></li>
+    <li><a href="#m-risks"><span data-l="en">Bottlenecks</span><span data-l="he">צווארי בקבוק</span></a></li>
+    <li><a href="#m-legal"><span data-l="en">Compliance</span><span data-l="he">ציות לחוק</span></a></li>
+    <li><a href="#m-charge"><span data-l="en">How to charge clients</span><span data-l="he">איך לגבות מלקוחות</span></a></li>
+    <li><a href="#m-road"><span data-l="en">Roadmap</span><span data-l="he">מפת דרכים</span></a></li>
+    <li><a href="#m-defaults"><span data-l="en">Defaults to confirm</span><span data-l="he">ברירות מחדל לאישור</span></a></li>
+  </ul>
+
+  <section id="m-value">
+    <h2><span data-l="en">What the platform does, and why</span><span data-l="he">מה הפלטפורמה עושה, ולמה</span></h2>
+    <div class="grid3">
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Today</span><span data-l="he">היום</span></h3>
+        <p class="muted" data-l="en">The YMT app already holds companies, contacts, a pipeline, an approval queue, meetings, documents and e-signatures. Finding companies, researching them and writing to them is still manual, one company at a time.</p>
+        <p class="muted" data-l="he">אפליקציית YMT כבר מחזיקה חברות, אנשי קשר, צנרת עסקאות, תור אישורים, פגישות, מסמכים וחתימות. איתור חברות, המחקר עליהן והפנייה אליהן עדיין ידניים, חברה אחת בכל פעם.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Next</span><span data-l="he">השלב הבא</span></h3>
+        <p class="muted" data-l="en">The platform finds companies that match YMT's criteria, prepares a sourced research report, drafts outreach on several channels, tracks replies, suggests the right services and builds the quote. People approve; the system does the legwork.</p>
+        <p class="muted" data-l="he">הפלטפורמה מאתרת חברות שמתאימות לקריטריונים של YMT, מכינה דוח מחקר עם מקורות, מנסחת פניות בכמה ערוצים, עוקבת אחרי תשובות, מציעה את השירותים המתאימים ובונה הצעת מחיר. אנשים מאשרים; המערכת עושה את העבודה השחורה.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Domain-agnostic</span><span data-l="he">מתאים לכל תחום</span></h3>
+        <p class="muted" data-l="en">Nothing is hard-coded to one industry. Lead criteria, report templates, message templates, the service catalog and pricing rules are settings. YMT is the first company using it; the design allows more companies later without a rewrite.</p>
+        <p class="muted" data-l="he">שום דבר לא קשיח לענף אחד. קריטריוני לידים, תבניות דוחות והודעות, קטלוג השירותים וכללי התמחור הם הגדרות. YMT היא החברה הראשונה שמשתמשת בה; התכנון מאפשר להוסיף חברות בהמשך בלי לכתוב מחדש.</p>
+      </div>
+    </div>
+    <div class="note info">
+      <strong data-l="en">Value for YMT:</strong><strong data-l="he">הערך ל-YMT:</strong>
+      <span data-l="en">more qualified conversations per staff hour, faster time from first contact to quote, one place for every channel, and a known monthly cost with a hard cap on AI spend.</span>
+      <span data-l="he">יותר שיחות איכותיות לכל שעת עבודה, זמן קצר יותר מפנייה ראשונה להצעת מחיר, מקום אחד לכל הערוצים, ועלות חודשית ידועה עם תקרה קשיחה להוצאות AI.</span>
+    </div>
+  </section>
+
+  <section id="m-flow">
+    <h2><span data-l="en">Business flow: seven stages</span><span data-l="he">התהליך העסקי: שבעה שלבים</span></h2>
+    <p class="muted" data-l="en">Every stage writes to the same company file, so the team sees one history. The amber line under a stage is where a person decides.</p>
+    <p class="muted" data-l="he">כל שלב כותב לאותו תיק חברה, כך שהצוות רואה היסטוריה אחת. השורה הכתומה מתחת לשלב היא המקום שבו אדם מחליט.</p>
+    <div class="flow" id="flow"></div>
+    <div class="legend">
+      <span><span data-l="en">✋ = human checkpoint</span><span data-l="he">✋ = נקודת אישור אנושית</span></span>
+      <span><span data-l="en">Stage 7 (dashboard) reads data from all stages</span><span data-l="he">שלב 7 (לוח בקרה) קורא נתונים מכל השלבים</span></span>
+    </div>
+  </section>
+
+  <section id="m-tiers">
+    <h2><span data-l="en">Budget tiers (monthly running cost, staff time not included)</span><span data-l="he">רמות תקציב (עלות הפעלה חודשית, ללא זמן עבודה)</span></h2>
+    <p class="muted" data-l="en">The YMT team chooses. Each tier adds capacity and automation; moving up later needs no rebuild, only switching on paid services.</p>
+    <p class="muted" data-l="he">צוות YMT בוחר. כל רמה מוסיפה קיבולת ואוטומציה; מעבר לרמה גבוהה יותר בהמשך לא מחייב בנייה מחדש, רק הפעלת שירותים בתשלום.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Item</span><span data-l="he">רכיב</span></th>
+          <th>A · ≤ $50</th><th>B · $50–200</th><th>C · $200–500</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><span data-l="en">Hosting (Render + disk)</span><span data-l="he">אירוח (Render + דיסק)</span></td><td class="num">≈ $7.25</td><td class="num">≈ $25–35</td><td class="num">≈ $50–80</td></tr>
+          <tr><td><span data-l="en">Claude AI, hard monthly cap</span><span data-l="he">Claude AI, תקרה חודשית קשיחה</span></td><td class="num">$20–30</td><td class="num">$50–80</td><td class="num">$100–150</td></tr>
+          <tr><td><span data-l="en">Google Maps / Places search</span><span data-l="he">חיפוש Google Maps / Places</span></td><td><span data-l="en">free monthly allowance</span><span data-l="he">מכסה חינמית חודשית</span></td><td class="num">$0–10</td><td class="num">$0–30</td></tr>
+          <tr><td><span data-l="en">Email verification</span><span data-l="he">אימות כתובות מייל</span></td><td class="num">≈ $8 / 1,000</td><td class="num">$10–20</td><td class="num">$20–50</td></tr>
+          <tr><td><span data-l="en">WhatsApp Business (per message)</span><span data-l="he">WhatsApp Business (לפי הודעה)</span></td><td><span data-l="en">click-to-chat from staff phone, $0</span><span data-l="he">קישור לצ'אט מהטלפון של העובד, $0</span></td><td class="num">$5–30</td><td class="num">$20–60</td></tr>
+          <tr><td><span data-l="en">Paid B2B database (optional)</span><span data-l="he">מאגר B2B בתשלום (אופציונלי)</span></td><td>—</td><td class="num">$49–59 <span class="small muted"><span data-l="en">(1 seat)</span><span data-l="he">(משתמש אחד)</span></span></td><td class="num">$79–150</td></tr>
+          <tr><td>LinkedIn</td><td><span data-l="en">manual assist, $0</span><span data-l="he">סיוע ידני, $0</span></td><td><span data-l="en">manual assist, $0</span><span data-l="he">סיוע ידני, $0</span></td><td class="num">Sales Navigator $90–120 / <span data-l="en">seat</span><span data-l="he">משתמש</span></td></tr>
+          <tr><td><strong data-l="en">Capacity (approx.)</strong><strong data-l="he">קיבולת (בקירוב)</strong></td>
+            <td><span data-l="en">≈ 150 AI reports, 300 new leads, every message approved</span><span data-l="he">≈ 150 דוחות AI, 300 לידים חדשים, כל הודעה מאושרת</span></td>
+            <td><span data-l="en">≈ 500 reports, contacts from a database, auto follow-ups</span><span data-l="he">≈ 500 דוחות, אנשי קשר ממאגר, מעקבים אוטומטיים</span></td>
+            <td><span data-l="en">≈ 1,000+ reports, nightly batches, several senders, separate worker</span><span data-l="he">≈ 1,000+ דוחות, עיבוד לילי, כמה שולחים, שרת עיבוד נפרד</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small muted" data-l="en">Ranges, not quotes. Prices change; confirm on the vendor page before buying. Prices in USD; WhatsApp is charged per delivered template message and differs by country.</p>
+    <p class="small muted" data-l="he">טווחים, לא הצעות מחיר. מחירים משתנים; יש לאמת בעמוד הספק לפני רכישה. המחירים בדולרים; WhatsApp מחויב לפי הודעת תבנית שנמסרה ומשתנה לפי מדינה.</p>
+  </section>
+
+  <section id="m-stages">
+    <h2><span data-l="en">Options for each stage</span><span data-l="he">אפשרויות לכל שלב</span></h2>
+    <p class="muted" data-l="en">Three options per stage: Lean (lowest cost, more manual work), Balanced and Scalable (more automation and cost). The option with an amber border is the suggested start. Complexity: ●○○ simple to ●●● complex to build and run.</p>
+    <p class="muted" data-l="he">שלוש אפשרויות לכל שלב: רזה (העלות הנמוכה ביותר, יותר עבודה ידנית), מאוזנת, ובת-הרחבה (יותר אוטומציה ועלות). האפשרות עם המסגרת הכתומה היא נקודת ההתחלה המומלצת. מורכבות: ●○○ פשוט עד ●●● מורכב לבנייה ולתפעול.</p>
+    <div id="stages-mgmt"></div>
+  </section>
+
+  <section id="m-modes">
+    <h2><span data-l="en">Three sending modes, chosen per potential client</span><span data-l="he">שלושה מצבי שליחה, נבחרים לכל לקוח פוטנציאלי</span></h2>
+    <div class="grid3">
+      <div class="card">
+        <span class="pill ok"><span data-l="en">Mode 1 · default</span><span data-l="he">מצב 1 · ברירת מחדל</span></span>
+        <h3><span data-l="en">A person approves every message</span><span data-l="he">אדם מאשר כל הודעה</span></h3>
+        <p class="muted small" data-l="en">Each draft (first message and every follow-up) waits in the approval queue. Nothing leaves until a person approves and sends it. Same rule as the YMT app today.</p>
+        <p class="muted small" data-l="he">כל טיוטה (הודעה ראשונה וכל מעקב) ממתינה בתור האישורים. שום דבר לא יוצא עד שאדם מאשר ושולח. אותו כלל שקיים היום באפליקציה.</p>
+      </div>
+      <div class="card">
+        <span class="pill warn"><span data-l="en">Mode 2</span><span data-l="he">מצב 2</span></span>
+        <h3><span data-l="en">Approve the first, follow-ups go automatically</span><span data-l="he">מאשרים את הראשונה, המעקבים יוצאים אוטומטית</span></h3>
+        <p class="muted small" data-l="en">A person approves the first message and the follow-up texts together. Follow-ups (max 3) go on schedule and stop at once on any reply, bounce or unsubscribe.</p>
+        <p class="muted small" data-l="he">אדם מאשר את ההודעה הראשונה ואת נוסחי המעקב יחד. המעקבים (עד 3) יוצאים לפי לוח זמנים ונעצרים מיד בכל תשובה, החזרה או הסרה מרשימה.</p>
+      </div>
+      <div class="card">
+        <span class="pill bad"><span data-l="en">Mode 3</span><span data-l="he">מצב 3</span></span>
+        <h3><span data-l="en">Fully automatic</span><span data-l="he">אוטומטי לחלוטין</span></h3>
+        <p class="muted small" data-l="en">Only an approver can switch a client or segment to this mode, and the decision is logged. The system sends the whole sequence using templates that a person approved in advance, inside daily limits and business hours.</p>
+        <p class="muted small" data-l="he">רק מאשר יכול להעביר לקוח או פלח למצב הזה, וההחלטה נרשמת. המערכת שולחת את כל הרצף לפי תבניות שאדם אישר מראש, בתוך מגבלות יומיות ובשעות פעילות.</p>
+      </div>
+    </div>
+    <div class="note">
+      <strong data-l="en">Decision needed: Mode 3 changes an existing rule.</strong><strong data-l="he">נדרשת החלטה: מצב 3 משנה כלל קיים.</strong>
+      <span data-l="en">The current app promises that the system never sends anything by itself. With Mode 3, the human decision moves from each message to a policy ("this segment may be contacted automatically with these templates"). The design keeps this safe with: approver-only switch, audit log, pre-approved templates only, unsubscribe list checked before every send, and a one-click "pause all sending" button. YMT should confirm this change in writing.</span>
+      <span data-l="he">האפליקציה הנוכחית מבטיחה שהמערכת אף פעם לא שולחת דבר בעצמה. במצב 3 ההחלטה האנושית עוברת מכל הודעה למדיניות ("לפלח הזה מותר לפנות אוטומטית עם התבניות האלה"). התכנון שומר על בטיחות באמצעות: הפעלה רק בידי מאשר, יומן ביקורת, תבניות מאושרות מראש בלבד, בדיקת רשימת ההסרה לפני כל שליחה, וכפתור אחד "עצור את כל השליחות". YMT צריכה לאשר את השינוי בכתב.</span>
+    </div>
+  </section>
+
+  <section id="m-linkedin">
+    <h2><span data-l="en">LinkedIn options and risk levels</span><span data-l="he">אפשרויות LinkedIn ורמות סיכון</span></h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Option</span><span data-l="he">אפשרות</span></th>
+          <th><span data-l="en">What it does</span><span data-l="he">מה זה עושה</span></th>
+          <th><span data-l="en">Cost</span><span data-l="he">עלות</span></th>
+          <th><span data-l="en">Risk</span><span data-l="he">סיכון</span></th>
+        </tr></thead>
+        <tbody id="linkedin-rows"></tbody>
+      </table>
+    </div>
+    <p class="small muted" data-l="en">LinkedIn's User Agreement prohibits bots and other automated methods for accessing the service or sending messages. "High risk" means the staff member's own LinkedIn account can be restricted or closed, and YMT carries legal risk. Suggested start: manual assist, adding Sales Navigator if search time becomes the bottleneck.</p>
+    <p class="small muted" data-l="he">הסכם המשתמש של LinkedIn אוסר על בוטים ושיטות אוטומטיות לגישה לשירות או לשליחת הודעות. "סיכון גבוה" פירושו שחשבון ה-LinkedIn האישי של העובד עלול להיות מוגבל או להיסגר, ו-YMT נושאת בסיכון משפטי. התחלה מומלצת: סיוע ידני, ולהוסיף Sales Navigator אם זמן החיפוש הופך לצוואר בקבוק.</p>
+  </section>
+
+  <section id="m-hitl">
+    <h2><span data-l="en">Human-in-the-loop checkpoints</span><span data-l="he">נקודות אישור אנושיות</span></h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>#</th>
+          <th><span data-l="en">Decision</span><span data-l="he">החלטה</span></th>
+          <th><span data-l="en">Who</span><span data-l="he">מי</span></th>
+          <th><span data-l="en">What the system does before</span><span data-l="he">מה המערכת עושה לפני</span></th>
+        </tr></thead>
+        <tbody id="hitl-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="m-costs">
+    <h2><span data-l="en">Cost drivers and a worked example</span><span data-l="he">גורמי עלות ודוגמה מחושבת</span></h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Unit costs</span><span data-l="he">עלויות ליחידה</span></h3>
+        <div class="table-scroll" style="box-shadow:none">
+          <table>
+            <tbody id="unit-rows"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Example month (Tier A)</span><span data-l="he">חודש לדוגמה (רמה A)</span></h3>
+        <p class="small muted" data-l="en">300 new leads, 150 AI reports, 600 personalised email drafts, 300 reply labels, 100 WhatsApp template messages to Israel.</p>
+        <p class="small muted" data-l="he">300 לידים חדשים, 150 דוחות AI, 600 טיוטות מייל מותאמות אישית, 300 סיווגי תשובות, 100 הודעות תבנית WhatsApp לישראל.</p>
+        <div class="table-scroll" style="box-shadow:none">
+          <table><tbody id="example-rows"></tbody></table>
+        </div>
+        <p class="small muted" data-l="en">The largest variable cost is AI. It has a hard monthly cap: at 80% admins get an alert, at 100% new AI jobs wait until next month or until an admin raises the cap.</p>
+        <p class="small muted" data-l="he">העלות המשתנה הגדולה ביותר היא AI. יש לה תקרה חודשית קשיחה: ב-80% המנהלים מקבלים התראה, וב-100% משימות AI חדשות ממתינות לחודש הבא או עד שמנהל מעלה את התקרה.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="m-risks">
+    <h2><span data-l="en">Bottlenecks and risks</span><span data-l="he">צווארי בקבוק וסיכונים</span></h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Bottleneck</span><span data-l="he">צוואר בקבוק</span></th>
+          <th><span data-l="en">Effect</span><span data-l="he">השפעה</span></th>
+          <th><span data-l="en">How the design handles it</span><span data-l="he">איך התכנון מטפל בזה</span></th>
+        </tr></thead>
+        <tbody id="risk-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="m-legal">
+    <h2><span data-l="en">Compliance overview</span><span data-l="he">סקירת ציות לחוק</span></h2>
+    <div class="note danger">
+      <span data-l="en">This is a design checklist, not legal advice. Before the first automated or cold message, an Israeli lawyer (and a local one for each target country) should confirm the rules for B2B outreach.</span>
+      <span data-l="he">זו רשימת תכנון ולא ייעוץ משפטי. לפני ההודעה האוטומטית או הקרה הראשונה, עורך דין ישראלי (ועורך דין מקומי בכל מדינת יעד) צריך לאשר את הכללים לפנייה עסקית.</span>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Rule</span><span data-l="he">חוק / כלל</span></th>
+          <th><span data-l="en">Applies when</span><span data-l="he">חל כאשר</span></th>
+          <th><span data-l="en">What the platform must do</span><span data-l="he">מה הפלטפורמה חייבת לעשות</span></th>
+        </tr></thead>
+        <tbody id="legal-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="m-charge">
+    <h2><span data-l="en">How YMT can charge its client companies</span><span data-l="he">איך YMT יכולה לגבות מהחברות הלקוחות</span></h2>
+    <p class="muted" data-l="en">The quote engine supports all of these; YMT chooses per service and can combine them. The platform itself is free for YMT today.</p>
+    <p class="muted" data-l="he">מנוע הצעות המחיר תומך בכל המודלים האלה; YMT בוחרת לכל שירות ויכולה לשלב ביניהם. הפלטפורמה עצמה ניתנת היום ל-YMT ללא תשלום.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Model</span><span data-l="he">מודל</span></th>
+          <th><span data-l="en">Best for</span><span data-l="he">מתאים ל</span></th>
+          <th><span data-l="en">Pros</span><span data-l="he">יתרונות</span></th>
+          <th><span data-l="en">Watch out</span><span data-l="he">שימו לב</span></th>
+        </tr></thead>
+        <tbody id="charge-rows"></tbody>
+      </table>
+    </div>
+    <h3><span data-l="en">If YMT later sells the platform itself</span><span data-l="he">אם YMT תמכור בעתיד את הפלטפורמה עצמה</span></h3>
+    <ul class="tight muted">
+      <li data-l="en"><strong>Per seat</strong> (monthly per user): simple, but heavy AI users cost more than light ones.</li>
+      <li data-l="he"><strong>לפי משתמש</strong> (חודשי לכל משתמש): פשוט, אבל משתמשי AI כבדים עולים יותר מקלים.</li>
+      <li data-l="en"><strong>Tiers with quotas</strong> (for example, reports and leads per month): matches the real cost drivers; the AI cap is already built in.</li>
+      <li data-l="he"><strong>חבילות עם מכסות</strong> (למשל דוחות ולידים בחודש): תואם את גורמי העלות האמיתיים; תקרת ה-AI כבר מובנית.</li>
+      <li data-l="en"><strong>Setup fee + monthly</strong>: covers onboarding work (templates, catalog, legal setup).</li>
+      <li data-l="he"><strong>דמי הקמה + חודשי</strong>: מכסה את עבודת ההטמעה (תבניות, קטלוג, הגדרות משפטיות).</li>
+      <li data-l="en"><strong>Usage credits</strong>: pay per report or per verified lead; fair, but monthly revenue varies.</li>
+      <li data-l="he"><strong>קרדיטים לפי שימוש</strong>: תשלום לכל דוח או ליד מאומת; הוגן, אבל ההכנסה החודשית משתנה.</li>
+    </ul>
+  </section>
+
+  <section id="m-road">
+    <h2><span data-l="en">Roadmap</span><span data-l="he">מפת דרכים</span></h2>
+    <p class="muted" data-l="en">Durations assume one developer working with Claude, with answers from the YMT team arriving on time. Each phase ends with something the team can use.</p>
+    <p class="muted" data-l="he">משכי הזמן מניחים מפתח אחד שעובד עם Claude, ותשובות מצוות YMT שמגיעות בזמן. כל שלב מסתיים במשהו שהצוות יכול להשתמש בו.</p>
+    <ol class="road" id="road"></ol>
+  </section>
+
+  <section id="m-defaults">
+    <h2><span data-l="en">Decisions so far and defaults to confirm</span><span data-l="he">החלטות עד כה וברירות מחדל לאישור</span></h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Decided by YMT / the developer</span><span data-l="he">הוחלט על ידי YMT / המפתח</span></h3>
+        <ul class="tight" id="decided"></ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Defaults (not asked yet; change any)</span><span data-l="he">ברירות מחדל (עוד לא נשאלו; אפשר לשנות כל אחת)</span></h3>
+        <ul class="tight" id="defaults"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span data-l="en">Sources (checked 20 November 2026)</span><span data-l="he">מקורות (נבדקו ב-20 בנובמבר 2026)</span></h2>
+    <ul class="tight small" id="sources-mgmt"></ul>
+  </section>
+</div>
+
+<!-- ===================================================== ENGINEERING ===================================================== -->
+<div role="tabpanel" id="panel-eng" aria-labelledby="tab-eng" tabindex="0" hidden>
+  <ul class="toc">
+    <li><a href="#e-arch"><span data-l="en">Architecture</span><span data-l="he">ארכיטקטורה</span></a></li>
+    <li><a href="#e-extend"><span data-l="en">Extending the CRM</span><span data-l="he">הרחבת ה-CRM</span></a></li>
+    <li><a href="#e-tenancy"><span data-l="en">Tenancy</span><span data-l="he">ריבוי חברות</span></a></li>
+    <li><a href="#e-models"><span data-l="en">Data models</span><span data-l="he">מודל נתונים</span></a></li>
+    <li><a href="#e-api"><span data-l="en">API and webhooks</span><span data-l="he">API ו-webhooks</span></a></li>
+    <li><a href="#e-llm"><span data-l="en">LLM pipeline</span><span data-l="he">צינור LLM</span></a></li>
+    <li><a href="#e-jobs"><span data-l="en">Jobs and sending</span><span data-l="he">משימות ושליחה</span></a></li>
+    <li><a href="#e-stages"><span data-l="en">Stage notes</span><span data-l="he">הערות לכל שלב</span></a></li>
+    <li><a href="#e-integrations"><span data-l="en">Integration points</span><span data-l="he">נקודות אינטגרציה</span></a></li>
+    <li><a href="#e-security"><span data-l="en">Security</span><span data-l="he">אבטחה</span></a></li>
+    <li><a href="#e-scale"><span data-l="en">Scaling path</span><span data-l="he">מסלול גדילה</span></a></li>
+    <li><a href="#e-test"><span data-l="en">Testing</span><span data-l="he">בדיקות</span></a></li>
+  </ul>
+
+  <section id="e-arch">
+    <h2><span data-l="en">Architecture: one service, one worker, pluggable adapters</span><span data-l="he">ארכיטקטורה: שירות אחד, תהליך רקע אחד, מתאמים ניתנים להחלפה</span></h2>
+    <p class="muted" data-l="en">Keep the current stack (Node 22, Express 5, <code>node:sqlite</code>, React 19 PWA). New modules are route files plus service modules in the same process; slow work moves to a job queue stored in SQLite and run by a worker loop. Every external service sits behind a small adapter interface with a fake for tests, like the existing Google Calendar client.</p>
+    <p class="muted" data-l="he">שומרים על המחסנית הקיימת (Node 22, Express 5, <code>node:sqlite</code>, React 19 PWA). מודולים חדשים הם קבצי routes ומודולי שירות באותו תהליך; עבודה איטית עוברת לתור משימות שנשמר ב-SQLite ומורץ בלולאת worker. כל שירות חיצוני יושב מאחורי ממשק מתאם קטן עם גרסה מזויפת לבדיקות, כמו לקוח Google Calendar הקיים.</p>
+    <div class="arch" aria-label="Architecture diagram">
+      <div class="zone">
+        <div class="zl"><span data-l="en">People</span><span data-l="he">אנשים</span></div>
+        <div class="box"><b><span data-l="en">YMT staff</span><span data-l="he">צוות YMT</span></b><span data-l="en">PWA on phone and desktop</span><span data-l="he">PWA בטלפון ובמחשב</span></div>
+        <div class="box"><b><span data-l="en">Approvers / admins</span><span data-l="he">מאשרים / מנהלים</span></b><span data-l="en">approval queue, caps, modes</span><span data-l="he">תור אישורים, תקרות, מצבי שליחה</span></div>
+        <div class="box"><b><span data-l="en">Prospects and clients</span><span data-l="he">לקוחות ולקוחות פוטנציאליים</span></b><span data-l="en">receive email / WhatsApp, open report and quote links, sign</span><span data-l="he">מקבלים מייל / WhatsApp, פותחים קישורי דוח והצעה, חותמים</span></div>
+      </div>
+      <div class="zone">
+        <div class="zl"><span data-l="en">YMT platform (Render, EU)</span><span data-l="he">פלטפורמת YMT (Render, אירופה)</span></div>
+        <div class="box app"><b><span data-l="en">Existing app</span><span data-l="he">האפליקציה הקיימת</span></b><span data-l="en">companies, contacts, pipeline, approvals, meetings, documents, e-sign, share links, calendar, audit log</span><span data-l="he">חברות, אנשי קשר, צנרת, אישורים, פגישות, מסמכים, חתימה, קישורי שיתוף, יומן, יומן ביקורת</span></div>
+        <div class="mods">
+          <div class="box new"><b><span data-l="en">1 · Lead discovery</span><span data-l="he">1 · איתור לידים</span></b><span data-l="en">criteria, source adapters, dedup, scoring</span><span data-l="he">קריטריונים, מתאמי מקורות, איחוד כפילויות, ניקוד</span></div>
+          <div class="box new"><b><span data-l="en">2 · Research and reports</span><span data-l="he">2 · מחקר ודוחות</span></b><span data-l="en">LLM pipeline, claims with sources, PDF</span><span data-l="he">צינור LLM, טענות עם מקורות, PDF</span></div>
+          <div class="box new"><b><span data-l="en">3 · Outreach engine</span><span data-l="he">3 · מנוע פניות</span></b><span data-l="en">sequences, modes, limits, channels</span><span data-l="he">רצפים, מצבים, מגבלות, ערוצים</span></div>
+          <div class="box new"><b><span data-l="en">4 · Inbound</span><span data-l="he">4 · נכנסות</span></b><span data-l="en">webhooks / polling, threading, AI labels</span><span data-l="he">webhooks / משיכה, שיוך שרשורים, תוויות AI</span></div>
+          <div class="box new"><b><span data-l="en">5 · Service matching</span><span data-l="he">5 · התאמת שירותים</span></b><span data-l="en">catalog, rules, AI top 3</span><span data-l="he">קטלוג, כללים, 3 המובילים לפי AI</span></div>
+          <div class="box new"><b><span data-l="en">6 · Quotes</span><span data-l="he">6 · הצעות מחיר</span></b><span data-l="en">price rules, 4 models, versions</span><span data-l="he">כללי תמחור, 4 מודלים, גרסאות</span></div>
+          <div class="box new"><b><span data-l="en">7 · Dashboard</span><span data-l="he">7 · לוח בקרה</span></b><span data-l="en">KPIs, daily snapshots, digest</span><span data-l="he">מדדים, תמונות מצב יומיות, סיכום יומי</span></div>
+          <div class="box new"><b><span data-l="en">Job worker + AI ledger</span><span data-l="he">Worker משימות + ספר הוצאות AI</span></b><span data-l="en">queue, retries, cost cap, send windows</span><span data-l="he">תור, ניסיונות חוזרים, תקרת עלות, חלונות שליחה</span></div>
+        </div>
+        <div class="box data"><b><span data-l="en">SQLite on persistent disk</span><span data-l="he">SQLite על דיסק קבוע</span></b><span data-l="en">one file, tenant_id on business rows; PDFs and imports in DATA_DIR</span><span data-l="he">קובץ אחד, tenant_id בשורות עסקיות; קבצי PDF וייבוא ב-DATA_DIR</span></div>
+      </div>
+      <div class="zone">
+        <div class="zl"><span data-l="en">External services</span><span data-l="he">שירותים חיצוניים</span></div>
+        <div class="box ext"><b>Claude API</b><span data-l="en">research, drafts, labels</span><span data-l="he">מחקר, טיוטות, תוויות</span></div>
+        <div class="box ext"><b>Google</b><span data-l="en">Places, Gmail, Calendar</span><span data-l="he">Places, Gmail, יומן</span></div>
+        <div class="box ext"><b>Microsoft Graph</b><span data-l="en">Outlook mail (optional)</span><span data-l="he">דואר Outlook (אופציונלי)</span></div>
+        <div class="box ext"><b>WhatsApp Cloud API</b><span data-l="en">templates, webhooks</span><span data-l="he">תבניות, webhooks</span></div>
+        <div class="box ext"><b><span data-l="en">Optional</span><span data-l="he">אופציונלי</span></b><span data-l="en">B2B database, email verifier, Unipile, n8n / Zapier</span><span data-l="he">מאגר B2B, מאמת מיילים, Unipile, n8n / Zapier</span></div>
+      </div>
+    </div>
+    <p class="small muted" data-l="en">Dashed amber boxes are new modules. Nothing in the existing app is removed; existing rules (approval before external use, audit log, bilingual RTL/LTR, no API data cached on devices) apply to every new module.</p>
+    <p class="small muted" data-l="he">תיבות כתומות מקווקוות הן מודולים חדשים. שום דבר לא מוסר מהאפליקציה הקיימת; הכללים הקיימים (אישור לפני שימוש חיצוני, יומן ביקורת, דו-לשוניות RTL/LTR, אין שמירת נתוני API במכשירים) חלים על כל מודול חדש.</p>
+  </section>
+
+  <section id="e-extend">
+    <h2><span data-l="en">How new modules extend the existing CRM</span><span data-l="he">איך המודולים החדשים מרחיבים את ה-CRM הקיים</span></h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Existing table / module</span><span data-l="he">טבלה / מודול קיים</span></th>
+          <th><span data-l="en">Change</span><span data-l="he">שינוי</span></th>
+          <th><span data-l="en">Used by stage</span><span data-l="he">בשימוש בשלב</span></th>
+        </tr></thead>
+        <tbody id="extend-rows"></tbody>
+      </table>
+    </div>
+    <p class="small muted" data-l="en">Schema changes go through the existing migration engine in <code>server/src/db.js</code> (shape comparison and table rebuild), so old databases upgrade on start-up. New columns get defaults so current rows stay valid.</p>
+    <p class="small muted" data-l="he">שינויי סכימה עוברים דרך מנוע ההגירה הקיים ב-<code>server/src/db.js</code> (השוואת מבנה ובנייה מחדש של טבלה), כך שמסדי נתונים ישנים משתדרגים בהפעלה. עמודות חדשות מקבלות ערכי ברירת מחדל כך ששורות קיימות נשארות תקינות.</p>
+  </section>
+
+  <section id="e-tenancy">
+    <h2><span data-l="en">Tenancy: design for many companies, build for one</span><span data-l="he">ריבוי חברות: מתכננים לרבות, בונים לאחת</span></h2>
+    <div class="grid3">
+      <div class="card opt rec">
+        <span class="opt-kind"><span data-l="en">Now (suggested)</span><span data-l="he">עכשיו (מומלץ)</span></span>
+        <h4><span data-l="en">tenant_id column, one tenant</span><span data-l="he">עמודת tenant_id, דייר אחד</span></h4>
+        <p class="small" data-l="en">Add <code>tenants</code> and a <code>tenant_id NOT NULL DEFAULT 1</code> on business tables. Every query goes through a helper that adds <code>WHERE tenant_id = ?</code> from the session. Costs little now and avoids a risky migration later.</p>
+        <p class="small" data-l="he">מוסיפים טבלת <code>tenants</code> ועמודה <code>tenant_id NOT NULL DEFAULT 1</code> בטבלאות העסקיות. כל שאילתה עוברת דרך פונקציית עזר שמוסיפה <code>WHERE tenant_id = ?</code> מתוך הסשן. עולה מעט עכשיו וחוסך הגירה מסוכנת בהמשך.</p>
+      </div>
+      <div class="card opt">
+        <span class="opt-kind"><span data-l="en">Later, option A</span><span data-l="he">בהמשך, אפשרות A</span></span>
+        <h4><span data-l="en">One SQLite file per tenant</span><span data-l="he">קובץ SQLite לכל דייר</span></h4>
+        <p class="small" data-l="en">Strong isolation, per-client backup and deletion are a file operation. More files to migrate; cross-tenant reports need a loop.</p>
+        <p class="small" data-l="he">הפרדה חזקה, גיבוי ומחיקה ללקוח הם פעולת קובץ. יותר קבצים להגירה; דוחות חוצי-דיירים דורשים לולאה.</p>
+      </div>
+      <div class="card opt">
+        <span class="opt-kind"><span data-l="en">Later, option B</span><span data-l="he">בהמשך, אפשרות B</span></span>
+        <h4><span data-l="en">Postgres with row-level security</span><span data-l="he">Postgres עם אבטחה ברמת שורה</span></h4>
+        <p class="small" data-l="en">Best for many tenants and several app instances. Needs a managed database and porting the SQL; the tenant_id column from "Now" makes this mechanical.</p>
+        <p class="small" data-l="he">הכי מתאים להרבה דיירים ולכמה מופעי אפליקציה. דורש מסד נתונים מנוהל והעברת ה-SQL; עמודת tenant_id מהשלב "עכשיו" הופכת את זה לעבודה מכנית.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="e-models">
+    <h2><span data-l="en">New data models</span><span data-l="he">מודלי נתונים חדשים</span></h2>
+    <p class="muted" data-l="en">All new tables carry <code>tenant_id</code>, <code>created_at</code> and, where a person acts, <code>created_by</code>. Times are UTC ISO strings, as today.</p>
+    <p class="muted" data-l="he">כל הטבלאות החדשות כוללות <code>tenant_id</code>, <code>created_at</code> ובמקום שאדם פועל גם <code>created_by</code>. זמנים נשמרים כמחרוזות ISO ב-UTC, כמו היום.</p>
+    <div class="models" id="models"></div>
+  </section>
+
+  <section id="e-api">
+    <h2><span data-l="en">API and webhook boundaries</span><span data-l="he">גבולות API ו-webhooks</span></h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Internal REST (session cookie, same as today)</span><span data-l="he">REST פנימי (עוגיית סשן, כמו היום)</span></h3>
+<pre class="code">GET/POST  /api/lead-criteria            ICP profiles
+POST      /api/lead-searches            run a source search (job)
+POST      /api/lead-imports             CSV upload + column mapping
+GET       /api/leads?status=new         review queue
+POST      /api/leads/:id/accept         → company + contacts
+POST      /api/companies/:id/research   start research run (job)
+GET/PATCH /api/reports/:id              draft → approval
+POST      /api/sequences                steps, channel, mode
+POST      /api/companies/:id/enroll     start sequence (mode 1-3)
+POST      /api/outreach/:id/send        approved item only
+POST      /api/inbound/:id/confirm      confirm AI label
+GET/POST  /api/services                 catalog
+POST      /api/companies/:id/matches    AI top 3 (job)
+POST      /api/quotes                   from price rules
+POST      /api/quotes/:id/finalize      → document + hash
+GET       /api/ai/usage                 spend vs cap
+POST      /api/admin/pause-sending      kill switch</pre>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Inbound webhooks (public, verified)</span><span data-l="he">webhooks נכנסים (ציבוריים, מאומתים)</span></h3>
+<pre class="code">GET  /api/hooks/whatsapp     Meta verify (hub.challenge)
+POST /api/hooks/whatsapp     X-Hub-Signature-256 HMAC
+POST /api/hooks/gmail        Pub/Sub push (JWT audience)
+POST /api/hooks/graph        validationToken + clientState
+POST /api/hooks/unipile      shared secret header (optional)
+GET  /u/:token               one-click unsubscribe page
+POST /u/:token               RFC 8058 List-Unsubscribe-Post</pre>
+        <p class="small muted" data-l="en">Every webhook: verify signature first, store the raw body in <code>inbound_events</code> with a unique provider event id (idempotent), answer 200 fast, process in a job.</p>
+        <p class="small muted" data-l="he">כל webhook: קודם מאמתים חתימה, שומרים את הגוף הגולמי ב-<code>inbound_events</code> עם מזהה אירוע ייחודי של הספק (אידמפוטנטי), עונים 200 מהר, ומעבדים במשימת רקע.</p>
+        <h3><span data-l="en">Outbound webhooks (optional n8n / Zapier)</span><span data-l="he">webhooks יוצאים (אופציונלי n8n / Zapier)</span></h3>
+<pre class="code">events: lead.accepted, report.approved,
+        reply.labelled, quote.signed
+body:   { id, type, tenant_id, occurred_at, data }
+header: X-YMT-Signature: sha256=HMAC(secret, body)</pre>
+        <p class="small muted" data-l="en">Outbound events carry ids and minimal fields, not full personal data; the receiver calls back with an API token if it needs more.</p>
+        <p class="small muted" data-l="he">אירועים יוצאים נושאים מזהים ושדות מינימליים, לא את כל המידע האישי; המקבל פונה חזרה עם אסימון API אם הוא צריך יותר.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="e-llm">
+    <h2><span data-l="en">LLM and automation pipeline</span><span data-l="he">צינור ה-LLM והאוטומציה</span></h2>
+    <ol class="road" id="llm-steps"></ol>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Model choice per task</span><span data-l="he">בחירת מודל לכל משימה</span></h3>
+        <div class="table-scroll" style="box-shadow:none"><table><tbody id="model-rows"></tbody></table></div>
+        <p class="small muted" data-l="en">Model names are settings, not code, so YMT can trade quality for cost per task. Prices per million tokens (input / output), 20 November 2026.</p>
+        <p class="small muted" data-l="he">שמות המודלים הם הגדרות ולא קוד, כך ש-YMT יכולה לאזן בין איכות לעלות לכל משימה. מחירים למיליון טוקנים (קלט / פלט), 20 בנובמבר 2026.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Cost cap (hard, server-side)</span><span data-l="he">תקרת עלות (קשיחה, בצד השרת)</span></h3>
+<pre class="code">before each AI job:
+  spent  = SUM(ai_usage.cost_usd) this month
+  budget = settings.ai_monthly_cap_usd
+  est    = estimate(job)          // max_tokens × price
+  if spent + est > budget → job.status = 'waiting_budget'
+after each call:
+  INSERT ai_usage(job_id, model, input, output,
+                  cache_read, searches, cost_usd)
+  at 80% → notify admins once per month</pre>
+        <ul class="tight small muted">
+          <li data-l="en">Batch API (−50%) for overnight research of new leads; interactive calls only when a person waits.</li>
+          <li data-l="he">Batch API (‎−50%) למחקר לילי של לידים חדשים; קריאות אינטראקטיביות רק כשאדם מחכה.</li>
+          <li data-l="en">Prompt caching for the fixed system prompt and report template (cache reads cost a small fraction of input).</li>
+          <li data-l="he">Prompt caching להנחיית המערכת הקבועה ולתבנית הדוח (קריאה מהמטמון עולה חלק קטן ממחיר הקלט).</li>
+          <li data-l="en">Also set a monthly spend limit in the Anthropic Console as a second guard.</li>
+          <li data-l="he">בנוסף מגדירים מגבלת הוצאה חודשית ב-Anthropic Console כשכבת הגנה שנייה.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note info">
+      <strong data-l="en">Safety rules for AI output</strong><strong data-l="he">כללי בטיחות לפלט AI</strong>
+      <ul class="tight">
+        <li data-l="en">Web pages and replies are untrusted data: they go in as quoted documents, never as instructions, and the model has no tool that sends, deletes or changes records.</li>
+        <li data-l="he">דפי אינטרנט ותשובות הם מידע לא מהימן: הם נכנסים כמסמכים מצוטטים, אף פעם לא כהוראות, ולמודל אין כלי ששולח, מוחק או משנה רשומות.</li>
+        <li data-l="en">Structured outputs (JSON schema) for facts, labels and matches; the server validates and rejects claims without a stored source id.</li>
+        <li data-l="he">פלט מובנה (JSON schema) לעובדות, תוויות והתאמות; השרת מאמת ודוחה טענות בלי מזהה מקור שמור.</li>
+        <li data-l="en">Every AI result is a draft with status <code>pending</code> in the approval queue; the model never moves a record to <code>approved</code>.</li>
+        <li data-l="he">כל תוצאת AI היא טיוטה בסטטוס <code>pending</code> בתור האישורים; המודל אף פעם לא מעביר רשומה ל-<code>approved</code>.</li>
+        <li data-l="en">Send only what the task needs (company facts, role titles); no notes about other clients, no secrets.</li>
+        <li data-l="he">שולחים רק את מה שהמשימה צריכה (עובדות על החברה, תפקידים); בלי הערות על לקוחות אחרים ובלי סודות.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="e-jobs">
+    <h2><span data-l="en">Job queue and the send path</span><span data-l="he">תור משימות ומסלול השליחה</span></h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">SQLite job queue (start)</span><span data-l="he">תור משימות ב-SQLite (התחלה)</span></h3>
+<pre class="code">jobs(id, tenant_id, type, payload_json, status,
+     run_at, attempts, max_attempts, locked_until,
+     last_error, idempotency_key UNIQUE, created_at)
+
+worker loop (every 5 s, same process):
+  BEGIN IMMEDIATE
+    pick 1 job WHERE status='queued' AND run_at<=now
+                 AND (locked_until IS NULL OR locked_until<now)
+    set locked_until = now + 5 min
+  COMMIT
+  run handler(type) → done | retry (backoff 1m,5m,30m) | failed</pre>
+        <p class="small muted" data-l="en">One process means no races beyond the lock. A SQLite file lives on one service's disk, so a separate worker service (Tier C) comes together with the move to Postgres; the job table and handlers stay the same.</p>
+        <p class="small muted" data-l="he">תהליך אחד אומר שאין מרוצים מעבר לנעילה. קובץ SQLite נמצא על הדיסק של שירות אחד, ולכן worker נפרד (רמה C) מגיע יחד עם המעבר ל-Postgres; טבלת המשימות והמטפלים נשארים אותו דבר.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Send path: checks in this order, all server-side</span><span data-l="he">מסלול שליחה: בדיקות בסדר הזה, כולן בצד השרת</span></h3>
+        <ol class="tight small" id="send-checks"></ol>
+      </div>
+    </div>
+  </section>
+
+  <section id="e-stages">
+    <h2><span data-l="en">Technical notes for each stage option</span><span data-l="he">הערות טכניות לכל אפשרות בכל שלב</span></h2>
+    <div id="stages-eng"></div>
+  </section>
+
+  <section id="e-integrations">
+    <h2><span data-l="en">Integration points and their constraints</span><span data-l="he">נקודות אינטגרציה והמגבלות שלהן</span></h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Service</span><span data-l="he">שירות</span></th>
+          <th><span data-l="en">How we connect</span><span data-l="he">איך מתחברים</span></th>
+          <th><span data-l="en">Constraint to know</span><span data-l="he">מגבלה שחשוב לדעת</span></th>
+        </tr></thead>
+        <tbody id="integration-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="e-security">
+    <h2><span data-l="en">Security and privacy by design</span><span data-l="he">אבטחה ופרטיות כחלק מהתכנון</span></h2>
+    <ul class="tight" id="security"></ul>
+  </section>
+
+  <section id="e-scale">
+    <h2><span data-l="en">Scaling path</span><span data-l="he">מסלול גדילה</span></h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Trigger</span><span data-l="he">טריגר</span></th>
+          <th><span data-l="en">Step</span><span data-l="he">צעד</span></th>
+        </tr></thead>
+        <tbody id="scale-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="e-test">
+    <h2><span data-l="en">Testing strategy</span><span data-l="he">אסטרטגיית בדיקות</span></h2>
+    <ul class="tight" id="testing"></ul>
+  </section>
+
+  <section>
+    <h2><span data-l="en">Sources (checked 20 November 2026)</span><span data-l="he">מקורות (נבדקו ב-20 בנובמבר 2026)</span></h2>
+    <ul class="tight small" id="sources-eng"></ul>
+  </section>
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span data-l="en">Companion file: <a href="client-requirements-checklist.html">client requirements checklist</a> (questions for the YMT team). Existing docs: <a href="hosting_options.html">hosting options</a>, <a href="DESIGN_SYSTEM.md">design system</a>.</span>
+    <span data-l="he">קובץ נלווה: <a href="client-requirements-checklist.html">רשימת דרישות מהלקוח</a> (שאלות לצוות YMT). מסמכים קיימים: <a href="hosting_options.html">אפשרויות אירוח</a>, <a href="DESIGN_SYSTEM.md">מערכת עיצוב</a>.</span>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ---------- content (every text has en + he) ---------- */
+const T = (en, he) => ({ en, he });
+
+const STAGES = [
+  {
+    n: 1, name: T("Lead discovery", "איתור לידים"),
+    goal: T("Find companies that match YMT's criteria (country, industry, size, signals), remove duplicates and rank them.",
+            "למצוא חברות שמתאימות לקריטריונים של YMT (מדינה, ענף, גודל, סימנים), להסיר כפילויות ולדרג אותן."),
+    checkpoint: T("A person accepts leads into the pipeline (or an admin sets an auto-accept score).",
+                  "אדם מקבל לידים לצנרת (או שמנהל מגדיר ציון לקבלה אוטומטית)."),
+    options: [
+      { kind: "lean", rec: true, title: T("CSV + Google Maps + manual LinkedIn", "CSV + Google Maps + LinkedIn ידני"),
+        what: T("Saved criteria form. Search Google Places by category and area, upload CSV lists, add LinkedIn finds by hand. Dedup and a rule-based score.",
+                "טופס קריטריונים שמור. חיפוש ב-Google Places לפי קטגוריה ואזור, העלאת רשימות CSV, הוספה ידנית של ממצאים מ-LinkedIn. איחוד כפילויות וניקוד לפי כללים."),
+        pros: [T("Almost free (Places has a monthly free allowance)", "כמעט חינם (ל-Places יש מכסה חינמית חודשית)"), T("Works for any country and industry", "עובד לכל מדינה וענף")],
+        cons: [T("Few personal e-mails; mostly general company contacts", "מעט כתובות מייל אישיות; בעיקר פרטי קשר כלליים של החברה"), T("Staff time to find decision makers", "זמן עבודה לאיתור מקבלי החלטות")],
+        cost: T("$0–10 / month", "$0–10 לחודש"), cx: 1,
+        eng: T("Adapter <code>placesSource.search(criteria)</code> uses Text Search (New) with a field mask; one request returns up to 20 places and is billed per request. CSV import: upload → column mapping → preview → <code>lead_candidates</code>. Dedup key: normalized website domain, then normalized name + country.",
+               "מתאם <code>placesSource.search(criteria)</code> משתמש ב-Text Search (New) עם field mask; בקשה אחת מחזירה עד 20 מקומות ומחויבת לפי בקשה. ייבוא CSV: העלאה ← מיפוי עמודות ← תצוגה מקדימה ← <code>lead_candidates</code>. מפתח איחוד: דומיין אתר מנורמל, ואז שם מנורמל + מדינה.") },
+      { kind: "balanced", title: T("Add a paid B2B database + e-mail verification", "הוספת מאגר B2B בתשלום + אימות מיילים"),
+        what: T("Search a B2B database (e.g. Apollo) for decision makers by title, and verify every e-mail before it enters a sequence.",
+                "חיפוש מקבלי החלטות לפי תפקיד במאגר B2B (למשל Apollo), ואימות כל כתובת מייל לפני שהיא נכנסת לרצף."),
+        pros: [T("Named contacts with role and e-mail", "אנשי קשר בשמם עם תפקיד ומייל"), T("Fewer bounces, protects the sending domain", "פחות החזרות, מגן על דומיין השליחה")],
+        cons: [T("Per-seat subscription and credit limits", "מנוי לפי משתמש ומגבלת קרדיטים"), T("Database data can be outdated; GDPR duty to inform", "המידע במאגר עלול להיות מיושן; חובת יידוע לפי GDPR")],
+        cost: T("≈ $60–120 / month", "≈ $60–120 לחודש"), cx: 2,
+        eng: T("Adapter <code>b2bSource</code> behind the same interface; credits tracked per call in <code>source_usage</code>. Verifier adapter returns valid / risky / invalid; only valid enters Mode 2/3 sequences.",
+               "מתאם <code>b2bSource</code> מאחורי אותו ממשק; צריכת קרדיטים נרשמת לכל קריאה ב-<code>source_usage</code>. מתאם האימות מחזיר תקין / מסוכן / לא תקין; רק תקין נכנס לרצפים במצב 2/3.") },
+      { kind: "scale", title: T("Scheduled searches + enrichment waterfall", "חיפושים מתוזמנים + העשרה מדורגת"),
+        what: T("Saved searches run nightly across all sources, new leads are enriched from several providers in order and scored; hot leads alert the owner.",
+                "חיפושים שמורים רצים כל לילה בכל המקורות, לידים חדשים מועשרים מכמה ספקים לפי סדר ומדורגים; לידים חמים שולחים התראה לבעלים."),
+        pros: [T("Steady flow without manual searching", "זרם קבוע בלי חיפוש ידני"), T("Signals (hiring, funding, new branch) trigger outreach timing", "סימנים (גיוס, השקעה, סניף חדש) מתזמנים את הפנייה")],
+        cons: [T("Several paid vendors to manage", "כמה ספקים בתשלום לנהל"), T("More data held = more privacy duties", "יותר מידע שמור = יותר חובות פרטיות")],
+        cost: T("≈ $150–400 / month", "≈ $150–400 לחודש"), cx: 3,
+        eng: T("Cron-like job <code>lead_search.run</code> per saved search; enrichment chain stops at first verified hit; scoring rules stored as JSON per tenant and evaluated in plain JS (no AI needed).",
+               "משימה מתוזמנת <code>lead_search.run</code> לכל חיפוש שמור; שרשרת ההעשרה נעצרת בתוצאה המאומתת הראשונה; כללי ניקוד נשמרים כ-JSON לכל דייר ומחושבים ב-JS פשוט (בלי AI).") }
+    ]
+  },
+  {
+    n: 2, name: T("AI research and adaptive PDF reports", "מחקר AI ודוחות PDF מותאמים"),
+    goal: T("Turn public information about a company into a short, sourced report in YMT's template and brand, adapted to the industry.",
+            "להפוך מידע ציבורי על חברה לדוח קצר עם מקורות, בתבנית ובמיתוג של YMT, מותאם לענף."),
+    checkpoint: T("Every report is a draft until a person approves it; every claim shows its source link.",
+                  "כל דוח הוא טיוטה עד שאדם מאשר אותו; ליד כל טענה מוצג קישור המקור."),
+    options: [
+      { kind: "lean", title: T("Brief from website + staff notes", "תקציר מהאתר + הערות הצוות"),
+        what: T("The system reads the company website and Places data, AI writes a one-page brief; PDF through the browser's print view.",
+                "המערכת קוראת את אתר החברה ונתוני Places, ה-AI כותב תקציר של עמוד אחד; PDF דרך תצוגת ההדפסה של הדפדפן."),
+        pros: [T("≈ $0.02–0.05 per brief", "≈ $0.02–0.05 לתקציר"), T("Fast to build on the existing brief screen", "מהיר לבנות על מסך התקציר הקיים")],
+        cons: [T("Only what the website says", "רק מה שכתוב באתר"), T("Plain PDF layout", "עיצוב PDF פשוט")],
+        cost: T("$5–15 / month", "$5–15 לחודש"), cx: 1,
+        eng: T("Fetch home + about + services pages server-side (size limit, robots respected), strip to text, one Haiku call with structured output → <code>research_claims</code>. Reuses <code>approvals</code> and the existing print CSS.",
+               "שליפת דף הבית + אודות + שירותים בצד השרת (מגבלת גודל, כיבוד robots), המרה לטקסט, קריאה אחת ל-Haiku עם פלט מובנה ← <code>research_claims</code>. משתמש מחדש ב-<code>approvals</code> וב-CSS ההדפסה הקיים.") },
+      { kind: "balanced", rec: true, title: T("Web research + section templates + branded PDF", "מחקר רשת + תבניות לפי מקטעים + PDF ממותג"),
+        what: T("AI searches the web, stores each fact with its source, then writes the sections of the chosen template (per industry and language). Server renders a branded PDF and a private web link.",
+                "ה-AI מחפש ברשת, שומר כל עובדה עם המקור שלה, ואז כותב את המקטעים של התבנית שנבחרה (לפי ענף ושפה). השרת מפיק PDF ממותג וקישור אינטרנט פרטי."),
+        pros: [T("Richer reports with citations", "דוחות עשירים יותר עם ציטוטים"), T("Templates make it work for any domain", "התבניות מתאימות אותו לכל תחום")],
+        cons: [T("≈ $0.10–0.20 per report", "≈ $0.10–0.20 לדוח"), T("PDF rendering adds a headless browser on the server", "הפקת PDF מוסיפה דפדפן ללא ממשק בשרת")],
+        cost: T("$20–60 / month (≈ 150–300 reports)", "$20–60 לחודש (≈ 150–300 דוחות)"), cx: 2,
+        eng: T("Two passes: (1) Haiku + web search tool gathers facts → <code>research_sources</code> + <code>research_claims</code>; (2) Sonnet writes sections from claims only, citing claim ids. PDF: Chromium <code>page.pdf()</code> from a print template (fonts embedded, RTL tested).",
+               "שני מעברים: (1) Haiku + כלי חיפוש ברשת אוסף עובדות ← <code>research_sources</code> + <code>research_claims</code>; (2) Sonnet כותב מקטעים מתוך הטענות בלבד ומצטט מזהי טענות. PDF: Chromium <code>page.pdf()</code> מתבנית הדפסה (גופנים מוטמעים, RTL נבדק).") },
+      { kind: "scale", title: T("Overnight batches + trigger monitoring", "עיבוד לילי + מעקב אחר טריגרים"),
+        what: T("All new leads are researched overnight at half price; saved companies are re-checked for news and hiring; premium model for key accounts.",
+                "כל הלידים החדשים נחקרים בלילה בחצי מחיר; חברות שמורות נבדקות מחדש לחדשות וגיוסים; מודל פרימיום ללקוחות מפתח."),
+        pros: [T("Batch API halves token cost", "Batch API מוריד את עלות הטוקנים בחצי"), T("Reports are ready when staff arrive", "הדוחות מוכנים כשהצוות מגיע")],
+        cons: [T("Results within hours, not minutes", "תוצאות תוך שעות, לא דקות"), T("Report versions to manage", "גרסאות דוחות לנהל")],
+        cost: T("$60–150 / month", "$60–150 לחודש"), cx: 3,
+        eng: T("Nightly job collects pending research into one Message Batch; results keyed by <code>custom_id</code> = research_run id. Trigger checks reuse the existing <code>triggers</code> table (source URL required).",
+               "משימה לילית אוספת מחקרים ממתינים ל-Message Batch אחד; תוצאות לפי <code>custom_id</code> = מזהה research_run. בדיקות טריגרים משתמשות בטבלת <code>triggers</code> הקיימת (חובה כתובת מקור).") }
+    ]
+  },
+  {
+    n: 3, name: T("Multi-channel outreach", "פנייה רב-ערוצית"),
+    goal: T("Reach the right person on e-mail, LinkedIn, WhatsApp or phone, with a message based on the approved report, in one of three sending modes.",
+            "להגיע לאדם הנכון במייל, LinkedIn, WhatsApp או טלפון, עם הודעה שמבוססת על הדוח המאושר, באחד משלושת מצבי השליחה."),
+    checkpoint: T("Mode 1: approve every message. Mode 2: approve the first message and follow-ups together. Mode 3: an approver allows a segment in advance.",
+                  "מצב 1: אישור כל הודעה. מצב 2: אישור ההודעה הראשונה והמעקבים יחד. מצב 3: מאשר מתיר פלח מראש."),
+    options: [
+      { kind: "lean", rec: true, title: T("Drafts + person sends (today's flow)", "טיוטות + אדם שולח (התהליך של היום)"),
+        what: T("AI drafts per channel. Staff send from their own mail app, LinkedIn or WhatsApp on their phone (click-to-chat link), call from a task, then mark sent.",
+                "ה-AI מנסח לכל ערוץ. העובדים שולחים מאפליקציית הדואר שלהם, מ-LinkedIn או מ-WhatsApp בטלפון (קישור לצ'אט), מתקשרים ממשימה, ומסמנים \"נשלח\"."),
+        pros: [T("No new accounts or approvals from Google/Meta", "אין צורך בחשבונות או אישורים חדשים מ-Google/Meta"), T("Lowest legal and deliverability risk", "הסיכון המשפטי וסיכון המסירה הנמוכים ביותר")],
+        cons: [T("Only Mode 1 is possible", "רק מצב 1 אפשרי"), T("Replies are not tracked automatically", "תשובות לא נעקבות אוטומטית")],
+        cost: T("$0 + AI drafts (≈ $0.01 each)", "$0 + טיוטות AI (≈ $0.01 כל אחת)"), cx: 1,
+        eng: T("Extends <code>approvals</code> with <code>channel</code> and <code>sequence_step_id</code>; <code>wa.me</code> and <code>mailto:</code> links as today; phone = task with <code>tel:</code> link and outcome codes.",
+               "מרחיב את <code>approvals</code> עם <code>channel</code> ו-<code>sequence_step_id</code>; קישורי <code>wa.me</code> ו-<code>mailto:</code> כמו היום; טלפון = משימה עם קישור <code>tel:</code> וקודי תוצאה.") },
+      { kind: "balanced", title: T("Connected mailboxes + sequences + WhatsApp API", "תיבות דואר מחוברות + רצפים + WhatsApp API"),
+        what: T("Each staff member connects Gmail or Outlook; approved messages go from their own mailbox. Sequences with up to 3 follow-ups (Mode 2). WhatsApp Business templates through the official API.",
+                "כל עובד מחבר Gmail או Outlook; הודעות מאושרות יוצאות מהתיבה שלו. רצפים עם עד 3 מעקבים (מצב 2). תבניות WhatsApp Business דרך ה-API הרשמי."),
+        pros: [T("Modes 1 and 2; replies tracked", "מצבים 1 ו-2; מעקב תשובות"), T("Mail comes from a real person's address", "המייל יוצא מכתובת של אדם אמיתי")],
+        cons: [T("Google/Microsoft app setup and review", "הגדרת אפליקציה ובדיקה אצל Google/Microsoft"), T("WhatsApp needs opt-in and approved templates", "WhatsApp דורש הסכמה ותבניות מאושרות")],
+        cost: T("$5–40 / month (WhatsApp per message)", "$5–40 לחודש (WhatsApp לפי הודעה)"), cx: 2,
+        eng: T("<code>mailboxes</code> with encrypted OAuth tokens (reuse AES-256-GCM cipher). Gmail <code>users.messages.send</code> with a stored <code>threadId</code>; Graph <code>sendMail</code>. Sends are jobs; the send path runs all checks (see Jobs).",
+               "<code>mailboxes</code> עם אסימוני OAuth מוצפנים (שימוש חוזר בהצפנת AES-256-GCM). Gmail <code>users.messages.send</code> עם <code>threadId</code> שמור; Graph <code>sendMail</code>. שליחות הן משימות; מסלול השליחה מריץ את כל הבדיקות (ראו משימות).") },
+      { kind: "scale", title: T("Full automation per segment (Mode 3)", "אוטומציה מלאה לפי פלח (מצב 3)"),
+        what: T("Approved segments run end to end with pre-approved templates, daily caps, warm-up of new mailboxes, a separate sending subdomain and optional LinkedIn automation (high risk).",
+                "פלחים מאושרים רצים מקצה לקצה עם תבניות מאושרות מראש, מגבלות יומיות, חימום של תיבות חדשות, תת-דומיין שליחה נפרד ואוטומציית LinkedIn אופציונלית (סיכון גבוה)."),
+        pros: [T("Highest volume per staff member", "הנפח הגבוה ביותר לכל עובד"), T("Consistent follow-up timing", "תזמון מעקב עקבי")],
+        cons: [T("Changes the 'never sends by itself' rule", "משנה את הכלל \"אף פעם לא שולח בעצמו\""), T("Highest legal, reputation and account risk", "הסיכון המשפטי, התדמיתי והחשבוני הגבוה ביותר")],
+        cost: T("$50–200 / month", "$50–200 לחודש"), cx: 3,
+        eng: T("<code>sequence_enrollments.mode = 3</code> only via approver endpoint, audited. Template-only rendering (merge fields validated, no free AI text) unless YMT approves AI personalisation with automatic checks. Global kill switch in <code>settings</code>.",
+               "<code>sequence_enrollments.mode = 3</code> רק דרך נקודת קצה של מאשר, נרשם ביומן. רינדור מתבניות בלבד (שדות מיזוג מאומתים, בלי טקסט AI חופשי) אלא אם YMT מאשרת התאמה אישית ב-AI עם בדיקות אוטומטיות. מתג עצירה כללי ב-<code>settings</code>.") }
+    ]
+  },
+  {
+    n: 4, name: T("Inbound response tracking", "מעקב תשובות נכנסות"),
+    goal: T("Catch every reply on every channel, link it to the right company and message, label it and decide the next step.",
+            "לתפוס כל תשובה בכל ערוץ, לשייך אותה לחברה ולהודעה הנכונות, לתייג אותה ולהחליט על הצעד הבא."),
+    checkpoint: T("AI suggests a label and next step, a person confirms. Unsubscribe requests apply at once without waiting.",
+                  "ה-AI מציע תווית וצעד הבא, אדם מאשר. בקשות הסרה מופעלות מיד בלי להמתין."),
+    options: [
+      { kind: "lean", title: T("Log replies by hand, AI suggests the label", "רישום תשובות ידני, AI מציע תווית"),
+        what: T("Staff paste or forward a reply into the company timeline; AI suggests a label and next step.",
+                "העובדים מדביקים או מעבירים תשובה לציר הזמן של החברה; ה-AI מציע תווית וצעד הבא."),
+        pros: [T("No mailbox access needed", "לא נדרשת גישה לתיבת הדואר"), T("≈ $0.001 per label", "≈ $0.001 לתווית")],
+        cons: [T("Replies can be missed", "תשובות עלולות להתפספס"), T("Follow-ups must be stopped by hand", "צריך לעצור מעקבים ידנית")],
+        cost: T("≈ $1 / month", "≈ $1 לחודש"), cx: 1,
+        eng: T("<code>POST /api/inbound</code> creates <code>inbound_messages</code> + Haiku classification with a fixed label enum (structured output).",
+               "<code>POST /api/inbound</code> יוצר <code>inbound_messages</code> + סיווג Haiku עם רשימת תוויות קבועה (פלט מובנה).") },
+      { kind: "balanced", rec: true, title: T("Mailbox sync + WhatsApp webhook", "סנכרון תיבת דואר + webhook של WhatsApp"),
+        what: T("The system checks connected mailboxes every few minutes and receives WhatsApp replies instantly; replies stop the sequence and appear in the Inbox with a suggested label.",
+                "המערכת בודקת תיבות דואר מחוברות כל כמה דקות ומקבלת תשובות WhatsApp מיד; תשובות עוצרות את הרצף ומופיעות בתיבה הנכנסת עם תווית מוצעת."),
+        pros: [T("Nothing is missed; auto-stop on reply", "שום דבר לא מתפספס; עצירה אוטומטית בתשובה"), T("Bounces and out-of-office handled", "החזרות ומענה \"מחוץ למשרד\" מטופלים")],
+        cons: [T("Needs mail read permission (Google review for Gmail)", "דורש הרשאת קריאת דואר (בדיקה של Google עבור Gmail)"), T("Few minutes' delay", "עיכוב של כמה דקות")],
+        cost: T("$1–5 / month", "$1–5 לחודש"), cx: 2,
+        eng: T("Gmail <code>history.list</code> from stored <code>historyId</code>; Graph <code>delta</code> query. Match by <code>threadId</code> / <code>In-Reply-To</code>, fallback sender address → contact. Only matched threads are stored (data minimization).",
+               "Gmail <code>history.list</code> מ-<code>historyId</code> שמור; שאילתת <code>delta</code> ב-Graph. שיוך לפי <code>threadId</code> / <code>In-Reply-To</code>, ואם לא – כתובת השולח ← איש קשר. נשמרים רק שרשורים משויכים (צמצום מידע).") },
+      { kind: "scale", title: T("Real-time push + routing rules", "דחיפה בזמן אמת + כללי ניתוב"),
+        what: T("Providers push new mail instantly; rules route by label, owner, language and SLA, with escalation if no one answers in time.",
+                "הספקים דוחפים מייל חדש מיד; כללים מנתבים לפי תווית, בעלים, שפה וזמן תגובה, עם הסלמה אם אף אחד לא עונה בזמן."),
+        pros: [T("Seconds, not minutes", "שניות, לא דקות"), T("SLA reporting per person", "דיווח זמני תגובה לכל עובד")],
+        cons: [T("Public webhook endpoints to secure and renew", "נקודות webhook ציבוריות לאבטח ולחדש"), T("Gmail push needs Google Pub/Sub", "דחיפה מ-Gmail דורשת Google Pub/Sub")],
+        cost: T("$1–10 / month", "$1–10 לחודש"), cx: 3,
+        eng: T("Gmail <code>users.watch</code> → Pub/Sub push (renew every 7 days, job); Graph subscriptions (renew before expiry). Polling stays as a fallback.",
+               "Gmail <code>users.watch</code> ← דחיפת Pub/Sub (חידוש כל 7 ימים, משימה); מינויים ב-Graph (חידוש לפני פקיעה). משיכה נשארת כגיבוי.") }
+    ]
+  },
+  {
+    n: 5, name: T("Tailored service matching", "התאמת שירותים מותאמת"),
+    goal: T("Suggest which of YMT's services fit this company, using the service catalog, the approved report and the conversation so far.",
+            "להציע אילו משירותי YMT מתאימים לחברה, על בסיס קטלוג השירותים, הדוח המאושר והשיחה עד כה."),
+    checkpoint: T("The system proposes the top 3 with reasons and sources; a person picks.", "המערכת מציעה 3 מובילים עם נימוקים ומקורות; אדם בוחר."),
+    options: [
+      { kind: "lean", title: T("Rules from the catalog", "כללים מתוך הקטלוג"),
+        what: T("Each service lists industries, sizes and needs; the system shows services whose rules match.", "לכל שירות מוגדרים ענפים, גדלים וצרכים; המערכת מציגה שירותים שהכללים שלהם מתאימים."),
+        pros: [T("Free, predictable, explainable", "חינם, צפוי וניתן להסבר")], cons: [T("Misses needs that are only in the text", "מפספס צרכים שמופיעים רק בטקסט")],
+        cost: T("$0", "$0"), cx: 1,
+        eng: T("SQL over <code>services</code> + <code>service_needs</code> joined to company industry/size; extends the existing industry matching in Resources.",
+               "SQL על <code>services</code> + <code>service_needs</code> מול ענף/גודל החברה; מרחיב את ההתאמה לפי ענף הקיימת בספקים ומומחים.") },
+      { kind: "balanced", rec: true, title: T("AI ranks the top 3 with reasons", "AI מדרג 3 מובילים עם נימוקים"),
+        what: T("Rules give the candidate list; AI ranks them against the report and meeting notes and explains each with a source.",
+                "הכללים נותנים את רשימת המועמדים; ה-AI מדרג אותם מול הדוח וסיכומי הפגישות ומסביר כל אחד עם מקור."),
+        pros: [T("Uses everything known about the company", "משתמש בכל מה שידוע על החברה"), T("≈ $0.01 per match", "≈ $0.01 להתאמה")],
+        cons: [T("Catalog must be well written", "הקטלוג חייב להיות כתוב היטב")],
+        cost: T("$1–5 / month", "$1–5 לחודש"), cx: 2,
+        eng: T("Sonnet with structured output <code>{service_id, score, reason, claim_ids[]}</code>; server rejects unknown service ids; result stored in <code>service_matches</code> with <code>picked_by</code>.",
+               "Sonnet עם פלט מובנה <code>{service_id, score, reason, claim_ids[]}</code>; השרת דוחה מזהי שירות לא מוכרים; התוצאה נשמרת ב-<code>service_matches</code> עם <code>picked_by</code>.") },
+      { kind: "scale", title: T("Learns from won and lost deals", "לומד מעסקאות שנסגרו ושאבדו"),
+        what: T("Win rate per service and segment adjusts the ranking; managers see which offers work where.", "אחוז ההצלחה לכל שירות ופלח משפיע על הדירוג; מנהלים רואים אילו הצעות עובדות ואיפה."),
+        pros: [T("Gets better with use", "משתפר עם השימוש")], cons: [T("Needs months of data", "דורש חודשים של נתונים")],
+        cost: T("$1–5 / month", "$1–5 לחודש"), cx: 3,
+        eng: T("Nightly aggregate <code>deals</code> × <code>service_matches</code> → win-rate table used as a prior in ranking; no model training needed.",
+               "צבירה לילית של <code>deals</code> × <code>service_matches</code> ← טבלת אחוזי הצלחה שמשמשת כמשקל בדירוג; בלי אימון מודל.") }
+    ]
+  },
+  {
+    n: 6, name: T("Quote generation", "הפקת הצעות מחיר"),
+    goal: T("Build a correct quote from the chosen services and YMT's pricing rules, in any of four price models, then send it for signature.",
+            "לבנות הצעת מחיר נכונה מהשירותים שנבחרו ומכללי התמחור של YMT, בכל אחד מארבעת מודלי המחיר, ולשלוח לחתימה."),
+    checkpoint: T("A person approves every quote; discounts above a threshold need an approver.", "אדם מאשר כל הצעה; הנחה מעל סף דורשת מאשר."),
+    options: [
+      { kind: "lean", title: T("Existing templates, manual prices", "תבניות קיימות, מחירים ידניים"),
+        what: T("Use today's quote template and documents; staff type the price; finalize and e-sign as today.", "שימוש בתבנית ההצעה והמסמכים של היום; העובדים מקלידים מחיר; סיום וחתימה כמו היום."),
+        pros: [T("Works now", "עובד כבר עכשיו")], cons: [T("Errors and inconsistent pricing", "טעויות ותמחור לא אחיד")],
+        cost: T("$0", "$0"), cx: 1,
+        eng: T("No change: <code>templates</code> + <code>documents</code> (finalize = SHA-256) + <code>signatures</code>.", "ללא שינוי: <code>templates</code> + <code>documents</code> (סיום = SHA-256) + <code>signatures</code>.") },
+      { kind: "balanced", rec: true, title: T("Price rules for four models", "כללי תמחור לארבעה מודלים"),
+        what: T("Fixed project fee + retainer, success fee / commission, hourly or daily rate, and packages. Line items, VAT, currency, validity, discounts with approval, versions.",
+                "תשלום קבוע לפרויקט + ריטיינר, דמי הצלחה / עמלה, תעריף שעתי או יומי, וחבילות. שורות, מע\"מ, מטבע, תוקף, הנחות באישור, גרסאות."),
+        pros: [T("Consistent and fast", "אחיד ומהיר"), T("Feeds revenue numbers on the dashboard", "מזין את נתוני ההכנסות בלוח הבקרה")],
+        cons: [T("YMT must write down its pricing rules", "YMT צריכה לנסח את כללי התמחור שלה")],
+        cost: T("$0", "$0"), cx: 2,
+        eng: T("<code>price_rules</code> per service and model; <code>quotes</code> + <code>quote_lines</code> computed server-side in integer agorot/cents; finalize renders into <code>documents</code> so hashing and e-sign are reused.",
+               "<code>price_rules</code> לכל שירות ומודל; <code>quotes</code> + <code>quote_lines</code> מחושבים בשרת במספרים שלמים (אגורות/סנטים); הסיום מרונדר ל-<code>documents</code> כך שהגיבוב והחתימה משמשים שוב.") },
+      { kind: "scale", title: T("AI scope text + approval chain + accounting export", "נוסח היקף ב-AI + שרשרת אישורים + ייצוא להנהלת חשבונות"),
+        what: T("AI drafts the scope and assumptions from meeting notes; approval route by amount; signed quotes export to accounting.",
+                "ה-AI מנסח היקף והנחות מתוך סיכומי פגישות; מסלול אישור לפי סכום; הצעות חתומות מיוצאות להנהלת חשבונות."),
+        pros: [T("Less writing for staff", "פחות כתיבה לעובדים")], cons: [T("Prices never come from AI; more rules to maintain", "מחירים אף פעם לא מגיעים מה-AI; יותר כללים לתחזק")],
+        cost: T("$1–10 / month", "$1–10 לחודש"), cx: 3,
+        eng: T("AI writes text blocks only; numbers always from <code>price_rules</code>. CSV export first; invoicing API integration later behind an adapter.",
+               "ה-AI כותב רק בלוקי טקסט; המספרים תמיד מ-<code>price_rules</code>. ייצוא CSV קודם; חיבור ל-API של חשבוניות בהמשך מאחורי מתאם.") }
+    ]
+  },
+  {
+    n: 7, name: T("Centralized team dashboard", "לוח בקרה מרכזי לצוות"),
+    goal: T("One screen for the funnel, activity, replies, quotes, revenue and costs, per person and for the team.",
+            "מסך אחד למשפך, פעילות, תשובות, הצעות, הכנסות ועלויות, לכל עובד ולכל הצוות."),
+    checkpoint: T("Managers set targets and caps; the dashboard only reads.", "מנהלים קובעים יעדים ותקרות; לוח הבקרה רק קורא."),
+    options: [
+      { kind: "lean", rec: true, title: T("Extend today's dashboard", "הרחבת לוח הבקרה של היום"),
+        what: T("Add funnel by stage, reply rate, open quotes and AI spend vs cap to the current dashboard.", "הוספת משפך לפי שלב, אחוז תשובות, הצעות פתוחות והוצאות AI מול התקרה ללוח הבקרה הנוכחי."),
+        pros: [T("Fast, no new infrastructure", "מהיר, בלי תשתית חדשה")], cons: [T("Live queries slow down with many rows", "שאילתות חיות מאטות עם הרבה שורות")],
+        cost: T("$0", "$0"), cx: 1,
+        eng: T("SQL aggregates in <code>/api/dashboard</code> (existing route) with indexes on status and dates.", "צבירות SQL ב-<code>/api/dashboard</code> (נתיב קיים) עם אינדקסים על סטטוס ותאריכים.") },
+      { kind: "balanced", title: T("Team KPIs + daily digest", "מדדי צוות + סיכום יומי"),
+        what: T("Per-person and team views, cost per lead, time to quote, source ROI; a daily e-mail digest of what needs attention.",
+                "תצוגות לכל עובד ולצוות, עלות לליד, זמן עד הצעה, תשואה לפי מקור; סיכום יומי במייל של מה שדורש טיפול."),
+        pros: [T("Managers see bottlenecks", "מנהלים רואים צווארי בקבוק")], cons: [T("Digest needs a sending mailbox", "הסיכום דורש תיבת שליחה")],
+        cost: T("$0", "$0"), cx: 2,
+        eng: T("<code>metrics_daily</code> snapshot job at night; digest is an internal notice, not outreach (no approval needed, staff only).",
+               "משימת תמונת מצב <code>metrics_daily</code> בלילה; הסיכום הוא הודעה פנימית ולא פנייה (לא צריך אישור, רק לצוות).") },
+      { kind: "scale", title: T("Analytics + multi-company admin", "אנליטיקה + ניהול רב-חברות"),
+        what: T("Cohorts, trends, exports and, once there are several companies, an admin view across tenants.", "קוהורטות, מגמות, ייצוא, וכשיהיו כמה חברות – תצוגת מנהל על פני כל הדיירים."),
+        pros: [T("Ready for selling the platform", "מוכן למכירת הפלטפורמה")], cons: [T("Needs Postgres or a warehouse at scale", "דורש Postgres או מחסן נתונים בהיקף גדול")],
+        cost: T("$0–50 / month", "$0–50 לחודש"), cx: 3,
+        eng: T("Read replica or export to a warehouse; cross-tenant queries only for platform admins, audited.", "העתק לקריאה או ייצוא למחסן נתונים; שאילתות חוצות-דיירים רק למנהלי הפלטפורמה, עם רישום ביומן.") }
+    ]
+  }
+];
+
+const KIND = { lean: T("Lean · low cost", "רזה · עלות נמוכה"), balanced: T("Balanced", "מאוזנת"), scale: T("Scalable · automated", "בת-הרחבה · אוטומטית") };
+
+const LINKEDIN = [
+  [T("Manual assist", "סיוע ידני"), T("The app opens the profile and copies the prepared message; the person sends it and clicks 'sent'.", "האפליקציה פותחת את הפרופיל ומעתיקה את ההודעה המוכנה; האדם שולח ולוחץ \"נשלח\"."), T("$0", "$0"), "ok", T("Low", "נמוך")],
+  [T("Sales Navigator Core", "Sales Navigator Core"), T("LinkedIn's paid search, lead lists and InMail, used by a person; results copied into YMT.", "החיפוש בתשלום של LinkedIn, רשימות לידים ו-InMail, בשימוש אדם; התוצאות מועתקות ל-YMT."), T("$89.99 / seat / month (annual) or $119.99 monthly", "$89.99 למשתמש לחודש (שנתי) או $119.99 חודשי"), "ok", T("Low", "נמוך")],
+  [T("Official partner APIs", "ממשקי API רשמיים לשותפים"), T("LinkedIn partner programs that allow CRM sync.", "תוכניות שותפים של LinkedIn שמאפשרות סנכרון ל-CRM."), T("Approval-based; not realistic for a small team", "דורש אישור; לא מעשי לצוות קטן"), "info", T("Low, but unavailable", "נמוך, אבל לא זמין")],
+  [T("Cloud automation tools", "כלי אוטומציה בענן"), T("Third-party tools (e.g. Expandi, HeyReach, Waalaxy) send connection requests and messages on a schedule.", "כלים חיצוניים (למשל Expandi, HeyReach, Waalaxy) שולחים בקשות חיבור והודעות לפי לוח זמנים."), T("≈ $19–99 / account / month", "≈ $19–99 לחשבון לחודש"), "bad", T("High: against LinkedIn terms", "גבוה: בניגוד לתנאי LinkedIn")],
+  [T("Unofficial API provider", "ספק API לא רשמי"), T("A provider (e.g. Unipile) connects staff accounts so YMT can send and read LinkedIn messages in the app.", "ספק (למשל Unipile) מחבר את חשבונות העובדים כך ש-YMT יכולה לשלוח ולקרוא הודעות LinkedIn באפליקציה."), T("€49 / month for up to 10 accounts", "€49 לחודש לעד 10 חשבונות"), "bad", T("High: against LinkedIn terms", "גבוה: בניגוד לתנאי LinkedIn")],
+  [T("Scraping profiles", "גריפת פרופילים"), T("Collecting profile data automatically.", "איסוף אוטומטי של נתוני פרופילים."), T("—", "—"), "bad", T("Not offered: terms + privacy law", "לא מוצע: תנאי שימוש + חוקי פרטיות")]
+];
+
+const HITL = [
+  [T("Accept leads into the pipeline", "קבלת לידים לצנרת"), T("Any staff member, or auto-accept score set by admin", "כל עובד, או ציון קבלה אוטומטית שקבע מנהל"), T("Dedup, score, show source of each lead", "איחוד כפילויות, ניקוד, הצגת המקור של כל ליד")],
+  [T("Approve the research report", "אישור דוח המחקר"), T("Approver", "מאשר"), T("Draft with a source link for every claim", "טיוטה עם קישור מקור לכל טענה")],
+  [T("Approve outreach (per mode)", "אישור פנייה (לפי מצב)"), T("Lead owner or approver; Mode 3 only approver", "בעל הליד או מאשר; מצב 3 רק מאשר"), T("Checks unsubscribe list, limits, hours", "בודקת רשימת הסרה, מגבלות, שעות")],
+  [T("Confirm reply label", "אישור תווית תשובה"), T("Lead owner", "בעל הליד"), T("Suggests label + next step; applies unsubscribe at once", "מציעה תווית + צעד הבא; מפעילה הסרה מיד")],
+  [T("Pick services", "בחירת שירותים"), T("Lead owner", "בעל הליד"), T("Top 3 with reasons and sources", "3 מובילים עם נימוקים ומקורות")],
+  [T("Approve quote", "אישור הצעת מחיר"), T("Approver above discount/amount threshold", "מאשר מעל סף הנחה/סכום"), T("Prices from rules, never from AI", "מחירים מהכללים, אף פעם לא מה-AI")],
+  [T("Send quote and signing link", "שליחת הצעה וקישור לחתימה"), T("Lead owner", "בעל הליד"), T("Finalized document with hash", "מסמך סופי עם גיבוב")],
+  [T("Raise AI cap / switch Mode 3 / pause all sending", "העלאת תקרת AI / הפעלת מצב 3 / עצירת כל השליחות"), T("Admin", "מנהל מערכת"), T("Logged in the audit log", "נרשם ביומן הביקורת")]
+];
+
+const UNITS = [
+  [T("AI research report (Sonnet writes, Haiku gathers, ~5 web searches)", "דוח מחקר AI (Sonnet כותב, Haiku אוסף, ~5 חיפושים)"), "$0.10–0.20"],
+  [T("Same, through the Batch API overnight", "אותו דבר, דרך Batch API בלילה"), "$0.07–0.12"],
+  [T("Personalised outreach draft (Sonnet)", "טיוטת פנייה מותאמת אישית (Sonnet)"), "≈ $0.01–0.02"],
+  [T("Reply label (Haiku)", "תיוג תשובה (Haiku)"), "≈ $0.001"],
+  [T("Claude web search", "חיפוש רשת של Claude"), T("$10 / 1,000 searches", "$10 ל-1,000 חיפושים")],
+  [T("Google Places Text Search Pro (up to 20 places per request)", "Google Places Text Search Pro (עד 20 מקומות לבקשה)"), T("5,000 free / month, then $32 / 1,000", "5,000 חינם בחודש, ואז $32 ל-1,000")],
+  [T("Same with website/phone fields (Enterprise)", "אותו דבר עם שדות אתר/טלפון (Enterprise)"), T("1,000 free / month, then $35 / 1,000", "1,000 חינם בחודש, ואז $35 ל-1,000")],
+  [T("E-mail verification", "אימות מייל"), "$0.006–0.02"],
+  [T("WhatsApp marketing template to Israel", "תבנית שיווקית ב-WhatsApp לישראל"), "≈ $0.035–0.041"],
+  [T("WhatsApp utility template to Israel", "תבנית שירות ב-WhatsApp לישראל"), "≈ $0.005–0.006"]
+];
+
+const EXAMPLE = [
+  [T("Hosting: Render Starter + 1 GB disk", "אירוח: Render Starter + דיסק 1GB"), "$7.25"],
+  [T("Claude: 150 reports + 600 drafts + 300 labels", "Claude: 150 דוחות + 600 טיוטות + 300 תיוגים"), "$25–40"],
+  [T("Google Places: ≈ 30 searches", "Google Places: ≈ 30 חיפושים"), "$0"],
+  [T("E-mail verification: 300 addresses", "אימות מייל: 300 כתובות"), "≈ $2.50"],
+  [T("WhatsApp: 100 marketing templates", "WhatsApp: 100 תבניות שיווקיות"), "≈ $4"],
+  [T("Total", "סה\"כ"), "≈ $39–54"]
+];
+
+const RISKS = [
+  [T("Approval queue volume", "עומס בתור האישורים"), T("Staff become the slowest step", "העובדים הופכים לשלב האיטי ביותר"), T("Keyboard-first review, Mode 2 for follow-ups, reports approved once per company", "סקירה מהירה מהמקלדת, מצב 2 למעקבים, דוח מאושר פעם אחת לחברה")],
+  [T("E-mail deliverability", "הגעת מיילים ליעד"), T("Bounces and spam complaints hurt the domain", "החזרות ותלונות ספאם פוגעות בדומיין"), T("Verification, SPF/DKIM/DMARC, ~50/day/mailbox, warm-up, one-click unsubscribe", "אימות, SPF/DKIM/DMARC, ~50 ביום לתיבה, חימום, הסרה בלחיצה")],
+  [T("Google review of Gmail access", "בדיקת Google לגישה ל-Gmail"), T("Reading mail is a restricted scope; external apps need a security assessment", "קריאת דואר היא הרשאה מוגבלת; אפליקציות חיצוניות צריכות הערכת אבטחה"), T("Use Google Workspace 'Internal' app, or send-only + manual reply logging", "אפליקציה 'Internal' ב-Google Workspace, או שליחה בלבד + רישום תשובות ידני")],
+  [T("WhatsApp rules", "כללי WhatsApp"), T("Templates need Meta approval; recipients must opt in", "תבניות דורשות אישור Meta; הנמענים חייבים להסכים"), T("Use WhatsApp after first contact or with consent; click-to-chat in Tier A", "שימוש ב-WhatsApp אחרי קשר ראשון או בהסכמה; קישור לצ'אט ברמה A")],
+  [T("AI mistakes", "טעויות AI"), T("Wrong facts in a report or message", "עובדות שגויות בדוח או בהודעה"), T("Claims stored with sources, unsourced claims rejected, human approval", "טענות נשמרות עם מקורות, טענות בלי מקור נדחות, אישור אנושי")],
+  [T("LinkedIn time", "זמן ב-LinkedIn"), T("Manual LinkedIn work does not scale", "עבודה ידנית ב-LinkedIn לא גדלה"), T("Prepared messages + profile link; Sales Navigator if needed", "הודעות מוכנות + קישור לפרופיל; Sales Navigator לפי הצורך")],
+  [T("Legal review", "בדיקה משפטית"), T("Outreach to a new country waits for advice", "פנייה למדינה חדשה ממתינה לייעוץ"), T("Country allow-list setting: outreach only to countries marked 'cleared'", "הגדרת רשימת מדינות מותרות: פנייה רק למדינות שסומנו 'מאושר'")],
+  [T("Single server", "שרת יחיד"), T("Long AI jobs slow the app", "משימות AI ארוכות מאטות את האפליקציה"), T("Job queue with concurrency 1–2; separate worker in Tier C", "תור משימות עם 1–2 במקביל; worker נפרד ברמה C")]
+];
+
+const LEGAL = [
+  [T("Israel: Communications Law §30A (anti-spam)", "ישראל: חוק התקשורת סעיף 30א (חוק הספאם)"), T("Commercial e-mail, SMS, fax or automated messages to recipients in Israel", "מייל, SMS, פקס או הודעות אוטומטיות מסחריות לנמענים בישראל"), T("Prior consent as the general rule; a business may be asked once for consent (check current wording with a lawyer); identify as advertising; easy refusal in every message; statutory damages up to ₪1,000 per message without proof of harm", "הסכמה מראש ככלל; מותר לפנות לעסק פעם אחת לבקשת הסכמה (לבדוק את הנוסח העדכני מול עו\"ד); סימון כפרסומת; דרך פשוטה לסרב בכל הודעה; פיצוי סטטוטורי עד ₪1,000 להודעה בלי הוכחת נזק")],
+  [T("Israel: Privacy Protection Law + Amendment 13 (in force 14 Aug 2025)", "ישראל: חוק הגנת הפרטיות + תיקון 13 (בתוקף מ-14 באוגוסט 2025)"), T("Any database of personal data (contacts)", "כל מאגר מידע אישי (אנשי קשר)"), T("Purpose limitation, security, duty to inform, access/correction; possible DPO; higher administrative fines", "הגבלת מטרה, אבטחה, חובת יידוע, עיון ותיקון; ייתכן צורך בממונה הגנת פרטיות; קנסות מנהליים גבוהים יותר")],
+  [T("EU / UK: GDPR + ePrivacy / PECR", "האיחוד האירופי / בריטניה: GDPR + ePrivacy / PECR"), T("Contacts in the EU or UK", "אנשי קשר באיחוד האירופי או בבריטניה"), T("Legal basis (often legitimate interest for B2B, documented), inform within one month when data came from elsewhere (Art. 14), honour objection to direct marketing (Art. 21), country rules for e-mail", "בסיס חוקי (לרוב אינטרס לגיטימי ב-B2B, מתועד), יידוע תוך חודש כשהמידע הגיע ממקור אחר (סעיף 14), כיבוד התנגדות לדיוור ישיר (סעיף 21), כללי מדינה למייל")],
+  [T("USA: CAN-SPAM", "ארה\"ב: CAN-SPAM"), T("Commercial e-mail to US recipients", "מייל מסחרי לנמענים בארה\"ב"), T("Honest headers and subject, postal address, working opt-out honoured within 10 business days; penalty up to $53,088 per e-mail", "כותרות ונושא אמיתיים, כתובת דואר פיזית, הסרה שעובדת ומכובדת תוך 10 ימי עסקים; קנס עד $53,088 למייל")],
+  [T("Canada: CASL", "קנדה: CASL"), T("Commercial messages to Canada", "הודעות מסחריות לקנדה"), T("Consent (express or limited implied), sender identity, unsubscribe", "הסכמה (מפורשת או משתמעת מוגבלת), זהות השולח, הסרה")],
+  [T("Platform rules: LinkedIn, WhatsApp, Gmail/Yahoo bulk senders", "כללי פלטפורמות: LinkedIn, WhatsApp, שולחים בכמויות ל-Gmail/Yahoo"), T("Using those channels", "בשימוש בערוצים האלה"), T("No LinkedIn automation without accepting the risk; WhatsApp opt-in + approved templates; authenticated domain and one-click unsubscribe", "בלי אוטומציית LinkedIn בלי קבלת הסיכון; WhatsApp עם הסכמה + תבניות מאושרות; דומיין מאומת והסרה בלחיצה אחת")]
+];
+
+const CHARGE = [
+  [T("Fixed project fee + monthly retainer", "תשלום קבוע לפרויקט + ריטיינר חודשי"), T("Defined projects followed by ongoing support", "פרויקטים מוגדרים ואחריהם תמיכה שוטפת"), T("Predictable income", "הכנסה צפויה"), T("Scope creep; needs a clear scope", "התרחבות היקף; דורש הגדרה ברורה")],
+  [T("Success fee / commission", "דמי הצלחה / עמלה"), T("Deals where YMT brings revenue (brokerage, % of orders)", "עסקאות שבהן YMT מביאה הכנסות (תיווך, % מהזמנות)"), T("Easy yes for the client", "קל ללקוח להסכים"), T("Income depends on client results; needs tracking and contract terms", "ההכנסה תלויה בתוצאות הלקוח; דורש מעקב ותנאי חוזה")],
+  [T("Hourly / daily rate", "תעריף שעתי / יומי"), T("Consulting with unclear scope", "ייעוץ עם היקף לא ברור"), T("Fair for open work", "הוגן לעבודה פתוחה"), T("Clients fear open bills; time tracking needed", "לקוחות חוששים מחשבון פתוח; נדרש רישום שעות")],
+  [T("Packages / tiers", "חבילות / רמות"), T("Repeatable services", "שירותים חוזרים"), T("Fast to sell and quote", "מהיר למכירה ולהצעה"), T("Less tailored; packages need regular review", "פחות מותאם; חבילות דורשות בדיקה תקופתית")],
+  [T("Hybrid (e.g. lower retainer + success fee)", "משולב (למשל ריטיינר נמוך + דמי הצלחה)"), T("Sharing risk with the client", "שיתוף בסיכון עם הלקוח"), T("Balances risk", "מאזן סיכון"), T("More complex contract", "חוזה מורכב יותר")]
+];
+
+const ROAD = [
+  [T("Phase 0 · Discovery (now, 1–2 weeks)", "שלב 0 · אפיון (עכשיו, 1–2 שבועות)"), T("Go through the requirements checklist with YMT, choose options and budget tier, legal check for target countries.", "מעבר על רשימת הדרישות עם YMT, בחירת אפשרויות ורמת תקציב, בדיקה משפטית למדינות היעד.")],
+  [T("Phase 1 · Foundations + lead discovery (3–4 weeks)", "שלב 1 · תשתיות + איתור לידים (3–4 שבועות)"), T("tenant_id, job queue, AI usage ledger and cap, lead criteria, CSV import, Google Places, dedup, scoring, lead review queue.", "tenant_id, תור משימות, ספר הוצאות ותקרת AI, קריטריוני לידים, ייבוא CSV, Google Places, איחוד כפילויות, ניקוד, תור סקירת לידים.")],
+  [T("Phase 2 · AI research and PDF reports (3–4 weeks)", "שלב 2 · מחקר AI ודוחות PDF (3–4 שבועות)"), T("Sources and claims, report templates per industry and language, branded PDF and private link, approval.", "מקורות וטענות, תבניות דוח לפי ענף ושפה, PDF ממותג וקישור פרטי, אישור.")],
+  [T("Phase 3 · Outreach and inbound (4–6 weeks)", "שלב 3 · פניות ותשובות נכנסות (4–6 שבועות)"), T("Sequences and the three modes, unsubscribe list, Gmail/Outlook connection, LinkedIn manual assist, phone tasks, WhatsApp, reply sync and AI labels.", "רצפים ושלושת המצבים, רשימת הסרה, חיבור Gmail/Outlook, סיוע ידני ל-LinkedIn, משימות טלפון, WhatsApp, סנכרון תשובות ותוויות AI.")],
+  [T("Phase 4 · Services and quotes (3 weeks)", "שלב 4 · שירותים והצעות מחיר (3 שבועות)"), T("Service catalog, AI top 3, price rules for four models, quote versions, reuse of documents and e-sign, CSV export.", "קטלוג שירותים, 3 מובילים ב-AI, כללי תמחור לארבעה מודלים, גרסאות הצעה, שימוש חוזר במסמכים ובחתימה, ייצוא CSV.")],
+  [T("Phase 5 · Dashboard and hardening (2 weeks)", "שלב 5 · לוח בקרה וחיזוק (2 שבועות)"), T("KPIs, daily digest, cost per lead, load and security tests, backup check, staff training.", "מדדים, סיכום יומי, עלות לליד, בדיקות עומס ואבטחה, בדיקת גיבוי, הדרכת צוות.")],
+  [T("Later · Growth", "בהמשך · צמיחה"), T("Paid B2B database, Sales Navigator, push webhooks, separate worker, Postgres, second company (tenant).", "מאגר B2B בתשלום, Sales Navigator, webhooks בדחיפה, worker נפרד, Postgres, חברה (דייר) שנייה.")]
+];
+
+const DECIDED = [
+  T("Product for the YMT team first; not sold as SaaS yet; no charge to YMT", "המוצר קודם לצוות YMT; עוד לא נמכר כ-SaaS; ללא חיוב ל-YMT"),
+  T("Extend the existing app; design for many companies, build for one", "הרחבת האפליקציה הקיימת; תכנון לרבות חברות, בנייה לאחת"),
+  T("Target countries, company types and sizes: decided by YMT (checklist)", "מדינות יעד, סוגי חברות וגדלים: יוחלטו על ידי YMT (ברשימה)"),
+  T("Lead sources: LinkedIn, public sources, Google Maps/Places, CSV; paid B2B database as an add-on", "מקורות לידים: LinkedIn, מקורות ציבוריים, Google Maps/Places, CSV; מאגר B2B בתשלום כתוספת"),
+  T("AI: Claude, with a monthly cost cap", "AI: Claude, עם תקרת עלות חודשית"),
+  T("All three sending modes, chosen per potential client", "כל שלושת מצבי השליחה, נבחרים לכל לקוח פוטנציאלי"),
+  T("Channels: own Gmail/Outlook, LinkedIn manual assist, WhatsApp Business, phone tasks", "ערוצים: Gmail/Outlook של העובד, סיוע ידני ל-LinkedIn, WhatsApp Business, משימות טלפון"),
+  T("All budget tiers shown; LinkedIn options shown with risk levels", "כל רמות התקציב מוצגות; אפשרויות LinkedIn מוצגות עם רמות סיכון"),
+  T("Replies: AI suggests a label, a person confirms; unsubscribes automatic", "תשובות: AI מציע תווית, אדם מאשר; הסרות אוטומטיות"),
+  T("Quote models: fixed + retainer, success fee, hourly/daily, packages", "מודלי הצעה: קבוע + ריטיינר, דמי הצלחה, שעתי/יומי, חבילות"),
+  T("Compliance: full checklist (Israel, EU/UK, USA, Canada)", "ציות: רשימה מלאה (ישראל, אירופה/בריטניה, ארה\"ב, קנדה)"),
+  T("Built by the developer with Claude", "נבנה על ידי המפתח עם Claude")
+];
+
+const DEFAULTS = [
+  T("Data in the EU (Render Frankfurt)", "נתונים באיחוד האירופי (Render פרנקפורט)"),
+  T("Login: password, optional Google sign-in later", "כניסה: סיסמה, כניסה עם Google אופציונלית בהמשך"),
+  T("Roles: admin, member, approver, viewer", "תפקידים: מנהל מערכת, חבר צוות, מאשר, צופה"),
+  T("Duplicates: by website domain, then name + country", "כפילויות: לפי דומיין האתר, ואז שם + מדינה"),
+  T("Lead score: rules per company, optional AI explanation", "ציון ליד: כללים לכל חברה, הסבר AI אופציונלי"),
+  T("Reports: draft until approved; every claim cites a source", "דוחות: טיוטה עד אישור; כל טענה מצטטת מקור"),
+  T("Report templates: sections + branding; PDF and private web link", "תבניות דוח: מקטעים + מיתוג; PDF וקישור אינטרנט פרטי"),
+  T("Limits: ~50 e-mails/day/mailbox, max 3 follow-ups, local business hours", "מגבלות: ~50 מיילים ביום לתיבה, עד 3 מעקבים, שעות פעילות מקומיות"),
+  T("Unsubscribe list automatic and permanent, across channels", "רשימת הסרה אוטומטית וקבועה, בכל הערוצים"),
+  T("Replies routed to the lead owner; alert after 1 business day", "תשובות מנותבות לבעל הליד; התראה אחרי יום עסקים אחד"),
+  T("Catalog: services → needs → price model and range", "קטלוג: שירותים ← צרכים ← מודל וטווח מחיר"),
+  T("Matching: AI proposes top 3 with reasons and sources; a person picks", "התאמה: AI מציע 3 מובילים עם נימוקים ומקורות; אדם בוחר"),
+  T("E-signature: keep the built-in simple signature", "חתימה: שמירה על החתימה הפשוטה המובנית"),
+  T("Accounting: CSV export (no integration in v1)", "הנהלת חשבונות: ייצוא CSV (בלי חיבור בגרסה 1)"),
+  T("Metrics: funnel, cost per lead, reply rate, time to quote, revenue per person/team", "מדדים: משפך, עלות לליד, אחוז תשובות, זמן להצעה, הכנסה לעובד/צוות"),
+  T("Notifications: in-app + daily e-mail digest", "התראות: באפליקציה + סיכום יומי במייל"),
+  T("Hosting: Render with a path to AWS; SQLite job queue first", "אירוח: Render עם מסלול ל-AWS; תור משימות ב-SQLite בהתחלה"),
+  T("Core built in-house; optional n8n/Zapier webhooks", "הליבה נבנית בבית; webhooks אופציונליים ל-n8n/Zapier"),
+  T("Existing rules stay: human approval, audit log, bilingual RTL/LTR, no API data on devices", "הכללים הקיימים נשארים: אישור אנושי, יומן ביקורת, דו-לשוניות RTL/LTR, אין נתוני API במכשירים")
+];
+
+const EXTEND = [
+  ["companies", T("+ tenant_id, website_domain (unique per tenant), source, score, score_reasons_json, lead_status (candidate/accepted/rejected), owner_id, country_code", "+ tenant_id, website_domain (ייחודי לכל דייר), source, score, score_reasons_json, lead_status (מועמד/התקבל/נדחה), owner_id, country_code"), "1, 5, 7"],
+  ["contacts", T("+ tenant_id, linkedin_url, email_status (unknown/valid/risky/invalid), whatsapp_opt_in_at, source", "+ tenant_id, linkedin_url, email_status (לא ידוע/תקין/מסוכן/לא תקין), whatsapp_opt_in_at, source"), "1, 3, 4"],
+  ["triggers", T("Used as buying signals and as research facts (source URL already required)", "משמש כסימני קנייה וכעובדות מחקר (כתובת מקור כבר חובה)"), "1, 2"],
+  ["approvals", T("+ kind (report/outreach/quote), channel, sequence_step_id, send_mode; status flow unchanged (pending → approved → sent)", "+ kind (דוח/פנייה/הצעה), channel, sequence_step_id, send_mode; זרימת הסטטוס ללא שינוי (pending ← approved ← sent)"), "2, 3, 6"],
+  ["interactions", T("Inbound replies and calls appear here, linked to inbound_messages", "תשובות נכנסות ושיחות מופיעות כאן, מקושרות ל-inbound_messages"), "3, 4"],
+  ["deals", T("+ quote_id, matched_service_ids; revenue for the dashboard", "+ quote_id, matched_service_ids; הכנסות ללוח הבקרה"), "5, 6, 7"],
+  ["templates", T("+ kind (report_section, email_step, whatsapp, quote), language, segment", "+ kind (מקטע_דוח, שלב_מייל, whatsapp, הצעה), language, segment"), "2, 3, 6"],
+  ["documents / signatures / share_links", T("Reports and quotes are rendered into documents → existing finalize (SHA-256), e-sign and expiring links", "דוחות והצעות מרונדרים למסמכים ← סיום (SHA-256), חתימה וקישורים פגי-תוקף קיימים"), "2, 6"],
+  ["settings", T("+ ai_monthly_cap_usd, sending_paused, daily limits, business hours, cleared countries", "+ ai_monthly_cap_usd, sending_paused, מגבלות יומיות, שעות פעילות, מדינות מאושרות"), T("all", "כולם")],
+  ["audit_log", T("Every approval, mode change, cap change, unsubscribe and send is logged", "כל אישור, שינוי מצב, שינוי תקרה, הסרה ושליחה נרשמים"), T("all", "כולם")],
+  ["google_accounts", T("Pattern reused for mailboxes (encrypted tokens, refresh, revoke)", "הדפוס משמש שוב לתיבות דואר (אסימונים מוצפנים, רענון, ביטול)"), "3, 4"]
+];
+
+const MODELS = [
+  ["tenants", T("Companies using the platform. Row 1 = YMT.", "חברות שמשתמשות בפלטפורמה. שורה 1 = YMT."), "id, name, slug, data_region, created_at"],
+  ["lead_criteria", T("Saved ideal-customer profiles.", "פרופילי לקוח אידיאלי שמורים."), "id, tenant_id, name, countries_json, industries_json, exclude_json, size_min, size_max, titles_json, signals_json, scoring_json, active"],
+  ["lead_candidates", T("Raw results before a person accepts them.", "תוצאות גולמיות לפני שאדם מקבל אותן."), "id, tenant_id, criteria_id, source, source_ref, name, website_domain, country_code, payload_json, score, status, duplicate_of_company_id, created_at"],
+  ["lead_imports", T("CSV uploads with their column mapping.", "העלאות CSV עם מיפוי העמודות."), "id, tenant_id, file_name, mapping_json, rows_total, rows_ok, rows_error, created_by"],
+  ["research_runs", T("One research job for one company.", "משימת מחקר אחת לחברה אחת."), "id, tenant_id, company_id, template_id, status, model, batch_id, cost_usd, started_at, finished_at"],
+  ["research_sources", T("Each page or record used, with a text snapshot hash.", "כל דף או רשומה ששימשו, עם גיבוב של צילום הטקסט."), "id, run_id, url, title, retrieved_at, content_sha256, kind (web/places/b2b/staff)"],
+  ["research_claims", T("Facts the AI found; each must point to a source.", "עובדות שה-AI מצא; כל אחת חייבת להפנות למקור."), "id, run_id, source_id NOT NULL, section, claim, quote, confidence"],
+  ["reports", T("A versioned report built from claims and a template.", "דוח עם גרסאות שנבנה מטענות ותבנית."), "id, tenant_id, company_id, run_id, version, language, sections_json, approval_id, document_id, pdf_path, status"],
+  ["sequences / sequence_steps", T("Outreach plans: channel, delay, template per step.", "תוכניות פנייה: ערוץ, השהיה ותבנית לכל שלב."), "sequences(id, tenant_id, name, language, max_followups ≤ 3)\nsequence_steps(id, sequence_id, position, channel, delay_days, template_id)"],
+  ["sequence_enrollments", T("A contact in a sequence, with its sending mode.", "איש קשר ברצף, עם מצב השליחה שלו."), "id, tenant_id, contact_id, sequence_id, mode (1|2|3), mode_set_by, status, next_step_at, stopped_reason"],
+  ["outreach_messages", T("Every message prepared or sent, any channel.", "כל הודעה שהוכנה או נשלחה, בכל ערוץ."), "id, tenant_id, enrollment_id, step_id, channel, mailbox_id, approval_id, subject, body, provider_message_id, thread_ref, status, scheduled_at, sent_at"],
+  ["mailboxes", T("Connected Gmail/Outlook/WhatsApp senders.", "שולחי Gmail/Outlook/WhatsApp מחוברים."), "id, tenant_id, user_id, provider, address, token_ciphertext, daily_limit, warmup_stage, sync_cursor, status"],
+  ["suppressions", T("Never contact again (unsubscribe, bounce, request).", "לא לפנות שוב לעולם (הסרה, החזרה, בקשה)."), "id, tenant_id, kind (email|phone|domain|linkedin), value_normalized, reason, source_ref, created_at  UNIQUE(tenant_id, kind, value_normalized)"],
+  ["inbound_events / inbound_messages", T("Raw webhook payloads, then parsed replies with AI and human labels.", "תוכן webhook גולמי, ואז תשובות מפוענחות עם תוויות AI ואדם."), "inbound_events(id, provider, provider_event_id UNIQUE, received_at, body_json, processed_at)\ninbound_messages(id, tenant_id, contact_id, outreach_message_id, channel, body, ai_label, ai_next_step, confirmed_label, confirmed_by)"],
+  ["services / service_needs / service_matches", T("Catalog, the needs each service solves, and suggestions per company.", "הקטלוג, הצרכים שכל שירות פותר, והצעות לכל חברה."), "services(id, tenant_id, name_he, name_en, description_json, industries_json, sizes_json, active)\nservice_needs(service_id, need)\nservice_matches(id, company_id, service_id, score, reason, claim_ids_json, picked_by)"],
+  ["price_rules / quotes / quote_lines", T("Pricing per service and model; quotes with versions.", "תמחור לכל שירות ומודל; הצעות עם גרסאות."), "price_rules(id, service_id, model (fixed_retainer|success_fee|hourly|package), params_json, currency, min_amount)\nquotes(id, tenant_id, company_id, deal_id, version, currency, total_minor, vat_minor, valid_until, approval_id, document_id, status)\nquote_lines(id, quote_id, service_id, model, description, quantity, unit_minor, total_minor)"],
+  ["ai_usage", T("Every AI call and its cost; powers the cap.", "כל קריאת AI והעלות שלה; מפעיל את התקרה."), "id, tenant_id, job_id, task, model, input_tokens, output_tokens, cache_read_tokens, web_searches, cost_usd, created_at"],
+  ["jobs / metrics_daily / webhook_endpoints", T("Queue, nightly KPI snapshots, outbound webhook targets.", "תור, תמונות מצב לילית של מדדים, יעדי webhook יוצאים."), "jobs(see Jobs section)\nmetrics_daily(tenant_id, day, user_id, metric, value)\nwebhook_endpoints(id, tenant_id, url, secret_ciphertext, events_json, active)"]
+];
+
+const LLM_STEPS = [
+  [T("Gather", "איסוף"), T("Fetch the company website (home, about, services), Places details, approved triggers and staff notes. Web search tool for news if the template asks for it.", "שליפת אתר החברה (בית, אודות, שירותים), פרטי Places, טריגרים מאושרים והערות צוות. כלי חיפוש ברשת לחדשות אם התבנית דורשת.")],
+  [T("Extract (Haiku, structured output)", "חילוץ (Haiku, פלט מובנה)"), T("Return facts as JSON: section, claim, short quote, source id. Server stores sources and claims; facts without a source are dropped.", "החזרת עובדות כ-JSON: מקטע, טענה, ציטוט קצר, מזהה מקור. השרת שומר מקורות וטענות; עובדות בלי מקור נזרקות.")],
+  [T("Write (Sonnet)", "כתיבה (Sonnet)"), T("Write each template section in the chosen language using only stored claims, citing claim ids. Tone and forbidden topics come from the template.", "כתיבת כל מקטע בתבנית בשפה שנבחרה רק מתוך הטענות השמורות, עם ציטוט מזהי הטענות. הטון ונושאים אסורים מגיעים מהתבנית.")],
+  [T("Validate (code)", "אימות (קוד)"), T("Every cited id exists; numbers in the text appear in a claim; length limits; banned words. Failures go back once, then to a person.", "כל מזהה שצוטט קיים; מספרים בטקסט מופיעים בטענה; מגבלות אורך; מילים אסורות. כשל חוזר פעם אחת, ואז לאדם.")],
+  [T("Approve (person)", "אישור (אדם)"), T("Report appears in the approval queue with sources beside each paragraph. Edit, approve or reject.", "הדוח מופיע בתור האישורים עם מקורות ליד כל פסקה. עריכה, אישור או דחייה.")],
+  [T("Render and reuse", "הפקה ושימוש חוזר"), T("Approved report → PDF and private link; its claims feed outreach drafts and service matching.", "דוח מאושר ← PDF וקישור פרטי; הטענות שלו מזינות טיוטות פנייה והתאמת שירותים.")]
+];
+
+const MODEL_ROWS = [
+  [T("Extraction, labels, dedup hints", "חילוץ, תוויות, רמזי כפילות"), "Claude Haiku 5.5", "$0.10 / $0.50"],
+  [T("Report writing, drafts, matching", "כתיבת דוחות, טיוטות, התאמה"), "Claude Sonnet 5.5", "$2 / $10"],
+  [T("Premium reports (optional)", "דוחות פרימיום (אופציונלי)"), "Claude Opus 5.5", "$4 / $20"],
+  [T("Web search tool", "כלי חיפוש ברשת"), "—", T("$10 / 1,000", "$10 ל-1,000")]
+];
+
+const SEND_CHECKS = [
+  T("Global <code>sending_paused</code> is off", "<code>sending_paused</code> הכללי כבוי"),
+  T("Message has an approval in status <code>approved</code> (Mode 1/2) or the enrollment is Mode 3 with an approved template", "להודעה יש אישור בסטטוס <code>approved</code> (מצב 1/2) או שהרישום הוא מצב 3 עם תבנית מאושרת"),
+  T("Recipient, domain and phone are not in <code>suppressions</code>", "הנמען, הדומיין והטלפון לא נמצאים ב-<code>suppressions</code>"),
+  T("Country is in the 'cleared' list; WhatsApp requires opt-in", "המדינה ברשימת 'מאושר'; WhatsApp דורש הסכמה"),
+  T("E-mail status is valid (Modes 2/3)", "סטטוס המייל תקין (מצבים 2/3)"),
+  T("Mailbox daily limit and follow-up cap (≤ 3) not reached", "לא הושגו מגבלת התיבה היומית ותקרת המעקבים (≤ 3)"),
+  T("Inside the recipient's local business hours; otherwise reschedule", "בתוך שעות הפעילות המקומיות של הנמען; אחרת תזמון מחדש"),
+  T("No reply since the sequence started (else stop)", "לא התקבלה תשובה מאז שהרצף התחיל (אחרת עצירה)"),
+  T("Send, store provider id, write interaction + audit log", "שליחה, שמירת מזהה הספק, רישום אינטראקציה + יומן ביקורת")
+];
+
+const INTEGRATIONS = [
+  ["Claude API", T("Official SDK <code>@anthropic-ai/sdk</code>, key in env var, server only", "SDK רשמי <code>@anthropic-ai/sdk</code>, מפתח במשתנה סביבה, רק בשרת"), T("Check data-retention terms and sign the DPA; set a Console spend limit too", "לבדוק את תנאי שמירת המידע ולחתום על DPA; להגדיר גם מגבלת הוצאה ב-Console")],
+  ["Google Places API (New)", T("API key restricted to the server IP / API; field masks", "מפתח API מוגבל ל-IP של השרת / ל-API; field masks"), T("Billing per request by field tier; Places content has storage limits in Google's terms (store place_id, refresh details)", "חיוב לפי בקשה ולפי רמת שדות; לתוכן Places יש מגבלות שמירה בתנאי Google (לשמור place_id ולרענן פרטים)")],
+  ["Gmail API", T("OAuth per staff member, scope <code>gmail.send</code>; reading replies needs <code>gmail.readonly</code>", "OAuth לכל עובד, הרשאה <code>gmail.send</code>; קריאת תשובות דורשת <code>gmail.readonly</code>"), T("gmail.send is sensitive, gmail.readonly is restricted: external apps need Google verification and a security assessment; a Workspace 'Internal' app avoids it", "gmail.send רגישה, gmail.readonly מוגבלת: אפליקציות חיצוניות צריכות אימות Google והערכת אבטחה; אפליקציית 'Internal' ב-Workspace חוסכת זאת")],
+  ["Microsoft Graph", T("Entra app, delegated <code>Mail.Send</code>, <code>Mail.Read</code>", "אפליקציית Entra, הרשאות <code>Mail.Send</code>, <code>Mail.Read</code>"), T("Admin consent in the client's Microsoft 365 tenant", "נדרשת הסכמת מנהל בסביבת Microsoft 365 של הלקוח")],
+  ["WhatsApp Cloud API", T("Meta Business account, WhatsApp Business Account, permanent system-user token, webhook", "חשבון Meta Business, חשבון WhatsApp Business, אסימון קבוע של משתמש מערכת, webhook"), T("Pre-approved templates outside the 24-hour service window; per-message price by country and category; opt-in required", "תבניות מאושרות מראש מחוץ לחלון השירות של 24 שעות; מחיר להודעה לפי מדינה וקטגוריה; נדרשת הסכמה")],
+  [T("B2B database (optional)", "מאגר B2B (אופציונלי)"), T("Vendor REST API behind <code>b2bSource</code>", "REST API של הספק מאחורי <code>b2bSource</code>"), T("Credits per contact; check the vendor's terms on storing exported data", "קרדיטים לכל איש קשר; לבדוק את תנאי הספק לגבי שמירת מידע מיוצא")],
+  [T("E-mail verifier (optional)", "מאמת מיילים (אופציונלי)"), T("Single-address REST call before enrollment", "קריאת REST לכתובת אחת לפני הרשמה לרצף"), T("Pay per check; cache result on the contact (email_status)", "תשלום לכל בדיקה; שמירת התוצאה באיש הקשר (email_status)")],
+  ["Unipile (optional, high risk)", T("Hosted auth per LinkedIn account + webhook", "אימות מתארח לכל חשבון LinkedIn + webhook"), T("Against LinkedIn terms; off by default; written risk acceptance", "בניגוד לתנאי LinkedIn; כבוי כברירת מחדל; קבלת סיכון בכתב")],
+  ["n8n / Zapier (optional)", T("Signed outbound webhooks + API token", "webhooks יוצאים חתומים + אסימון API"), T("Must not bypass approvals: no 'send' endpoint for tokens", "אסור לעקוף אישורים: אין נקודת 'שליחה' לאסימונים")]
+];
+
+const SECURITY = [
+  T("Secrets (OAuth tokens, webhook secrets, provider keys) encrypted with the existing AES-256-GCM helper; keys only in environment variables.", "סודות (אסימוני OAuth, סודות webhook, מפתחות ספקים) מוצפנים בעזרת פונקציית AES-256-GCM הקיימת; מפתחות רק במשתני סביבה."),
+  T("Tenant scoping in one query helper; tests prove a user of tenant A cannot read tenant B.", "תיחום לפי דייר בפונקציית שאילתה אחת; בדיקות מוכיחות שמשתמש של דייר A לא יכול לקרוא את דייר B."),
+  T("Webhooks: signature check before parsing, size limit, replay protection by event id.", "Webhooks: בדיקת חתימה לפני פענוח, מגבלת גודל, הגנה מפני שידור חוזר לפי מזהה אירוע."),
+  T("Unsubscribe links use random tokens, work without login, and apply to all channels.", "קישורי הסרה משתמשים באסימונים אקראיים, עובדים בלי כניסה, וחלים על כל הערוצים."),
+  T("Data minimization: store only matched mail threads; delete never-replied leads after the retention period (job).", "צמצום מידע: שמירה רק של שרשורי דואר משויכים; מחיקת לידים שלא ענו אחרי תקופת השמירה (משימה)."),
+  T("Data subject requests: export and delete a person across all tables from the contact page (admin).", "בקשות נושאי מידע: ייצוא ומחיקה של אדם מכל הטבלאות מדף איש הקשר (מנהל)."),
+  T("Same headers, CSP and no-store policy as today; PDFs served only through authenticated or expiring links.", "אותן כותרות, CSP ומדיניות no-store כמו היום; קבצי PDF מוגשים רק דרך קישורים מאומתים או פגי-תוקף.")
+];
+
+const SCALE = [
+  [T("AI or sending jobs slow the screens", "משימות AI או שליחה מאטות את המסכים"), T("Move to managed Postgres (a Render disk belongs to one service), then run the worker as a separate Render background worker", "מעבר ל-Postgres מנוהל (דיסק ב-Render שייך לשירות אחד), ואז הרצת ה-worker כשירות רקע נפרד ב-Render")],
+  [T("Second company joins", "חברה שנייה מצטרפת"), T("Enable tenant sign-up and per-tenant settings; consider one database file per tenant", "הפעלת הרשמת דיירים והגדרות לכל דייר; לשקול קובץ מסד נתונים לכל דייר")],
+  [T("Several app instances or > ~50 users", "כמה מופעי אפליקציה או מעל ~50 משתמשים"), T("Postgres (managed) with row-level security; PDFs to object storage (S3 / R2)", "Postgres מנוהל עם אבטחה ברמת שורה; קבצי PDF לאחסון אובייקטים (S3 / R2)")],
+  [T("Queue volume or many workers", "נפח תור גבוה או הרבה workers"), T("Move jobs to a managed queue (e.g. SQS) behind the same job interface", "העברת המשימות לתור מנוהל (למשל SQS) מאחורי אותו ממשק משימות")],
+  [T("Enterprise clients", "לקוחות אנטרפרייז"), T("AWS with VPC, SSO, per-tenant encryption keys, audit export", "AWS עם VPC, SSO, מפתחות הצפנה לכל דייר, ייצוא יומן ביקורת")]
+];
+
+const TESTING = [
+  T("Fake adapters for every provider (as with Google Calendar today) so tests never call real services or spend money.", "מתאמים מזויפים לכל ספק (כמו Google Calendar היום) כך שהבדיקות לעולם לא פונות לשירותים אמיתיים ולא מוציאות כסף."),
+  T("API tests for the send path: each check in order blocks a send (pause, approval, suppression, country, limits, hours, reply).", "בדיקות API למסלול השליחה: כל בדיקה בסדר שלה חוסמת שליחה (עצירה, אישור, הסרה, מדינה, מגבלות, שעות, תשובה)."),
+  T("Cost-cap tests: a job that would exceed the cap waits; usage is recorded for every call.", "בדיקות תקרת עלות: משימה שתחרוג מהתקרה ממתינה; השימוש נרשם לכל קריאה."),
+  T("Webhook contract tests with recorded payloads and bad signatures.", "בדיקות חוזה ל-webhooks עם תוכן מוקלט וחתימות שגויות."),
+  T("A small evaluation set of real companies (with permission) to check report quality and that every claim has a source, run before changing prompts or models.", "סט הערכה קטן של חברות אמיתיות (באישור) לבדיקת איכות הדוחות ושלכל טענה יש מקור, שמורץ לפני שינוי הנחיות או מודלים."),
+  T("Playwright E2E with axe accessibility checks in Hebrew and English, as today.", "בדיקות E2E ב-Playwright עם בדיקות נגישות axe בעברית ובאנגלית, כמו היום.")
+];
+
+const SOURCES = [
+  ["Claude API pricing (models, batch, caching, web search)", "https://platform.claude.com/docs/en/about-claude/pricing"],
+  ["Google Maps Platform pricing (Places API)", "https://developers.google.com/maps/billing-and-pricing/pricing"],
+  ["LinkedIn Sales Navigator plans", "https://business.linkedin.com/sales-solutions/compare-plans"],
+  ["LinkedIn User Agreement (automation)", "https://www.linkedin.com/legal/user-agreement"],
+  ["Apollo pricing (summary; verify on apollo.io/pricing)", "https://www.eesel.ai/blog/apollo-pricing"],
+  ["WhatsApp Business Platform pricing", "https://developers.facebook.com/docs/whatsapp/pricing"],
+  ["WhatsApp rate summary, Oct 2026 (third party)", "https://zernio.com/blog/whatsapp-business-api-pricing"],
+  ["ZeroBounce pricing", "https://www.zerobounce.net/docs/frequently-asked-questions/billing-and-payments/how-is-pricing-determined-for-email-verification"],
+  ["NeverBounce pricing summary (third party)", "https://www.activepieces.com/blog/neverbounce-pricing-in-2026-credits-plans-costs"],
+  ["Render pricing", "https://render.com/pricing"],
+  ["Unipile API pricing", "https://www.unipile.com/pricing-api/"],
+  ["LinkedIn automation tools 2026 (third party)", "https://www.lemlist.com/versus/best-linkedin-automation-tools-2026"],
+  ["Israel Amendment 13 (IAPP)", "https://iapp.org/news/a/israel-marks-a-new-era-in-privacy-law-amendment-13-ushers-in-sweeping-reform"],
+  ["Israel anti-spam law damages (Pearl Cohen)", "https://www.pearlcohen.com/unprecedented-recovery-of-damages-for-violation-of-the-israeli-spam-law/"],
+  ["GDPR Art. 14 (information when data not obtained from the person)", "https://gdpr-info.eu/art-14-gdpr/"],
+  ["CAN-SPAM 2026 penalty notice (FTC, Federal Register)", "https://public-inspection.federalregister.gov/2026-18853.pdf"],
+  ["Google restricted scope verification (Gmail)", "https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification"]
+];
+
+/* ---------- rendering ---------- */
+const L = (t) => `<span data-l="en">${t.en}</span><span data-l="he">${t.he}</span>`;
+const txt = (v) => (typeof v === "string" ? v : L(v));
+const byId = (id) => {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`Missing element #${id}`);
+  return el;
+};
+const meter = (n) => "●".repeat(n) + "○".repeat(3 - n);
+const row = (cells) => `<tr>${cells.map((c) => `<td>${txt(c)}</td>`).join("")}</tr>`;
+const list = (items) => items.map((t) => `<li>${txt(t)}</li>`).join("");
+
+const stepItems = (steps) => steps.map(([title, body]) => `<li><b>${L(title)}</b><span class="muted">${L(body)}</span></li>`).join("");
+
+function optionCard(opt, withEng) {
+  const pros = opt.pros.map((p) => `<li class="pro">${L(p)}</li>`).join("");
+  const cons = opt.cons.map((c) => `<li class="con">${L(c)}</li>`).join("");
+  const rec = opt.rec ? ` <span class="pill warn">${L(T("Suggested start", "התחלה מומלצת"))}</span>` : "";
+  const eng = withEng ? `<div class="eng-note"><strong>${L(T("How", "איך"))}:</strong> ${L(opt.eng)}</div>` : "";
+  return `<div class="card opt${opt.rec ? " rec" : ""}">
+    <span class="opt-kind">${L(KIND[opt.kind])}${rec}</span>
+    <h4>${L(opt.title)}</h4>
+    <p class="what">${L(opt.what)}</p>
+    <div class="proscons">
+      <h5 class="pro">${L(T("Pros", "יתרונות"))}</h5><ul class="tight">${pros}</ul>
+      <h5 class="con">${L(T("Cons", "חסרונות"))}</h5><ul class="tight">${cons}</ul>
+    </div>
+    <dl>
+      <dt>${L(T("Cost", "עלות"))}</dt><dd class="num">${L(opt.cost)}</dd>
+      <dt>${L(T("Complexity", "מורכבות"))}</dt><dd><span class="meter" aria-label="${opt.cx} / 3">${meter(opt.cx)}</span></dd>
+    </dl>
+    ${eng}
+  </div>`;
+}
+
+function stageBlock(stage, withEng) {
+  return `<div class="stage">
+    <div class="stage-head"><span class="pill info">${L(T("Stage", "שלב"))} ${stage.n}</span><h3>${L(stage.name)}</h3></div>
+    <p class="stage-goal">${L(stage.goal)}</p>
+    <p class="checkpoint">✋ <strong>${L(T("Human checkpoint", "נקודת אישור"))}:</strong> ${L(stage.checkpoint)}</p>
+    <div class="opts">${stage.options.map((o) => optionCard(o, withEng)).join("")}</div>
+  </div>`;
+}
+
+function render() {
+  byId("flow").innerHTML = STAGES.map((s) => `<div class="step"><span class="n">${s.n}</span><b>${L(s.name)}</b><span class="hc">✋ ${L(s.checkpoint)}</span></div>`).join("");
+  byId("stages-mgmt").innerHTML = STAGES.map((s) => stageBlock(s, false)).join("");
+  byId("stages-eng").innerHTML = STAGES.map((s) => stageBlock(s, true)).join("");
+  byId("linkedin-rows").innerHTML = LINKEDIN.map(([name, what, cost, tone, risk]) =>
+    `<tr><td><strong>${L(name)}</strong></td><td>${L(what)}</td><td class="num">${L(cost)}</td><td><span class="pill ${tone}">${L(risk)}</span></td></tr>`).join("");
+  byId("hitl-rows").innerHTML = HITL.map((r, i) => row([String(i + 1), ...r])).join("");
+  byId("unit-rows").innerHTML = UNITS.map(([what, price]) => `<tr><td>${txt(what)}</td><td class="num">${txt(price)}</td></tr>`).join("");
+  byId("example-rows").innerHTML = EXAMPLE.map(([what, price], i) => {
+    const last = i === EXAMPLE.length - 1;
+    return `<tr><td>${last ? `<strong>${txt(what)}</strong>` : txt(what)}</td><td class="num">${last ? `<strong>${price}</strong>` : price}</td></tr>`;
+  }).join("");
+  byId("risk-rows").innerHTML = RISKS.map(row).join("");
+  byId("legal-rows").innerHTML = LEGAL.map(row).join("");
+  byId("charge-rows").innerHTML = CHARGE.map(row).join("");
+  byId("road").innerHTML = stepItems(ROAD);
+  byId("decided").innerHTML = list(DECIDED);
+  byId("defaults").innerHTML = list(DEFAULTS);
+  byId("extend-rows").innerHTML = EXTEND.map(([table, change, stages]) => `<tr><td><code>${table}</code></td><td>${txt(change)}</td><td class="num">${txt(stages)}</td></tr>`).join("");
+  byId("models").innerHTML = MODELS.map(([name, purpose, cols]) => `<div class="card model"><h4>${name}</h4><p>${L(purpose)}</p><div class="cols">${cols.replace(/\n/g, "<br>")}</div></div>`).join("");
+  byId("llm-steps").innerHTML = stepItems(LLM_STEPS);
+  byId("model-rows").innerHTML = MODEL_ROWS.map(([task, model, price]) => `<tr><td>${L(task)}</td><td>${model}</td><td class="num">${txt(price)}</td></tr>`).join("");
+  byId("send-checks").innerHTML = list(SEND_CHECKS);
+  byId("integration-rows").innerHTML = INTEGRATIONS.map(([svc, how, limit]) => `<tr><td><strong>${txt(svc)}</strong></td><td>${L(how)}</td><td>${L(limit)}</td></tr>`).join("");
+  byId("security").innerHTML = list(SECURITY);
+  byId("scale-rows").innerHTML = SCALE.map(row).join("");
+  byId("testing").innerHTML = list(TESTING);
+  const sources = SOURCES.map(([label, url]) => `<li><a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a></li>`).join("");
+  byId("sources-mgmt").innerHTML = sources;
+  byId("sources-eng").innerHTML = sources;
+  // Scrollable tables and code blocks must be reachable by keyboard (WCAG 2.1.1).
+  for (const el of document.querySelectorAll(".table-scroll, pre.code")) el.tabIndex = 0;
+}
+
+/** In right-to-left text, keep amounts like "≈ $50–200" or "$0.10 / $0.50" readable by isolating them as left-to-right. */
+function isolateAmounts(root) {
+  const pattern = "(?:[≈≤]\\s?)?[$€₪]\\s?\\d[\\d,.]*(?:\\s?[–-]\\s?[$€₪]?\\d[\\d,.]*)?(?:\\s?\\/\\s?[$€₪]?\\d[\\d,.]*)?";
+  const test = new RegExp(pattern);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (test.test(node.nodeValue) && !node.parentElement.closest("pre, code, script, style, bdi, textarea")) nodes.push(node);
+  }
+  for (const node of nodes) {
+    const text = node.nodeValue;
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    for (const match of text.matchAll(new RegExp(pattern, "g"))) {
+      frag.append(text.slice(last, match.index));
+      const bdi = document.createElement("bdi");
+      bdi.dir = "ltr";
+      bdi.textContent = match[0];
+      frag.append(bdi);
+      last = match.index + match[0].length;
+    }
+    frag.append(text.slice(last));
+    node.replaceWith(frag);
+  }
+}
+
+/* ---------- language ---------- */
+const LANG_KEY = "ymt-docs-lang";
+function readSavedLang() {
+  // Storage can be unavailable (private mode, blocked site data); the page works without it.
+  try { return localStorage.getItem(LANG_KEY); } catch { return null; }
+}
+function saveLang(lang) {
+  try { localStorage.setItem(LANG_KEY, lang); } catch { /* not saved; the toggle still works for this visit */ }
+}
+function setLang(lang) {
+  if (lang !== "en" && lang !== "he") throw new Error(`Unsupported language: ${lang}`);
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
+  document.title = lang === "he" ? "תכנון פלטפורמת צמיחה · YMT Group" : "Growth Platform Design · YMT Group";
+}
+
+/* ---------- tabs (ARIA pattern, arrow keys) ---------- */
+const TABS = [["tab-mgmt", "panel-mgmt", "mgmt"], ["tab-eng", "panel-eng", "eng"]];
+function selectTab(index, focus) {
+  TABS.forEach(([tabId, panelId], i) => {
+    const on = i === index;
+    const tab = byId(tabId);
+    tab.setAttribute("aria-selected", String(on));
+    tab.tabIndex = on ? 0 : -1;
+    byId(panelId).hidden = !on;
+    if (on && focus) tab.focus();
+  });
+}
+function tabIndexForHash(hash) {
+  if (hash === "#eng" || hash.startsWith("#e-")) return 1;
+  return 0;
+}
+
+render();
+isolateAmounts(document.body);
+const params = new URLSearchParams(location.search);
+setLang(params.get("lang") || readSavedLang() || "en");
+selectTab(tabIndexForHash(location.hash), false);
+if (location.hash.length > 1 && location.hash !== "#eng" && location.hash !== "#mgmt") {
+  const target = document.getElementById(location.hash.slice(1));
+  if (target) target.scrollIntoView();
+}
+
+byId("lang-btn").addEventListener("click", () => {
+  const next = document.documentElement.lang === "he" ? "en" : "he";
+  setLang(next);
+  saveLang(next);
+});
+TABS.forEach(([tabId, , key], i) => {
+  const tab = byId(tabId);
+  tab.addEventListener("click", () => { selectTab(i, false); history.replaceState(null, "", `#${key}`); });
+  tab.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight" && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    const last = TABS.length - 1;
+    const rtl = document.documentElement.dir === "rtl";
+    const forward = (e.key === "ArrowRight") !== rtl;
+    let next = forward ? (i === last ? 0 : i + 1) : (i === 0 ? last : i - 1);
+    if (e.key === "Home") next = 0;
+    if (e.key === "End") next = last;
+    selectTab(next, true);
+    history.replaceState(null, "", `#${TABS[next][2]}`);
+  });
+});
+window.addEventListener("hashchange", () => selectTab(tabIndexForHash(location.hash), false));
+</script>
+</body>
+</html>

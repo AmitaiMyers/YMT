@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Requirements Checklist · YMT Group</title>
+<style>
+  /* Same palette as the YMT app (docs/DESIGN_SYSTEM.md). Self-contained: no external fonts, scripts or images.
+     Bilingual: static text exists twice (data-l="en" / data-l="he"); controls are relabelled by the script. */
+  :root {
+    --canvas: #F7F8FA; --surface: #FFFFFF; --sunken: #F1F5F9; --line: #E2E8F0; --line-strong: #CBD5E1;
+    --fg: #1E293B; --muted: #475569; --subtle: #5B6B82;
+    --primary: #0F2A4A; --on-primary: #FFFFFF; --hero-muted: #C7D7EE; --link: #1D4F8C; --focus: #1D4F8C;
+    --info-soft: #EEF4FB; --chart: #2E6FBF;
+    --signal: #F59E0B; --signal-fg: #92400E; --signal-soft: #FFF7E6;
+    --success: #047857; --success-fg: #047857; --success-soft: #ECFDF5;
+    --danger-fg: #B91C1C; --danger-soft: #FEF2F2;
+    --e1: 0 1px 2px rgb(15 42 74 / .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: #0B1220; --surface: #111A2E; --sunken: #0E1628; --line: #1F2A44; --line-strong: #2C3A5A;
+      --fg: #E2E8F0; --muted: #94A3B8; --subtle: #8796AD;
+      --primary: #0A1426; --on-primary: #E2E8F0; --hero-muted: #94A3B8; --link: #7EB3F2; --focus: #7EB3F2;
+      --info-soft: #13233F; --chart: #5B9BE6;
+      --signal: #FBBF24; --signal-fg: #FBBF24; --signal-soft: #2A2110;
+      --success: #047857; --success-fg: #34D399; --success-soft: #0F2A22;
+      --danger-fg: #F87171; --danger-soft: #2D1517;
+      --e1: 0 1px 2px rgb(0 0 0 / .3);
+    }
+  }
+  html[lang="en"] [data-l="he"], html[lang="he"] [data-l="en"] { display: none !important; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--canvas); color: var(--fg); font: 15px/1.55 system-ui, "Segoe UI", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  a { color: var(--link); }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  header.hero { background: var(--primary); color: var(--on-primary); padding: 28px 16px 26px; }
+  .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; font-size: 14px; opacity: .9; }
+  .brand svg { width: 28px; height: 28px; flex: none; }
+  .lang-btn { font: inherit; font-size: 14px; font-weight: 600; color: var(--on-primary); background: transparent; border: 1px solid rgb(255 255 255 / .4); border-radius: 999px; padding: 6px 14px; min-height: 36px; cursor: pointer; }
+  .lang-btn:hover { background: rgb(255 255 255 / .1); }
+  h1 { margin: 14px 0 8px; font-size: 28px; line-height: 1.2; }
+  .lede { margin: 0; max-width: 75ch; color: var(--hero-muted); }
+  main { padding: 24px 16px 56px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--e1); padding: 16px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .note { border-inline-start: 4px solid var(--signal); background: var(--signal-soft); padding: 10px 14px; border-radius: 8px; margin: 14px 0; font-size: 14px; }
+
+  label.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--subtle); }
+  input[type="text"], input[type="date"], input[type="search"], select, textarea {
+    font: inherit; font-size: 14px; color: var(--fg); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; padding: 7px 9px; min-height: 36px; width: 100%;
+  }
+  textarea { resize: vertical; min-height: 56px; line-height: 1.45; }
+  .meta-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+
+  .toolbar { position: sticky; top: 0; z-index: 5; margin: 16px 0; }
+  .progress-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+  .bar { flex: 1 1 220px; height: 10px; background: var(--sunken); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; width: 0; background: var(--success); transition: width 200ms; }
+  .stat { font-size: 14px; font-variant-numeric: tabular-nums; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .controls .grow { flex: 1 1 200px; }
+  .btn { font: inherit; font-size: 14px; font-weight: 600; border-radius: 6px; padding: 7px 12px; min-height: 36px; cursor: pointer; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); }
+  .btn:hover { background: var(--sunken); }
+  .btn.primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
+  .btn.danger { color: var(--danger-fg); }
+  .seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 13px; font-weight: 600; border: 0; background: var(--surface); color: var(--muted); padding: 7px 10px; min-height: 36px; cursor: pointer; }
+  .seg button + button { border-inline-start: 1px solid var(--line-strong); }
+  .seg button[aria-pressed="true"] { background: var(--info-soft); color: var(--link); }
+  .status { min-height: 20px; font-size: 13px; margin-top: 8px; }
+  .status.error { color: var(--danger-fg); font-weight: 600; }
+  .status.ok { color: var(--success-fg); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  details.cat { margin-bottom: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--e1); }
+  details.cat > summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+  details.cat > summary::-webkit-details-marker { display: none; }
+  details.cat > summary::before { content: "▸"; color: var(--subtle); transition: transform 150ms; }
+  html[dir="rtl"] details.cat > summary::before { content: "◂"; }
+  details.cat[open] > summary::before { transform: rotate(90deg); }
+  html[dir="rtl"] details.cat[open] > summary::before { transform: rotate(-90deg); }
+  .cat-title { font-size: 17px; font-weight: 700; margin: 0; }
+  .cat-count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cat-bar { flex: 0 0 120px; height: 6px; background: var(--sunken); border-radius: 999px; overflow: hidden; }
+  .cat-bar > span { display: block; height: 100%; width: 0; background: var(--success); }
+  .cat-intro { margin: 0; padding: 0 16px 8px; font-size: 13px; color: var(--muted); }
+  ol.items { list-style: none; margin: 0; padding: 0; }
+  li.item { border-top: 1px solid var(--line); padding: 12px 16px; display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 10px 16px; }
+  li.item.done .q { color: var(--muted); }
+  li.item.done .q-text { text-decoration: line-through; text-decoration-color: var(--line-strong); }
+  .q { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; cursor: pointer; }
+  .q input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--success); cursor: pointer; }
+  .q-id { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--subtle); margin-inline-end: 6px; }
+  .hint { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .side { display: grid; grid-template-columns: 110px 1fr; gap: 8px; align-content: start; }
+  .side select, .side input { font-size: 13px; min-height: 34px; padding: 5px 8px; }
+  .notes { grid-column: 1 / -1; }
+  .prio-must { border-color: var(--danger-fg) !important; }
+  .prio-should { border-color: var(--signal) !important; }
+  .empty { padding: 16px; color: var(--muted); font-size: 14px; }
+
+  dialog { border: 1px solid var(--line-strong); border-radius: 10px; padding: 18px; max-width: min(720px, calc(100vw - 32px)); width: 100%; background: var(--surface); color: var(--fg); }
+  dialog::backdrop { background: rgb(15 23 42 / .55); }
+  dialog textarea { min-height: 300px; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .dialog-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+  footer { border-top: 1px solid var(--line); padding: 20px 16px 40px; font-size: 13px; color: var(--muted); }
+
+  @media (max-width: 760px) {
+    .meta-grid { grid-template-columns: 1fr 1fr; }
+    li.item { grid-template-columns: 1fr; }
+    .toolbar { position: static; }
+  }
+  @media (max-width: 460px) { .meta-grid { grid-template-columns: 1fr; } .side { grid-template-columns: 1fr; } }
+  @media print {
+    header.hero { background: none; color: #000; padding: 0 0 8px; }
+    .lede { color: #333; }
+    .lang-btn, .controls, .status, .no-print { display: none !important; }
+    .toolbar { position: static; box-shadow: none; }
+    details.cat { box-shadow: none; break-inside: auto; }
+    li.item { break-inside: avoid; grid-template-columns: minmax(0, 1fr) 200px; }
+    li.item[hidden] { display: grid !important; }
+    details.cat[hidden] { display: block !important; }
+    textarea, input, select { border-color: #999; }
+    textarea:placeholder-shown { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#F59E0B"/><path d="M8 9l5 7v7h3v-7l5-7h-3.4L14.5 13.6 11.4 9z" fill="#0F2A4A"/></svg>
+        <span>YMT GROUP</span>
+      </div>
+      <button type="button" class="lang-btn" id="lang-btn" aria-label="Switch language / החלפת שפה"><span data-l="en">עברית</span><span data-l="he">English</span></button>
+    </div>
+    <h1><span data-l="en">Requirements checklist for the growth platform</span><span data-l="he">רשימת דרישות לפלטפורמת הצמיחה</span></h1>
+    <p class="lede">
+      <span data-l="en">Everything the developer needs from the YMT team before building: goals, lead criteria, templates, channels, services, pricing rules, legal points, accounts and decisions. Go through it together, tick what is answered, and write the answer in the notes.</span>
+      <span data-l="he">כל מה שהמפתח צריך מצוות YMT לפני הבנייה: מטרות, קריטריוני לידים, תבניות, ערוצים, שירותים, כללי תמחור, נקודות משפטיות, חשבונות והחלטות. עוברים עליה יחד, מסמנים מה נענה, וכותבים את התשובה בהערות.</span>
+    </p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="note">
+    <strong data-l="en">Never write passwords, API keys or tokens in this checklist.</strong><strong data-l="he">אין לכתוב ברשימה הזו סיסמאות, מפתחות API או אסימונים.</strong>
+    <span data-l="en">For credentials, write only who provides them and where they were added (for example "added on Render by Dana, 2 Dec").</span>
+    <span data-l="he">לגבי פרטי גישה, כותבים רק מי מספק אותם ואיפה הם הוזנו (למשל "הוזן ב-Render על ידי דנה, 2 בדצמבר").</span>
+    <span data-l="en">Answers are saved in this browser only. Use <em>Export JSON</em> to keep or share them.</span>
+    <span data-l="he">התשובות נשמרות בדפדפן הזה בלבד. כדי לשמור או לשתף, משתמשים ב<em>ייצוא JSON</em>.</span>
+  </div>
+
+  <section class="card" aria-labelledby="meta-title">
+    <h2 id="meta-title" class="sr-only"><span data-l="en">Interview details</span><span data-l="he">פרטי הפגישה</span></h2>
+    <div class="meta-grid">
+      <label class="field"><span><span data-l="en">Client company</span><span data-l="he">חברת הלקוח</span></span><input type="text" id="meta-company" autocomplete="organization" /></label>
+      <label class="field"><span><span data-l="en">Interview date</span><span data-l="he">תאריך הפגישה</span></span><input type="date" id="meta-date" /></label>
+      <label class="field"><span><span data-l="en">Interviewer</span><span data-l="he">מראיין</span></span><input type="text" id="meta-interviewer" autocomplete="name" /></label>
+      <label class="field"><span><span data-l="en">YMT participants</span><span data-l="he">משתתפים מ-YMT</span></span><input type="text" id="meta-attendees" /></label>
+    </div>
+  </section>
+
+  <section class="card toolbar" aria-label="Progress and actions">
+    <div class="progress-row">
+      <div class="bar" role="progressbar" id="bar" aria-valuemin="0" aria-valuenow="0" aria-valuemax="0"><span id="bar-fill"></span></div>
+      <span class="stat" id="stat-all"></span>
+      <span class="stat" id="stat-must"></span>
+    </div>
+    <div class="controls">
+      <input type="search" class="grow" id="search" />
+      <div class="seg" role="group" id="filter-group">
+        <button type="button" data-filter="all" aria-pressed="true"><span data-l="en">All</span><span data-l="he">הכל</span></button>
+        <button type="button" data-filter="open" aria-pressed="false"><span data-l="en">Open</span><span data-l="he">פתוחים</span></button>
+        <button type="button" data-filter="must" aria-pressed="false"><span data-l="en">Must, open</span><span data-l="he">חובה, פתוחים</span></button>
+      </div>
+      <button type="button" class="btn primary" id="btn-export"><span data-l="en">Export JSON</span><span data-l="he">ייצוא JSON</span></button>
+      <button type="button" class="btn" id="btn-markdown"><span data-l="en">Copy Markdown</span><span data-l="he">העתקת Markdown</span></button>
+      <button type="button" class="btn" id="btn-import"><span data-l="en">Import JSON</span><span data-l="he">ייבוא JSON</span></button>
+      <input type="file" id="file-import" accept="application/json,.json" hidden />
+      <button type="button" class="btn" id="btn-print"><span data-l="en">Print / PDF</span><span data-l="he">הדפסה / PDF</span></button>
+      <button type="button" class="btn danger" id="btn-reset"><span data-l="en">Clear all</span><span data-l="he">ניקוי הכל</span></button>
+    </div>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <div id="categories"></div>
+  <p class="empty" id="no-results" hidden><span data-l="en">No items match the search or filter.</span><span data-l="he">אין פריטים שמתאימים לחיפוש או לסינון.</span></p>
+
+  <datalist id="owners"></datalist>
+</main>
+
+<dialog id="md-dialog" aria-labelledby="md-title">
+  <h2 id="md-title" style="margin-top:0;font-size:18px"><span data-l="en">Copy the Markdown</span><span data-l="he">העתקת ה-Markdown</span></h2>
+  <p class="small muted" data-l="en">The browser blocked automatic copying. The text is selected: press Ctrl+C (⌘+C on Mac).</p>
+  <p class="small muted" data-l="he">הדפדפן חסם העתקה אוטומטית. הטקסט מסומן: לוחצים Ctrl+C (‏⌘+C במק).</p>
+  <textarea id="md-text" readonly aria-labelledby="md-title"></textarea>
+  <div class="dialog-actions"><button type="button" class="btn primary" id="md-close"><span data-l="en">Close</span><span data-l="he">סגירה</span></button></div>
+</dialog>
+
+<footer>
+  <div class="wrap">
+    <span data-l="en">Companion file: <a href="system-design.html">system design</a> (options, costs and architecture behind each question). Version 1 · 20 November 2026.</span>
+    <span data-l="he">קובץ נלווה: <a href="system-design.html">תכנון המערכת</a> (האפשרויות, העלויות והארכיטקטורה שמאחורי כל שאלה). גרסה 1 · 20 בנובמבר 2026.</span>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ---------- checklist content: [id, default priority, question, hint?] ---------- */
+const T = (en, he) => ({ en, he });
+const PRIORITIES = ["must", "should", "later"];
+
+const CATEGORIES = [
+  { id: "goals", title: T("Goals and scope", "מטרות והיקף"),
+    intro: T("Why the platform exists and how YMT will judge it.", "למה הפלטפורמה קיימת ואיך YMT תמדוד אותה."),
+    items: [
+      ["g1", "must", T("Main business goal for the first 6 months (e.g. number of new clients, meetings per month).", "המטרה העסקית המרכזית ל-6 החודשים הראשונים (למשל מספר לקוחות חדשים, פגישות בחודש).")],
+      ["g2", "must", T("Success measures and monthly targets (meetings, reply rate, quotes sent, revenue).", "מדדי הצלחה ויעדים חודשיים (פגישות, אחוז תשובות, הצעות שנשלחו, הכנסות).")],
+      ["g3", "must", T("Who at YMT will use the platform: names and roles.", "מי ב-YMT ישתמש בפלטפורמה: שמות ותפקידים.")],
+      ["g4", "must", T("Starting budget tier per month: A (≤ $50), B ($50–200) or C ($200–500), and who approves spending.", "רמת התקציב החודשית להתחלה: A (עד $50), B ($50–200) או C ($200–500), ומי מאשר הוצאות."), T("See 'Budget tiers' in the system design.", "ראו 'רמות תקציב' בתכנון המערכת.")],
+      ["g5", "must", T("Monthly AI cost cap in USD, and who is alerted at 80%.", "תקרת עלות AI חודשית בדולרים, ומי מקבל התראה ב-80%.")],
+      ["g6", "should", T("Pilot scope (one country, industry or service first?) and target go-live date.", "היקף הפיילוט (מדינה, ענף או שירות אחד קודם?) ותאריך עלייה לאוויר.")],
+      ["g7", "later", T("Will YMT sell or offer this platform to other companies later, and when?", "האם YMT תמכור או תציע את הפלטפורמה לחברות אחרות בהמשך, ומתי?"), T("Decides how early multi-company features are built.", "קובע כמה מוקדם בונים יכולות רב-חברתיות.")]
+    ] },
+  { id: "market", title: T("Target market and lead criteria", "שוק יעד וקריטריוני לידים"),
+    intro: T("Who is a good potential client. These answers become the saved search criteria and the lead score.", "מי לקוח פוטנציאלי טוב. התשובות הופכות לקריטריוני החיפוש השמורים ולציון הליד."),
+    items: [
+      ["t1", "must", T("Target countries or regions, in priority order.", "מדינות או אזורי יעד, לפי סדר עדיפות.")],
+      ["t2", "must", T("Industries / company types to target, and those to exclude.", "ענפים / סוגי חברות לפנות אליהם, ואלה שיש להחריג.")],
+      ["t3", "must", T("Company size ranges (employees and/or yearly revenue).", "טווחי גודל חברה (עובדים ו/או הכנסה שנתית).")],
+      ["t4", "must", T("Decision makers to reach: job titles, seniority, department.", "מקבלי ההחלטות שאליהם פונים: תפקידים, דרג, מחלקה.")],
+      ["t5", "should", T("Buying signals that make a company a good lead right now (funding, hiring, expansion, new branch, tender, new regulation).", "סימנים שהופכים חברה לליד טוב עכשיו (השקעה, גיוס עובדים, התרחבות, סניף חדש, מכרז, רגולציה חדשה).")],
+      ["t6", "must", T("Disqualifiers: existing clients, competitors, partners, sanctioned countries, too small or too large.", "פוסלים: לקוחות קיימים, מתחרים, שותפים, מדינות תחת סנקציות, קטנות או גדולות מדי.")],
+      ["t7", "should", T("Lead score rules: what adds or removes points, which score is 'hot', and may hot leads be accepted automatically?", "כללי ציון ליד: מה מוסיף או מוריד נקודות, איזה ציון נחשב 'חם', והאם לידים חמים מתקבלים אוטומטית?")],
+      ["t8", "must", T("Outreach language per country (Hebrew, English, other).", "שפת הפנייה לכל מדינה (עברית, אנגלית, אחרת).")],
+      ["t9", "must", T("Volume: new leads and AI reports needed per week.", "נפח: כמה לידים חדשים ודוחות AI נדרשים בשבוע.")],
+      ["t10", "must", T("Existing lists to import (clients, past leads, Excel/CSV) and the 'do not contact' list.", "רשימות קיימות לייבוא (לקוחות, לידים מהעבר, Excel/CSV) ורשימת 'לא לפנות'.")]
+    ] },
+  { id: "sources", title: T("Lead sources and data", "מקורות לידים ונתונים"),
+    intro: T("Where leads come from and how long data is kept.", "מאיפה מגיעים הלידים וכמה זמן שומרים את המידע."),
+    items: [
+      ["s1", "must", T("Sources to switch on: Google Maps/Places, CSV upload, LinkedIn (manual), public sources (websites, company registries), paid B2B database.", "מקורות להפעלה: Google Maps/Places, העלאת CSV, LinkedIn (ידני), מקורות ציבוריים (אתרים, רשמי חברות), מאגר B2B בתשלום.")],
+      ["s2", "should", T("Paid B2B database: yes or no, which vendor, how many seats, who owns and pays for the account.", "מאגר B2B בתשלום: כן או לא, איזה ספק, כמה משתמשים, מי הבעלים ומי משלם.")],
+      ["s3", "should", T("Google Cloud billing for the Places API (the Calendar project can be reused) and a budget alert amount.", "חיוב Google Cloud עבור Places API (אפשר להשתמש בפרויקט של היומן) וסכום להתראת תקציב.")],
+      ["s4", "should", T("E-mail verification: yes or no, provider, expected monthly volume.", "אימות מיילים: כן או לא, ספק, נפח חודשי צפוי.")],
+      ["s5", "should", T("Confirm the duplicate rule: same website domain = same company; otherwise same name + country.", "אישור כלל הכפילויות: אותו דומיין אתר = אותה חברה; אחרת אותו שם + מדינה.")],
+      ["s6", "must", T("How leads are assigned to staff (by country, industry, in turn, or by hand).", "איך לידים מחולקים לעובדים (לפי מדינה, ענף, בתורות, או ידנית).")],
+      ["s7", "must", T("How long to keep leads who never replied (e.g. 12 months) before automatic deletion.", "כמה זמן שומרים לידים שלא ענו (למשל 12 חודשים) לפני מחיקה אוטומטית.")]
+    ] },
+  { id: "linkedin", title: T("LinkedIn approach", "גישה ל-LinkedIn"),
+    intro: T("Options range from low risk (manual) to high risk (automation against LinkedIn terms).", "האפשרויות נעות מסיכון נמוך (ידני) ועד סיכון גבוה (אוטומציה בניגוד לתנאי LinkedIn)."),
+    items: [
+      ["l1", "must", T("Chosen LinkedIn approach and accepted risk: manual assist (low), Sales Navigator (low), automation tools or unofficial API (high).", "גישת ה-LinkedIn שנבחרה והסיכון המקובל: סיוע ידני (נמוך), Sales Navigator (נמוך), כלי אוטומציה או API לא רשמי (גבוה)."), T("See 'LinkedIn options and risk levels' in the system design.", "ראו 'אפשרויות LinkedIn ורמות סיכון' בתכנון המערכת.")],
+      ["l2", "must", T("Which staff LinkedIn accounts are used, and has each person agreed to any risk?", "באילו חשבונות LinkedIn של עובדים משתמשים, והאם כל אחד הסכים לסיכון, אם יש?")],
+      ["l3", "should", T("Number of Sales Navigator seats; monthly or yearly billing.", "מספר משתמשי Sales Navigator; חיוב חודשי או שנתי.")],
+      ["l4", "should", T("LinkedIn message templates (connection note, first message, follow-up) and a daily limit per person.", "תבניות הודעה ל-LinkedIn (הערת חיבור, הודעה ראשונה, מעקב) ומגבלה יומית לאדם.")]
+    ] },
+  { id: "reports", title: T("AI research and report templates", "מחקר AI ותבניות דוח"),
+    intro: T("What a good research report looks like for YMT.", "איך נראה דוח מחקר טוב בעיני YMT."),
+    items: [
+      ["r1", "must", T("Who reads the report: internal preparation only, or also sent to the prospect?", "מי קורא את הדוח: הכנה פנימית בלבד, או שהוא נשלח גם ללקוח הפוטנציאלי?")],
+      ["r2", "must", T("Report sections, in order (e.g. company snapshot, market, likely needs, opportunities, suggested services, sources).", "מקטעי הדוח, לפי הסדר (למשל תמונת מצב של החברה, שוק, צרכים אפשריים, הזדמנויות, שירותים מוצעים, מקורות).")],
+      ["r3", "must", T("Brand assets: logo (SVG/PNG), colours, fonts, footer text, contact details.", "נכסי מיתוג: לוגו (SVG/PNG), צבעים, גופנים, טקסט כותרת תחתונה, פרטי קשר.")],
+      ["r4", "must", T("Report languages and tone of voice for each language.", "שפות הדוח וטון הדיבור בכל שפה.")],
+      ["r5", "should", T("2–3 sample reports or documents that YMT considers excellent.", "2–3 דוחות או מסמכים לדוגמה ש-YMT רואה כמצוינים.")],
+      ["r6", "must", T("Forbidden content (e.g. no prices, no criticism of competitors, no personal details about individuals).", "תוכן אסור (למשל בלי מחירים, בלי ביקורת על מתחרים, בלי פרטים אישיים על אנשים).")],
+      ["r7", "must", T("Who approves reports, and may an approved report be sent to the prospect?", "מי מאשר דוחות, והאם מותר לשלוח דוח מאושר ללקוח הפוטנציאלי?")],
+      ["r8", "should", T("Sources to prefer and sources never to use.", "מקורות מועדפים ומקורות שאסור להשתמש בהם.")],
+      ["r9", "should", T("Delivery: PDF attachment or private web link; how many days the link stays valid.", "אופן המסירה: קובץ PDF מצורף או קישור אינטרנט פרטי; כמה ימים הקישור בתוקף.")],
+      ["r10", "should", T("Quality vs cost for reports: economy, standard or premium AI model.", "איכות מול עלות בדוחות: מודל AI חסכוני, רגיל או פרימיום.")],
+      ["r11", "should", T("Which industries need their own report template?", "לאילו ענפים נדרשת תבנית דוח משלהם?")]
+    ] },
+  { id: "outreach", title: T("Outreach channels and automation", "ערוצי פנייה ואוטומציה"),
+    intro: T("How YMT contacts potential clients, and how much the system may do by itself.", "איך YMT פונה ללקוחות פוטנציאליים, וכמה המערכת רשאית לעשות בעצמה."),
+    items: [
+      ["o1", "must", T("Channels to switch on: e-mail, LinkedIn manual assist, WhatsApp Business, phone tasks.", "ערוצים להפעלה: מייל, סיוע ידני ל-LinkedIn, WhatsApp Business, משימות טלפון.")],
+      ["o2", "must", T("Default sending mode, and who may change it per potential client: 1 approve every message, 2 approve the first + automatic follow-ups, 3 fully automatic.", "מצב השליחה כברירת מחדל, ומי רשאי לשנות אותו לכל לקוח פוטנציאלי: 1 אישור כל הודעה, 2 אישור הראשונה + מעקבים אוטומטיים, 3 אוטומטי לחלוטין.")],
+      ["o3", "must", T("Mode 3 rules: allowed segments and countries, daily maximum, and YMT's written approval that the system may send by itself.", "כללי מצב 3: פלחים ומדינות מותרים, מקסימום יומי, ואישור בכתב של YMT שהמערכת רשאית לשלוח בעצמה."), T("Mode 3 changes the current 'never sends by itself' rule.", "מצב 3 משנה את הכלל הנוכחי 'אף פעם לא שולח בעצמו'.")],
+      ["o4", "must", T("E-mail: Google Workspace or Microsoft 365, which mailboxes send, sending domain; are SPF, DKIM and DMARC set up?", "מייל: Google Workspace או Microsoft 365, מאילו תיבות שולחים, דומיין שליחה; האם SPF,‏ DKIM ו-DMARC מוגדרים?")],
+      ["o5", "should", T("Daily send limit per mailbox, sending hours, time zones and holidays.", "מגבלת שליחה יומית לתיבה, שעות שליחה, אזורי זמן וחגים.")],
+      ["o6", "must", T("Follow-up plan: number of follow-ups (max 3), days between them, channel for each step.", "תוכנית מעקב: מספר מעקבים (עד 3), ימים ביניהם, ערוץ לכל שלב.")],
+      ["o7", "must", T("Message templates per language and segment (first message, follow-ups, closing message).", "תבניות הודעה לפי שפה ופלח (הודעה ראשונה, מעקבים, הודעת סיום).")],
+      ["o8", "must", T("E-mail signature, company postal address, unsubscribe wording in each language, and 'advertisement' marking where the law requires it.", "חתימת מייל, כתובת דואר של החברה, נוסח הסרה בכל שפה, וסימון 'פרסומת' היכן שהחוק דורש.")],
+      ["o9", "should", T("WhatsApp: verified Meta Business account, dedicated phone number, display name, templates to submit, how consent is collected.", "WhatsApp: חשבון Meta Business מאומת, מספר טלפון ייעודי, שם תצוגה, תבניות להגשה, איך נאספת הסכמה.")],
+      ["o10", "should", T("Phone: who calls, call script, outcome codes, calling hours.", "טלפון: מי מתקשר, תסריט שיחה, קודי תוצאה, שעות התקשרות.")],
+      ["o11", "should", T("Meeting booking link (Google appointment page, Calendly or other).", "קישור לקביעת פגישה (דף תורים של Google, ‏Calendly או אחר).")]
+    ] },
+  { id: "inbound", title: T("Inbound responses", "תשובות נכנסות"),
+    intro: T("What happens when someone answers.", "מה קורה כשמישהו עונה."),
+    items: [
+      ["i1", "must", T("Reply labels: interested, wants a meeting, not now, not interested, wrong person / referral, out of office, unsubscribe, bounce. Add or remove?", "תוויות תשובה: מעוניין, רוצה פגישה, לא עכשיו, לא מעוניין, אדם לא נכון / הפניה, מחוץ למשרד, הסרה, החזרה. להוסיף או להסיר?")],
+      ["i2", "must", T("Next step for each label (stop the sequence, create a task, remind in N days, move the pipeline stage).", "הצעד הבא לכל תווית (עצירת הרצף, יצירת משימה, תזכורת בעוד N ימים, העברת שלב בצנרת).")],
+      ["i3", "must", T("Who is alerted about a reply, and the response-time target (default: 1 business day).", "מי מקבל התראה על תשובה, ויעד זמן התגובה (ברירת מחדל: יום עסקים אחד).")],
+      ["i4", "should", T("Notifications: in the app, daily e-mail digest, anything else?", "התראות: באפליקציה, סיכום יומי במייל, משהו נוסף?")],
+      ["i5", "must", T("Confirm unsubscribe handling: automatic, immediate, permanent, across all channels.", "אישור הטיפול בהסרה: אוטומטית, מיידית, קבועה, בכל הערוצים.")]
+    ] },
+  { id: "services", title: T("Service catalog", "קטלוג שירותים"),
+    intro: T("The catalog lets the system suggest the right services for each company.", "הקטלוג מאפשר למערכת להציע את השירותים המתאימים לכל חברה."),
+    items: [
+      ["v1", "must", T("List of YMT services with a short description in Hebrew and English.", "רשימת שירותי YMT עם תיאור קצר בעברית ובאנגלית.")],
+      ["v2", "must", T("For each service: needs or pains it solves, ideal client industry and size, typical result.", "לכל שירות: הצרכים או הכאבים שהוא פותר, ענף וגודל הלקוח האידיאלי, תוצאה אופיינית.")],
+      ["v3", "must", T("Price model and price range for each service.", "מודל מחיר וטווח מחיר לכל שירות.")],
+      ["v4", "should", T("When a service must not be offered (rules, exclusions, dependencies).", "מתי אסור להציע שירות (כללים, החרגות, תלויות).")],
+      ["v5", "should", T("Case studies and testimonials YMT is allowed to mention.", "סיפורי הצלחה והמלצות ש-YMT רשאית להזכיר.")],
+      ["v6", "later", T("Partners or suppliers each service depends on (links to the Suppliers & experts directory).", "שותפים או ספקים שכל שירות תלוי בהם (קישור לספריית הספקים והמומחים).")]
+    ] },
+  { id: "pricing", title: T("Pricing and quote rules", "תמחור וכללי הצעת מחיר"),
+    intro: T("How YMT charges its client companies. Prices always come from these rules, never from AI.", "איך YMT גובה מהחברות הלקוחות. המחירים תמיד מגיעים מהכללים האלה, אף פעם לא מה-AI."),
+    items: [
+      ["p1", "must", T("Price models YMT uses: fixed project fee + retainer, success fee / commission, hourly or daily rate, packages / tiers, or a mix.", "מודלי המחיר ש-YMT משתמשת בהם: תשלום קבוע לפרויקט + ריטיינר, דמי הצלחה / עמלה, תעריף שעתי או יומי, חבילות / רמות, או שילוב."), T("See 'How YMT can charge its client companies' in the system design.", "ראו 'איך YMT יכולה לגבות מהחברות הלקוחות' בתכנון המערכת.")],
+      ["p2", "must", T("For each model: rates, minimums, currency (ILS / USD / EUR) and VAT treatment.", "לכל מודל: תעריפים, מינימום, מטבע (ש\"ח / דולר / אירו) וטיפול במע\"מ.")],
+      ["p3", "must", T("Discount rules, and who must approve above which percentage or amount.", "כללי הנחה, ומי חייב לאשר מעל איזה אחוז או סכום.")],
+      ["p4", "must", T("Payment terms (advance %, milestones, days to pay).", "תנאי תשלום (מקדמה %, אבני דרך, ימים לתשלום).")],
+      ["p5", "must", T("Quote validity, legal terms, cancellation and liability wording (checked by a lawyer).", "תוקף ההצעה, תנאים משפטיים, נוסח ביטול ואחריות (נבדק על ידי עו\"ד).")],
+      ["p6", "should", T("Quote layout and branding; is the built-in simple e-signature enough, or is a certified signature needed?", "עיצוב ומיתוג ההצעה; האם החתימה הפשוטה המובנית מספיקה, או שנדרשת חתימה מאושרת?")],
+      ["p7", "should", T("Accounting / invoicing system used today (version 1 exports CSV).", "מערכת הנהלת החשבונות / החשבוניות שבשימוש היום (גרסה 1 מייצאת CSV).")],
+      ["p8", "later", T("If the platform is sold later: preferred pricing (per user, tiers with quotas, setup fee + monthly, usage credits).", "אם הפלטפורמה תימכר בהמשך: תמחור מועדף (לפי משתמש, חבילות עם מכסות, דמי הקמה + חודשי, קרדיטים לפי שימוש).")]
+    ] },
+  { id: "dashboard", title: T("Dashboard and reporting", "לוח בקרה ודיווח"),
+    intro: T("What managers and staff need to see every day.", "מה מנהלים ועובדים צריכים לראות כל יום."),
+    items: [
+      ["d1", "must", T("KPIs to show (funnel by stage, reply rate, meetings, quotes, revenue, cost per lead, AI spend, time to quote).", "מדדים להצגה (משפך לפי שלב, אחוז תשובות, פגישות, הצעות, הכנסות, עלות לליד, הוצאות AI, זמן עד הצעה).")],
+      ["d2", "should", T("Who sees what: staff see their own numbers, managers see the team?", "מי רואה מה: עובדים רואים את המספרים שלהם, מנהלים רואים את הצוות?")],
+      ["d3", "should", T("Monthly targets per person and per team.", "יעדים חודשיים לכל עובד ולכל צוות.")],
+      ["d4", "later", T("Recipients and timing of weekly or monthly management reports.", "נמענים ותזמון של דוחות הנהלה שבועיים או חודשיים.")]
+    ] },
+  { id: "compliance", title: T("Compliance and legal", "ציות ומשפט"),
+    intro: T("Checklist for the lawyer and YMT management. This is not legal advice.", "רשימה לעורך הדין ולהנהלת YMT. זה לא ייעוץ משפטי."),
+    items: [
+      ["c1", "must", T("Laws for each target country confirmed: Israel (Communications Law §30A anti-spam; Privacy Protection Law + Amendment 13), EU/UK (GDPR, ePrivacy/PECR), USA (CAN-SPAM), Canada (CASL), others.", "החוקים לכל מדינת יעד אושרו: ישראל (חוק התקשורת סעיף 30א – ספאם; חוק הגנת הפרטיות + תיקון 13), אירופה/בריטניה (GDPR,‏ ePrivacy/PECR), ארה\"ב (CAN-SPAM), קנדה (CASL), אחרות.")],
+      ["c2", "must", T("Lawyer's written opinion on B2B cold outreach per country and channel (e-mail, WhatsApp, LinkedIn, phone).", "חוות דעת בכתב של עו\"ד על פנייה קרה לעסקים לכל מדינה וערוץ (מייל, WhatsApp,‏ LinkedIn, טלפון).")],
+      ["c3", "must", T("Privacy notice text: what data YMT collects, from which sources, why, and how to object (also used for the GDPR Art. 14 notice).", "נוסח הודעת פרטיות: איזה מידע YMT אוספת, מאילו מקורות, למה, ואיך מתנגדים (משמש גם להודעה לפי סעיף 14 ב-GDPR).")],
+      ["c4", "should", T("Does YMT need to register a database or appoint a privacy protection officer under Israeli law?", "האם YMT צריכה לרשום מאגר מידע או למנות ממונה הגנת פרטיות לפי החוק הישראלי?")],
+      ["c5", "must", T("Data processing agreements with vendors (Anthropic, Google, Meta, Render, data providers).", "הסכמי עיבוד מידע עם הספקים (Anthropic,‏ Google,‏ Meta,‏ Render, ספקי מידע).")],
+      ["c6", "should", T("Data location preference (default: EU, Frankfurt).", "העדפת מיקום המידע (ברירת מחדל: אירופה, פרנקפורט).")],
+      ["c7", "must", T("Retention and deletion policy, and who handles requests from people to see or delete their data.", "מדיניות שמירה ומחיקה, ומי מטפל בבקשות של אנשים לעיין במידע שלהם או למחוק אותו.")],
+      ["c8", "should", T("WhatsApp: how consent is recorded; Meta messaging policy accepted.", "WhatsApp: איך נרשמת הסכמה; מדיניות ההודעות של Meta אושרה.")],
+      ["c9", "must", T("If any LinkedIn automation is chosen: written acceptance of the risk under LinkedIn's terms.", "אם נבחרה אוטומציה כלשהי ב-LinkedIn: קבלה בכתב של הסיכון לפי תנאי LinkedIn.")],
+      ["c10", "should", T("Rules for recording phone calls, if calls are recorded, and the consent wording.", "כללים להקלטת שיחות טלפון, אם מקליטים, ונוסח ההסכמה.")]
+    ] },
+  { id: "accounts", title: T("Accounts, credentials and assets", "חשבונות, פרטי גישה ונכסים"),
+    intro: T("Who provides each account. Never write the secret itself here.", "מי מספק כל חשבון. לעולם לא כותבים כאן את הסוד עצמו."),
+    items: [
+      ["a1", "must", T("Render account: owner, billing, access for the developer.", "חשבון Render: בעלים, חיוב, גישה למפתח.")],
+      ["a2", "must", T("Domain and DNS access (for SPF, DKIM, DMARC and an optional sending subdomain).", "גישה לדומיין ול-DNS (עבור SPF,‏ DKIM,‏ DMARC ותת-דומיין שליחה אופציונלי).")],
+      ["a3", "must", T("Google: Workspace admin or Gmail accounts; Google Cloud project (exists for Calendar) to enable the Gmail API and Places API.", "Google: מנהל Workspace או חשבונות Gmail; פרויקט Google Cloud (קיים עבור היומן) להפעלת Gmail API ו-Places API.")],
+      ["a4", "should", T("Microsoft 365 admin (only if Outlook is used) to approve the app.", "מנהל Microsoft 365 (רק אם משתמשים ב-Outlook) לאישור האפליקציה.")],
+      ["a5", "must", T("Anthropic Console account (owned by YMT), API key added on Render, monthly spend limit set in the Console.", "חשבון Anthropic Console (בבעלות YMT), מפתח API שהוזן ב-Render, מגבלת הוצאה חודשית שהוגדרה ב-Console.")],
+      ["a6", "should", T("Meta Business Manager, WhatsApp Business Account and phone number.", "Meta Business Manager, חשבון WhatsApp Business ומספר טלפון.")],
+      ["a7", "should", T("E-mail verification provider account and API key.", "חשבון ספק אימות מיילים ומפתח API.")],
+      ["a8", "later", T("Paid B2B database account and API key.", "חשבון מאגר B2B בתשלום ומפתח API.")],
+      ["a9", "later", T("LinkedIn Sales Navigator seats, or an unofficial API provider account (only if chosen).", "משתמשי LinkedIn Sales Navigator, או חשבון אצל ספק API לא רשמי (רק אם נבחר).")],
+      ["a10", "must", T("Brand files: logo, colours, fonts, letterhead, e-mail signature.", "קבצי מיתוג: לוגו, צבעים, גופנים, נייר מכתבים, חתימת מייל.")]
+    ] },
+  { id: "team", title: T("Team, roles and process", "צוות, תפקידים ותהליך"),
+    intro: T("Who decides what, and how the team works with the developer.", "מי מחליט על מה, ואיך הצוות עובד עם המפתח."),
+    items: [
+      ["m1", "must", T("Role for each person: admin, member, approver, viewer.", "תפקיד לכל אדם: מנהל מערכת, חבר צוות, מאשר, צופה.")],
+      ["m2", "must", T("Who approves what: reports, outreach messages, Mode 3 segments, quotes (by amount).", "מי מאשר מה: דוחות, הודעות פנייה, פלחים במצב 3, הצעות מחיר (לפי סכום).")],
+      ["m3", "should", T("Working days, hours and holidays (Israel and target countries) for sending windows.", "ימי עבודה, שעות וחגים (ישראל ומדינות היעד) לחלונות השליחה.")],
+      ["m4", "should", T("YMT contact person for questions during development, and a weekly review time.", "איש קשר ב-YMT לשאלות במהלך הפיתוח, וזמן קבוע לסקירה שבועית.")],
+      ["m5", "should", T("Who is trained first, and who helps colleagues afterwards.", "מי עובר הדרכה ראשון, ומי עוזר לעמיתים אחר כך.")],
+      ["m6", "should", T("Who to contact when something breaks, and how urgent each type of problem is.", "למי פונים כשמשהו מתקלקל, ומה רמת הדחיפות של כל סוג תקלה.")]
+    ] }
+];
+
+const UI = {
+  priority: { must: T("Must", "חובה"), should: T("Should", "רצוי"), later: T("Later", "בהמשך") },
+  priorityLabel: T("Priority", "עדיפות"),
+  ownerLabel: T("Owner", "אחראי"),
+  ownerPlaceholder: T("Who answers?", "מי עונה?"),
+  notesLabel: T("Answer / notes", "תשובה / הערות"),
+  notesPlaceholder: T("Answer, decision or open question…", "תשובה, החלטה או שאלה פתוחה…"),
+  search: T("Search questions and notes", "חיפוש בשאלות ובהערות"),
+  owners: [T("YMT management", "הנהלת YMT"), T("YMT sales team", "צוות המכירות של YMT"), T("Developer", "המפתח"), T("Lawyer", "עורך דין"), T("Finance", "כספים"), T("Marketing", "שיווק")],
+  done: T("answered", "נענו"),
+  mustDone: T("Must answered", "חובה שנענו"),
+  exported: T("Exported. Keep the file in a safe folder.", "יוצא. שמרו את הקובץ בתיקייה מאובטחת."),
+  copied: T("Markdown copied to the clipboard.", "ה-Markdown הועתק ללוח."),
+  imported: T("Imported {n} items.", "יובאו {n} פריטים."),
+  importUnknown: T("Skipped unknown ids: {ids}.", "דולגו מזהים לא מוכרים: {ids}."),
+  importError: T("Import failed: {msg}", "הייבוא נכשל: {msg}"),
+  loadError: T("Saved answers on this device could not be read ({msg}). Import an exported file, or edit to start again.", "לא ניתן לקרוא את התשובות השמורות במכשיר ({msg}). ייבאו קובץ שיוצא, או ערכו כדי להתחיל מחדש."),
+  resetConfirm: T("Clear all answers, notes and details on this device? Export first if you need them.", "לנקות את כל התשובות, ההערות והפרטים במכשיר הזה? כדאי לייצא קודם אם צריך אותם."),
+  cleared: T("All answers cleared.", "כל התשובות נוקו."),
+  notSaved: T("This browser blocks local storage: answers are not saved after closing. Use Export JSON.", "הדפדפן חוסם אחסון מקומי: התשובות לא יישמרו אחרי סגירה. השתמשו בייצוא JSON."),
+  mdTitle: T("Requirements checklist", "רשימת דרישות"),
+  progressLabel: T("Checklist progress", "התקדמות הרשימה"),
+  filterLabel: T("Filter", "סינון"),
+  toolbarLabel: T("Progress and actions", "התקדמות ופעולות")
+};
+
+/* ---------- state ---------- */
+const STORAGE_KEY = "ymt-requirements-checklist-v1";
+const SCHEMA = "ymt-requirements-checklist";
+const VERSION = 1;
+const ALL_ITEMS = CATEGORIES.flatMap((cat) => cat.items.map(([id, priority, question, hint]) => ({ id, priority, question, hint, cat })));
+const ITEM_BY_ID = new Map(ALL_ITEMS.map((it) => [it.id, it]));
+if (ITEM_BY_ID.size !== ALL_ITEMS.length) throw new Error("Duplicate item id in CATEGORIES");
+
+const blankState = () => ({
+  meta: { company: "YMT Group", date: "", interviewer: "", attendees: "" },
+  items: Object.fromEntries(ALL_ITEMS.map((it) => [it.id, { done: false, priority: it.priority, owner: "", notes: "" }]))
+});
+
+// Storage can be unavailable (private mode, blocked site data). The checklist works without it; Export is the reliable copy.
+const storage = (() => {
+  try {
+    const probe = "__ymt_probe__";
+    localStorage.setItem(probe, "1");
+    localStorage.removeItem(probe);
+    return localStorage;
+  } catch {
+    return null;
+  }
+})();
+
+let state = blankState();
+let lang = "en";
+let filter = "all";
+
+/** Returns an error message when saved answers exist but cannot be read; the page then starts empty and does not overwrite them until the user edits. */
+function loadSaved() {
+  if (!storage) return null;
+  const raw = storage.getItem(STORAGE_KEY);
+  if (raw === null) return null;
+  try {
+    applyData(JSON.parse(raw));
+    return null;
+  } catch (err) {
+    return err.message;
+  }
+}
+function save() {
+  if (!storage) return;
+  storage.setItem(STORAGE_KEY, JSON.stringify(toExport()));
+}
+
+/* ---------- import / export ---------- */
+function toExport() {
+  return {
+    schema: SCHEMA,
+    version: VERSION,
+    exported_at: new Date().toISOString(),
+    meta: { ...state.meta },
+    items: ALL_ITEMS.map((it) => ({
+      id: it.id,
+      category: it.cat.id,
+      question_en: it.question.en,
+      question_he: it.question.he,
+      ...state.items[it.id]
+    }))
+  };
+}
+
+function requireType(value, type, where) {
+  if (typeof value !== type) throw new Error(`${where} must be a ${type}`);
+}
+
+/** Validates the whole file first, then replaces the state. Returns how many items matched and the ids this version does not know. */
+function applyData(data) {
+  if (data === null || typeof data !== "object") throw new Error("file is not a JSON object");
+  if (data.schema !== SCHEMA) throw new Error(`schema must be "${SCHEMA}"`);
+  if (data.version !== VERSION) throw new Error(`version ${data.version} is not supported (expected ${VERSION})`);
+  if (data.meta === null || typeof data.meta !== "object") throw new Error("meta must be an object");
+  for (const key of ["company", "date", "interviewer", "attendees"]) requireType(data.meta[key], "string", `meta.${key}`);
+  if (!Array.isArray(data.items)) throw new Error("items must be a list");
+
+  const next = blankState();
+  next.meta = { company: data.meta.company, date: data.meta.date, interviewer: data.meta.interviewer, attendees: data.meta.attendees };
+  const unknown = [];
+  data.items.forEach((entry, i) => {
+    const where = `items[${i}]`;
+    if (entry === null || typeof entry !== "object") throw new Error(`${where} must be an object`);
+    requireType(entry.id, "string", `${where}.id`);
+    requireType(entry.done, "boolean", `${where}.done`);
+    requireType(entry.owner, "string", `${where}.owner`);
+    requireType(entry.notes, "string", `${where}.notes`);
+    if (!PRIORITIES.includes(entry.priority)) throw new Error(`${where}.priority must be one of ${PRIORITIES.join(", ")}`);
+    if (!ITEM_BY_ID.has(entry.id)) { unknown.push(entry.id); return; }
+    next.items[entry.id] = { done: entry.done, priority: entry.priority, owner: entry.owner, notes: entry.notes };
+  });
+  state = next;
+  return { matched: data.items.length - unknown.length, unknown };
+}
+
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function fileStamp() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function toMarkdown() {
+  const t = (o) => o[lang];
+  const { done, total, mustDone, mustTotal } = counts();
+  const m = state.meta;
+  const lines = [
+    `# ${t(UI.mdTitle)}: ${m.company || "—"}`,
+    "",
+    `- ${t(T("Interview date", "תאריך הפגישה"))}: ${m.date || "—"}`,
+    `- ${t(T("Interviewer", "מראיין"))}: ${m.interviewer || "—"}`,
+    `- ${t(T("YMT participants", "משתתפים מ-YMT"))}: ${m.attendees || "—"}`,
+    `- ${t(T("Progress", "התקדמות"))}: ${done}/${total} ${t(UI.done)} · ${mustDone}/${mustTotal} ${t(UI.mustDone)}`,
+    ""
+  ];
+  for (const cat of CATEGORIES) {
+    lines.push(`## ${t(cat.title)}`, "");
+    for (const [id] of cat.items) {
+      const it = ITEM_BY_ID.get(id);
+      const s = state.items[id];
+      const owner = s.owner ? ` · ${t(UI.ownerLabel)}: ${s.owner}` : "";
+      lines.push(`- [${s.done ? "x" : " "}] **${id}** ${t(it.question)} _(${t(UI.priority[s.priority])}${owner})_`);
+      if (s.notes.trim()) {
+        for (const noteLine of s.notes.trim().split("\n")) lines.push(`  > ${noteLine}`);
+      }
+    }
+    lines.push("");
+  }
+  return lines.join("\n");
+}
+
+/* ---------- rendering ---------- */
+const L = (t) => `<span data-l="en">${t.en}</span><span data-l="he">${t.he}</span>`;
+const byId = (id) => {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`Missing element #${id}`);
+  return el;
+};
+
+function itemHtml(it) {
+  const hint = it.hint ? `<span class="hint">${L(it.hint)}</span>` : "";
+  const options = PRIORITIES.map((p) => `<option value="${p}"></option>`).join("");
+  return `<li class="item" data-id="${it.id}">
+    <label class="q">
+      <input type="checkbox" data-field="done" />
+      <span><span class="q-id">${it.id}</span><span class="q-text" id="q-${it.id}">${L(it.question)}</span>${hint}</span>
+    </label>
+    <div class="side">
+      <select data-field="priority" aria-describedby="q-${it.id}">${options}</select>
+      <input type="text" data-field="owner" list="owners" aria-describedby="q-${it.id}" />
+    </div>
+    <textarea class="notes" data-field="notes" rows="2" aria-describedby="q-${it.id}"></textarea>
+  </li>`;
+}
+
+function renderStructure() {
+  byId("categories").innerHTML = CATEGORIES.map((cat) => `
+    <details class="cat" open data-cat="${cat.id}">
+      <summary>
+        <h2 class="cat-title">${L(cat.title)}</h2>
+        <span class="cat-count" data-count></span>
+        <span class="cat-bar" aria-hidden="true"><span data-bar></span></span>
+      </summary>
+      <p class="cat-intro">${L(cat.intro)}</p>
+      <ol class="items">${cat.items.map(([id]) => itemHtml(ITEM_BY_ID.get(id))).join("")}</ol>
+    </details>`).join("");
+}
+
+function fillValues() {
+  for (const [field, id] of [["company", "meta-company"], ["date", "meta-date"], ["interviewer", "meta-interviewer"], ["attendees", "meta-attendees"]]) {
+    byId(id).value = state.meta[field];
+  }
+  for (const li of document.querySelectorAll("li.item")) {
+    const s = state.items[li.dataset.id];
+    li.querySelector('[data-field="done"]').checked = s.done;
+    li.querySelector('[data-field="priority"]').value = s.priority;
+    li.querySelector('[data-field="owner"]').value = s.owner;
+    li.querySelector('[data-field="notes"]').value = s.notes;
+    decorateItem(li);
+  }
+  updateProgress();
+  applyFilter();
+}
+
+function decorateItem(li) {
+  const s = state.items[li.dataset.id];
+  li.classList.toggle("done", s.done);
+  const select = li.querySelector('[data-field="priority"]');
+  select.classList.toggle("prio-must", s.priority === "must");
+  select.classList.toggle("prio-should", s.priority === "should");
+}
+
+function counts() {
+  const values = Object.values(state.items);
+  const must = values.filter((s) => s.priority === "must");
+  return {
+    done: values.filter((s) => s.done).length,
+    total: values.length,
+    mustDone: must.filter((s) => s.done).length,
+    mustTotal: must.length
+  };
+}
+
+function updateProgress() {
+  const { done, total, mustDone, mustTotal } = counts();
+  const bar = byId("bar");
+  bar.setAttribute("aria-valuemax", String(total));
+  bar.setAttribute("aria-valuenow", String(done));
+  bar.setAttribute("aria-valuetext", `${done} / ${total}`);
+  byId("bar-fill").style.width = `${total ? (done / total) * 100 : 0}%`;
+  byId("stat-all").textContent = `${done} / ${total} ${UI.done[lang]}`;
+  byId("stat-must").textContent = `${mustDone} / ${mustTotal} ${UI.mustDone[lang]}`;
+  for (const det of document.querySelectorAll("details.cat")) {
+    const cat = CATEGORIES.find((c) => c.id === det.dataset.cat);
+    const catDone = cat.items.filter(([id]) => state.items[id].done).length;
+    det.querySelector("[data-count]").textContent = `${catDone} / ${cat.items.length}`;
+    det.querySelector("[data-bar]").style.width = `${(catDone / cat.items.length) * 100}%`;
+  }
+}
+
+function applyFilter() {
+  const q = byId("search").value.trim().toLowerCase();
+  let visible = 0;
+  for (const det of document.querySelectorAll("details.cat")) {
+    let catVisible = 0;
+    for (const li of det.querySelectorAll("li.item")) {
+      const it = ITEM_BY_ID.get(li.dataset.id);
+      const s = state.items[it.id];
+      const haystack = `${it.id} ${it.question.en} ${it.question.he} ${s.owner} ${s.notes}`.toLowerCase();
+      const passFilter = filter === "all" || (filter === "open" && !s.done) || (filter === "must" && !s.done && s.priority === "must");
+      const show = passFilter && (q === "" || haystack.includes(q));
+      li.hidden = !show;
+      if (show) catVisible += 1;
+    }
+    det.hidden = catVisible === 0;
+    visible += catVisible;
+  }
+  byId("no-results").hidden = visible > 0;
+}
+
+function applyLangToControls() {
+  const t = (o) => o[lang];
+  document.title = lang === "he" ? "רשימת דרישות · YMT Group" : "Requirements Checklist · YMT Group";
+  for (const select of document.querySelectorAll('select[data-field="priority"]')) {
+    select.setAttribute("aria-label", t(UI.priorityLabel));
+    for (const option of select.options) option.textContent = t(UI.priority[option.value]);
+  }
+  for (const input of document.querySelectorAll('input[data-field="owner"]')) {
+    input.placeholder = t(UI.ownerPlaceholder);
+    input.setAttribute("aria-label", t(UI.ownerLabel));
+  }
+  for (const area of document.querySelectorAll('textarea[data-field="notes"]')) {
+    area.placeholder = t(UI.notesPlaceholder);
+    area.setAttribute("aria-label", t(UI.notesLabel));
+  }
+  const search = byId("search");
+  search.placeholder = t(UI.search);
+  search.setAttribute("aria-label", t(UI.search));
+  byId("bar").setAttribute("aria-label", t(UI.progressLabel));
+  byId("filter-group").setAttribute("aria-label", t(UI.filterLabel));
+  document.querySelector("section.toolbar").setAttribute("aria-label", t(UI.toolbarLabel));
+  byId("owners").innerHTML = UI.owners.map((o) => `<option value="${o[lang]}"></option>`).join("");
+  updateProgress();
+}
+
+function setLang(next) {
+  if (next !== "en" && next !== "he") throw new Error(`Unsupported language: ${next}`);
+  lang = next;
+  document.documentElement.lang = next;
+  document.documentElement.dir = next === "he" ? "rtl" : "ltr";
+  applyLangToControls();
+}
+
+function showStatus(message, kind) {
+  const el = byId("status");
+  el.textContent = message;
+  el.className = `status ${kind}`;
+}
+
+/** In right-to-left text, keep amounts like "≈ $50–200" or "$0.10 / $0.50" readable by isolating them as left-to-right. */
+function isolateAmounts(root) {
+  const pattern = "(?:[≈≤]\\s?)?[$€₪]\\s?\\d[\\d,.]*(?:\\s?[–-]\\s?[$€₪]?\\d[\\d,.]*)?(?:\\s?\\/\\s?[$€₪]?\\d[\\d,.]*)?";
+  const test = new RegExp(pattern);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    if (test.test(node.nodeValue) && !node.parentElement.closest("pre, code, script, style, bdi, textarea")) nodes.push(node);
+  }
+  for (const node of nodes) {
+    const text = node.nodeValue;
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    for (const match of text.matchAll(new RegExp(pattern, "g"))) {
+      frag.append(text.slice(last, match.index));
+      const bdi = document.createElement("bdi");
+      bdi.dir = "ltr";
+      bdi.textContent = match[0];
+      frag.append(bdi);
+      last = match.index + match[0].length;
+    }
+    frag.append(text.slice(last));
+    node.replaceWith(frag);
+  }
+}
+
+/* ---------- events ---------- */
+renderStructure();
+isolateAmounts(document.body);
+const loadError = loadSaved();
+const params = new URLSearchParams(location.search);
+const savedLang = storage ? storage.getItem("ymt-docs-lang") : null;
+setLang(params.get("lang") || savedLang || "en");
+fillValues();
+if (!storage) showStatus(UI.notSaved[lang], "error");
+if (loadError) showStatus(UI.loadError[lang].replace("{msg}", loadError), "error");
+
+byId("lang-btn").addEventListener("click", () => {
+  setLang(lang === "he" ? "en" : "he");
+  if (storage) storage.setItem("ymt-docs-lang", lang);
+});
+
+for (const [field, id] of [["company", "meta-company"], ["date", "meta-date"], ["interviewer", "meta-interviewer"], ["attendees", "meta-attendees"]]) {
+  byId(id).addEventListener("input", (e) => { state.meta[field] = e.target.value; save(); });
+}
+
+const categoriesEl = byId("categories");
+function onItemChange(e) {
+  const field = e.target.dataset.field;
+  if (!field) return;
+  const li = e.target.closest("li.item");
+  const s = state.items[li.dataset.id];
+  if (field === "done") s.done = e.target.checked;
+  else if (field === "priority") s.priority = e.target.value;
+  else s[field] = e.target.value;
+  decorateItem(li);
+  updateProgress();
+  save();
+}
+categoriesEl.addEventListener("change", onItemChange);
+categoriesEl.addEventListener("input", (e) => { if (e.target.dataset.field === "owner" || e.target.dataset.field === "notes") onItemChange(e); });
+
+byId("search").addEventListener("input", applyFilter);
+for (const btn of document.querySelectorAll("#filter-group button")) {
+  btn.addEventListener("click", () => {
+    filter = btn.dataset.filter;
+    for (const other of document.querySelectorAll("#filter-group button")) other.setAttribute("aria-pressed", String(other === btn));
+    applyFilter();
+  });
+}
+
+byId("btn-export").addEventListener("click", () => {
+  download(`ymt-requirements-${fileStamp()}.json`, JSON.stringify(toExport(), null, 2), "application/json");
+  showStatus(UI.exported[lang], "ok");
+});
+
+const mdDialog = byId("md-dialog");
+byId("btn-markdown").addEventListener("click", () => {
+  const md = toMarkdown();
+  const fallback = () => {
+    const area = byId("md-text");
+    area.value = md;
+    mdDialog.showModal();
+    area.focus();
+    area.select();
+  };
+  if (!navigator.clipboard) { fallback(); return; }
+  navigator.clipboard.writeText(md).then(() => showStatus(UI.copied[lang], "ok"), fallback);
+});
+byId("md-close").addEventListener("click", () => mdDialog.close());
+
+const fileInput = byId("file-import");
+byId("btn-import").addEventListener("click", () => fileInput.click());
+fileInput.addEventListener("change", async () => {
+  const file = fileInput.files[0];
+  fileInput.value = "";
+  if (!file) return;
+  const text = await file.text();
+  let result;
+  try {
+    // A bad file must not break the page: report the exact reason and keep the current answers.
+    result = applyData(JSON.parse(text));
+  } catch (err) {
+    showStatus(UI.importError[lang].replace("{msg}", err.message), "error");
+    return;
+  }
+  fillValues();
+  save();
+  let message = UI.imported[lang].replace("{n}", String(result.matched));
+  if (result.unknown.length) message += " " + UI.importUnknown[lang].replace("{ids}", result.unknown.join(", "));
+  showStatus(message, "ok");
+});
+
+byId("btn-print").addEventListener("click", () => window.print());
+window.addEventListener("beforeprint", () => { for (const det of document.querySelectorAll("details.cat")) det.open = true; });
+
+byId("btn-reset").addEventListener("click", () => {
+  if (!window.confirm(UI.resetConfirm[lang])) return;
+  state = blankState();
+  if (storage) storage.removeItem(STORAGE_KEY);
+  fillValues();
+  showStatus(UI.cleared[lang], "ok");
+});
+</script>
+</body>
+</html>
