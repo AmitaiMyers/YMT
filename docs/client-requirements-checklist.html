@@ -229,8 +229,21 @@ const CATEGORIES = [
       ["g6", "should", T("Pilot scope (one country, industry or service first?) and target go-live date.", "היקף הפיילוט (מדינה, ענף או שירות אחד קודם?) ותאריך עלייה לאוויר.")],
       ["g7", "later", T("Will YMT sell or offer this platform to other companies later, and when?", "האם YMT תמכור או תציע את הפלטפורמה לחברות אחרות בהמשך, ומתי?"), T("Decides how early multi-company features are built.", "קובע כמה מוקדם בונים יכולות רב-חברתיות.")]
     ] },
+  { id: "workers", title: T("Workers and territories", "עובדים וטריטוריות"),
+    intro: T("Each worker sets the companies they want to find; those companies go only to that worker.", "כל עובד מגדיר את החברות שהוא רוצה למצוא; החברות האלה מגיעות רק אליו."),
+    items: [
+      ["w1", "must", T("List of workers and each one's territory (e.g. Shir: India, medium companies; Eden: Israel, large companies, defense and security).", "רשימת העובדים והטריטוריה של כל אחד (למשל שיר: הודו, חברות בינוניות; עדן: ישראל, חברות גדולות, ביטחון ואבטחה).")],
+      ["w2", "must", T("What 'small', 'medium' and 'large' mean (employees and/or revenue), the same for every worker.", "מה פירוש 'קטנה', 'בינונית' ו'גדולה' (עובדים ו/או הכנסות), אותו דבר לכל העובדים.")],
+      ["w3", "must", T("When a company fits two workers' territories: exclusive territories (admin resolves), first found keeps it, or manager decides each case.", "כשחברה מתאימה לטריטוריות של שני עובדים: טריטוריות בלעדיות (מנהל מכריע), מי שמצא ראשון, או מנהל מחליט בכל מקרה."), T("See 'When two territories overlap' in the system design.", "ראו 'כששתי טריטוריות חופפות' בתכנון המערכת.")],
+      ["w4", "must", T("Can workers see colleagues' leads and companies (read only), or only their own? Who sees everything?", "האם עובדים רואים לידים וחברות של עמיתים (קריאה בלבד), או רק את שלהם? מי רואה הכל?")],
+      ["w5", "must", T("When a worker leaves: who receives their companies, open deals, tasks and sequences (one colleague, split by territory, or an unassigned pool)?", "כשעובד עוזב: מי מקבל את החברות, העסקאות הפתוחות, המשימות והרצפים שלו (עמית אחד, חלוקה לפי טריטוריה, או מאגר לא משויך)?")],
+      ["w6", "should", T("May a worker change their own search profile alone, or does a manager approve changes?", "האם עובד רשאי לשנות את פרופיל החיפוש שלו לבד, או שמנהל מאשר שינויים?")],
+      ["w7", "should", T("Weekly lead volume per worker, and whether each worker gets a share of the AI budget or all share one cap.", "נפח לידים שבועי לכל עובד, והאם לכל עובד יש חלק מתקציב ה-AI או שכולם חולקים תקרה אחת.")],
+      ["w8", "should", T("Can a worker hand a company to a colleague (e.g. it belongs to another territory)? Does the colleague need to accept?", "האם עובד יכול להעביר חברה לעמית (למשל כשהיא שייכת לטריטוריה אחרת)? האם העמית צריך לאשר?")],
+      ["w9", "later", T("Are there team leads who should see only their own team?", "האם יש ראשי צוותים שצריכים לראות רק את הצוות שלהם?")]
+    ] },
   { id: "market", title: T("Target market and lead criteria", "שוק יעד וקריטריוני לידים"),
-    intro: T("Who is a good potential client. These answers become the saved search criteria and the lead score.", "מי לקוח פוטנציאלי טוב. התשובות הופכות לקריטריוני החיפוש השמורים ולציון הליד."),
+    intro: T("Who is a good potential client for YMT overall. Each worker's territory (above) narrows this down.", "מי לקוח פוטנציאלי טוב עבור YMT באופן כללי. הטריטוריה של כל עובד (למעלה) מצמצמת את זה."),
     items: [
       ["t1", "must", T("Target countries or regions, in priority order.", "מדינות או אזורי יעד, לפי סדר עדיפות.")],
       ["t2", "must", T("Industries / company types to target, and those to exclude.", "ענפים / סוגי חברות לפנות אליהם, ואלה שיש להחריג.")],
@@ -251,7 +264,7 @@ const CATEGORIES = [
       ["s3", "should", T("Google Cloud billing for the Places API (the Calendar project can be reused) and a budget alert amount.", "חיוב Google Cloud עבור Places API (אפשר להשתמש בפרויקט של היומן) וסכום להתראת תקציב.")],
       ["s4", "should", T("E-mail verification: yes or no, provider, expected monthly volume.", "אימות מיילים: כן או לא, ספק, נפח חודשי צפוי.")],
       ["s5", "should", T("Confirm the duplicate rule: same website domain = same company; otherwise same name + country.", "אישור כלל הכפילויות: אותו דומיין אתר = אותה חברה; אחרת אותו שם + מדינה.")],
-      ["s6", "must", T("How leads are assigned to staff (by country, industry, in turn, or by hand).", "איך לידים מחולקים לעובדים (לפי מדינה, ענף, בתורות, או ידנית).")],
+      ["s6", "must", T("Leads from shared sources (CSV uploads, website forms) that match no worker's territory: who gets them?", "לידים ממקורות משותפים (העלאות CSV, טפסים באתר) שלא מתאימים לטריטוריה של אף עובד: מי מקבל אותם?")],
       ["s7", "must", T("How long to keep leads who never replied (e.g. 12 months) before automatic deletion.", "כמה זמן שומרים לידים שלא ענו (למשל 12 חודשים) לפני מחיקה אוטומטית.")]
     ] },
   { id: "linkedin", title: T("LinkedIn approach", "גישה ל-LinkedIn"),

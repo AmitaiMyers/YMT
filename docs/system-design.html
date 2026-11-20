@@ -187,6 +187,7 @@
   <ul class="toc">
     <li><a href="#m-value"><span data-l="en">Value</span><span data-l="he">ערך</span></a></li>
     <li><a href="#m-flow"><span data-l="en">Business flow</span><span data-l="he">תהליך עסקי</span></a></li>
+    <li><a href="#m-workers"><span data-l="en">Workers and territories</span><span data-l="he">עובדים וטריטוריות</span></a></li>
     <li><a href="#m-tiers"><span data-l="en">Budget tiers</span><span data-l="he">רמות תקציב</span></a></li>
     <li><a href="#m-stages"><span data-l="en">Options per stage</span><span data-l="he">אפשרויות לכל שלב</span></a></li>
     <li><a href="#m-modes"><span data-l="en">Sending modes</span><span data-l="he">מצבי שליחה</span></a></li>
@@ -235,6 +236,38 @@
       <span><span data-l="en">✋ = human checkpoint</span><span data-l="he">✋ = נקודת אישור אנושית</span></span>
       <span><span data-l="en">Stage 7 (dashboard) reads data from all stages</span><span data-l="he">שלב 7 (לוח בקרה) קורא נתונים מכל השלבים</span></span>
     </div>
+  </section>
+
+  <section id="m-workers">
+    <h2><span data-l="en">Workers and their territories</span><span data-l="he">עובדים והטריטוריות שלהם</span></h2>
+    <p class="muted" data-l="en">Each YMT worker defines which companies they want to find (their territory). Companies found for a worker go only to that worker, and one worker's searches, queues and sending never slow down or change another worker's work. Managers see everyone.</p>
+    <p class="muted" data-l="he">כל עובד ב-YMT מגדיר אילו חברות הוא רוצה למצוא (הטריטוריה שלו). חברות שנמצאו עבור עובד מגיעות רק אליו, והחיפושים, התורים והשליחות של עובד אחד אף פעם לא מאטים או משנים את העבודה של עובד אחר. מנהלים רואים את כולם.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Worker (example)</span><span data-l="he">עובד (דוגמה)</span></th>
+          <th><span data-l="en">Countries</span><span data-l="he">מדינות</span></th>
+          <th><span data-l="en">Company size</span><span data-l="he">גודל חברה</span></th>
+          <th><span data-l="en">Industries</span><span data-l="he">ענפים</span></th>
+          <th><span data-l="en">Where the companies go</span><span data-l="he">לאן החברות מגיעות</span></th>
+        </tr></thead>
+        <tbody id="territory-rows"></tbody>
+      </table>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Add and remove workers</span><span data-l="he">הוספה והסרה של עובדים</span></h3>
+        <ul class="tight small" id="worker-lifecycle"></ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">"Without interrupting another worker" means</span><span data-l="he">"בלי להפריע לעובד אחר" פירושו</span></h3>
+        <ul class="tight small" id="worker-isolation"></ul>
+      </div>
+    </div>
+    <h3><span data-l="en">When two territories overlap</span><span data-l="he">כששתי טריטוריות חופפות</span></h3>
+    <p class="muted small" data-l="en">In every option a company has exactly one owner, so it is never contacted twice by YMT. The YMT team chooses the rule.</p>
+    <p class="muted small" data-l="he">בכל אפשרות לחברה יש בעלים אחד בלבד, כך ש-YMT לעולם לא פונה אליה פעמיים. צוות YMT בוחר את הכלל.</p>
+    <div class="grid3" id="overlap-options"></div>
   </section>
 
   <section id="m-tiers">
@@ -451,6 +484,7 @@
     <li><a href="#e-arch"><span data-l="en">Architecture</span><span data-l="he">ארכיטקטורה</span></a></li>
     <li><a href="#e-extend"><span data-l="en">Extending the CRM</span><span data-l="he">הרחבת ה-CRM</span></a></li>
     <li><a href="#e-tenancy"><span data-l="en">Tenancy</span><span data-l="he">ריבוי חברות</span></a></li>
+    <li><a href="#e-workers"><span data-l="en">Per-worker ownership</span><span data-l="he">בעלות לכל עובד</span></a></li>
     <li><a href="#e-models"><span data-l="en">Data models</span><span data-l="he">מודל נתונים</span></a></li>
     <li><a href="#e-api"><span data-l="en">API and webhooks</span><span data-l="he">API ו-webhooks</span></a></li>
     <li><a href="#e-llm"><span data-l="en">LLM pipeline</span><span data-l="he">צינור LLM</span></a></li>
@@ -538,6 +572,59 @@
         <p class="small" data-l="en">Best for many tenants and several app instances. Needs a managed database and porting the SQL; the tenant_id column from "Now" makes this mechanical.</p>
         <p class="small" data-l="he">הכי מתאים להרבה דיירים ולכמה מופעי אפליקציה. דורש מסד נתונים מנוהל והעברת ה-SQL; עמודת tenant_id מהשלב "עכשיו" הופכת את זה לעבודה מכנית.</p>
       </div>
+    </div>
+  </section>
+
+  <section id="e-workers">
+    <h2><span data-l="en">Per-worker ownership and isolation</span><span data-l="he">בעלות ובידוד לכל עובד</span></h2>
+    <p class="muted" data-l="en">Builds on what exists: <code>users</code> (admin adds and deactivates in Settings → Users) and <code>deals.owner_id</code>. New: every search profile, lead candidate, company, job and AI call carries an owner, and every list query is scoped by it.</p>
+    <p class="muted" data-l="he">נבנה על מה שקיים: <code>users</code> (מנהל מוסיף ומשבית ב'הגדרות ← משתמשים') ו-<code>deals.owner_id</code>. חדש: לכל פרופיל חיפוש, מועמד לליד, חברה, משימה וקריאת AI יש בעלים, וכל שאילתת רשימה מתוחמת לפיו.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Routing a found company (atomic, no races)</span><span data-l="he">ניתוב חברה שנמצאה (אטומי, בלי מרוצים)</span></h3>
+<pre class="code">lead_search.run(profile):           // profile.owner_id = Shir
+  for r in adapter.search(profile.criteria):
+    key = dedupKey(r)                 // domain, else name+country
+    if company exists with key:
+      skip                            // already owned by someone
+    INSERT INTO lead_candidates
+      (tenant_id, profile_id, owner_id, dedup_key, ...)
+      VALUES (..., profile.owner_id, key, ...)
+      ON CONFLICT DO NOTHING          // partial UNIQUE index:
+                                      // (tenant_id, dedup_key)
+                                      // WHERE status IN ('new','accepted')
+    no row inserted → another worker owns it → log, skip</pre>
+        <p class="small muted" data-l="en">The unique index makes the first claim win even if two searches run at the same moment. "Manager decides" mode inserts with <code>status='conflict'</code> instead and notifies admins.</p>
+        <p class="small muted" data-l="he">האינדקס הייחודי גורם לכך שהתביעה הראשונה מנצחת גם אם שני חיפושים רצים באותו רגע. במצב "המנהל מחליט" ההכנסה נעשית עם <code>status='conflict'</code> ומנהלים מקבלים התראה.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0"><span data-l="en">Fair job queue per worker</span><span data-l="he">תור משימות הוגן לכל עובד</span></h3>
+<pre class="code">pick next job:
+  SELECT j.* FROM jobs j
+  WHERE j.status = 'queued' AND j.run_at &lt;= :now
+  ORDER BY (SELECT MAX(started_at) FROM jobs p
+            WHERE p.owner_id = j.owner_id) ASC NULLS FIRST,
+           j.id ASC
+  LIMIT 1
+// round-robin: the worker served longest ago goes next,
+// so Eden's 500-company search cannot block Shir's report</pre>
+        <h3><span data-l="en">Overlap check when saving a profile</span><span data-l="he">בדיקת חפיפה בשמירת פרופיל</span></h3>
+<pre class="code">overlaps(a, b) =
+     intersects(a.countries,  b.countries)    // [] = any
+  && intersects(a.industries, b.industries)
+  && rangesTouch(a.size,      b.size)
+→ exclusive mode: 409 with the other worker's name;
+  other modes: warning only</pre>
+      </div>
+    </div>
+    <div class="table-scroll" style="margin-top:16px">
+      <table>
+        <thead><tr>
+          <th><span data-l="en">Concern</span><span data-l="he">נושא</span></th>
+          <th><span data-l="en">Design</span><span data-l="he">תכנון</span></th>
+        </tr></thead>
+        <tbody id="worker-eng-rows"></tbody>
+      </table>
     </div>
   </section>
 
@@ -729,14 +816,14 @@ const T = (en, he) => ({ en, he });
 const STAGES = [
   {
     n: 1, name: T("Lead discovery", "איתור לידים"),
-    goal: T("Find companies that match YMT's criteria (country, industry, size, signals), remove duplicates and rank them.",
-            "למצוא חברות שמתאימות לקריטריונים של YMT (מדינה, ענף, גודל, סימנים), להסיר כפילויות ולדרג אותן."),
-    checkpoint: T("A person accepts leads into the pipeline (or an admin sets an auto-accept score).",
-                  "אדם מקבל לידים לצנרת (או שמנהל מגדיר ציון לקבלה אוטומטית)."),
+    goal: T("Each worker's own search profiles (country, industry, size, signals) find matching companies; duplicates are removed, each company gets one owner and goes only to that worker.",
+            "פרופילי החיפוש של כל עובד (מדינה, ענף, גודל, סימנים) מוצאים חברות מתאימות; כפילויות מוסרות, לכל חברה יש בעלים אחד והיא מגיעה רק לאותו עובד."),
+    checkpoint: T("The worker who owns the search profile accepts leads into their pipeline (or an admin sets an auto-accept score).",
+                  "העובד שהפרופיל שייך לו מקבל לידים לצנרת שלו (או שמנהל מגדיר ציון לקבלה אוטומטית)."),
     options: [
       { kind: "lean", rec: true, title: T("CSV + Google Maps + manual LinkedIn", "CSV + Google Maps + LinkedIn ידני"),
-        what: T("Saved criteria form. Search Google Places by category and area, upload CSV lists, add LinkedIn finds by hand. Dedup and a rule-based score.",
-                "טופס קריטריונים שמור. חיפוש ב-Google Places לפי קטגוריה ואזור, העלאת רשימות CSV, הוספה ידנית של ממצאים מ-LinkedIn. איחוד כפילויות וניקוד לפי כללים."),
+        what: T("Each worker saves their own criteria. Search Google Places by category and area, upload CSV lists, add LinkedIn finds by hand. Dedup, one owner per company, rule-based score.",
+                "כל עובד שומר קריטריונים משלו. חיפוש ב-Google Places לפי קטגוריה ואזור, העלאת רשימות CSV, הוספה ידנית של ממצאים מ-LinkedIn. איחוד כפילויות, בעלים אחד לכל חברה, ניקוד לפי כללים."),
         pros: [T("Almost free (Places has a monthly free allowance)", "כמעט חינם (ל-Places יש מכסה חינמית חודשית)"), T("Works for any country and industry", "עובד לכל מדינה וענף")],
         cons: [T("Few personal e-mails; mostly general company contacts", "מעט כתובות מייל אישיות; בעיקר פרטי קשר כלליים של החברה"), T("Staff time to find decision makers", "זמן עבודה לאיתור מקבלי החלטות")],
         cost: T("$0–10 / month", "$0–10 לחודש"), cx: 1,
@@ -942,6 +1029,45 @@ const STAGES = [
   }
 ];
 
+const TERRITORIES = [
+  ["Shir", T("India", "הודו"), T("Medium", "בינונית"), T("Any (as Shir chooses)", "כל ענף (לפי הבחירה של שיר)"), T("Only Shir's review queue, inbox and pipeline", "רק לתור הסקירה, התיבה הנכנסת והצנרת של שיר")],
+  ["Eden", T("Israel", "ישראל"), T("Large", "גדולה"), T("Defense and security", "ביטחון ואבטחה"), T("Only Eden's review queue, inbox and pipeline", "רק לתור הסקירה, התיבה הנכנסת והצנרת של עדן")],
+  [T("New worker", "עובד חדש"), T("Set by the worker", "נקבע על ידי העובד"), T("Set by the worker", "נקבע על ידי העובד"), T("Set by the worker", "נקבע על ידי העובד"), T("Only that worker", "רק לאותו עובד")]
+];
+
+const WORKER_LIFECYCLE = [
+  T("<strong>Add:</strong> an admin creates the worker in Settings → Users (already in the app), chooses the role, and the worker connects their own mailbox and Google Calendar.", "<strong>הוספה:</strong> מנהל יוצר את העובד ב'הגדרות ← משתמשים' (כבר קיים באפליקציה), בוחר תפקיד, והעובד מחבר את תיבת הדואר ויומן Google שלו."),
+  T("<strong>Set criteria:</strong> the worker creates one or more search profiles (countries, company size, industries, job titles, signals). The system warns if a profile overlaps a colleague's territory.", "<strong>הגדרת קריטריונים:</strong> העובד יוצר פרופיל חיפוש אחד או יותר (מדינות, גודל חברה, ענפים, תפקידים, סימנים). המערכת מתריעה אם פרופיל חופף לטריטוריה של עמית."),
+  T("<strong>Remove:</strong> an admin deactivates the worker (history kept, login blocked) and picks who receives their search profiles, companies, open deals, tasks and approvals, or an 'unassigned' pool.", "<strong>הסרה:</strong> מנהל משבית את העובד (ההיסטוריה נשמרת, הכניסה נחסמת) ובוחר מי מקבל את פרופילי החיפוש, החברות, העסקאות הפתוחות, המשימות והאישורים שלו, או מאגר 'לא משויך'."),
+  T("Sequences that were sending from the leaving worker's mailbox pause until the new owner approves continuing from their own mailbox. The old mailbox connection is revoked. Every step is in the audit log.", "רצפים שנשלחו מתיבת הדואר של העובד שעוזב נעצרים עד שהבעלים החדש מאשר להמשיך מהתיבה שלו. החיבור לתיבה הישנה מבוטל. כל צעד נרשם ביומן הביקורת."),
+  T("<strong>Move a company:</strong> a worker or admin can hand one company to a colleague (for example, it belongs to another territory); the colleague gets a notification.", "<strong>העברת חברה:</strong> עובד או מנהל יכולים להעביר חברה אחת לעמית (למשל כשהיא שייכת לטריטוריה אחרת); העמית מקבל התראה.")
+];
+
+const WORKER_ISOLATION = [
+  T("Each worker has their own lead review queue, approval queue view, inbox of replies, tasks and pipeline filter.", "לכל עובד יש תור סקירת לידים משלו, תצוגת תור אישורים, תיבת תשובות, משימות וסינון צנרת."),
+  T("Searches and AI research run in a fair queue: workers take turns, so a big search by one worker never delays another's work.", "חיפושים ומחקרי AI רצים בתור הוגן: העובדים מקבלים תור לסירוגין, כך שחיפוש גדול של עובד אחד לעולם לא מעכב עבודה של אחר."),
+  T("Each worker sends from their own mailbox with their own daily limit.", "כל עובד שולח מתיבת הדואר שלו עם מגבלה יומית משלו."),
+  T("Optional AI budget share per worker, so one worker cannot use the whole month's cap.", "חלק אופציונלי מתקציב ה-AI לכל עובד, כך שעובד אחד לא יכול לנצל את כל התקרה החודשית."),
+  T("Changing one worker's profile never moves companies that another worker already owns.", "שינוי פרופיל של עובד אחד לעולם לא מעביר חברות שכבר שייכות לעובד אחר."),
+  T("Managers and admins see all workers, with the dashboard split per worker.", "מנהלים ומנהלי מערכת רואים את כל העובדים, עם לוח בקרה מפוצל לפי עובד.")
+];
+
+const OVERLAP = [
+  { rec: true, title: T("Exclusive territories", "טריטוריות בלעדיות"), what: T("A profile that overlaps a colleague's cannot be saved until an admin resolves it. Clear responsibility.", "אי אפשר לשמור פרופיל שחופף לעמית עד שמנהל מכריע. אחריות ברורה."), con: T("Needs a manager decision when territories change.", "דורש החלטת מנהל כשטריטוריות משתנות.") },
+  { rec: false, title: T("First found keeps it", "מי שמצא ראשון – שלו"), what: T("Overlap is allowed; the worker whose search finds the company first owns it, and the other sees 'owned by Shir'.", "חפיפה מותרת; העובד שהחיפוש שלו מצא את החברה ראשון הוא הבעלים, והאחר רואה 'שייך לשיר'."), con: T("Ownership depends on search timing.", "הבעלות תלויה בתזמון החיפוש.") },
+  { rec: false, title: T("Manager decides", "המנהל מחליט"), what: T("Companies that match two workers wait in a 'conflicts' list; a manager assigns each one.", "חברות שמתאימות לשני עובדים ממתינות ברשימת 'התנגשויות'; מנהל משייך כל אחת."), con: T("Extra manager work; companies wait.", "עבודה נוספת למנהל; החברות ממתינות.") }
+];
+
+const WORKER_ENG = [
+  [T("Roles", "תפקידים"), T("Extend <code>users.role</code> from admin/member to admin, member, approver, viewer (migration engine rebuilds the CHECK). Add <code>deactivated_at</code>; the existing <code>active</code> flag already blocks login.", "הרחבת <code>users.role</code> מ-admin/member ל-admin, member, approver, viewer (מנוע ההגירה בונה מחדש את ה-CHECK). הוספת <code>deactivated_at</code>; הדגל <code>active</code> הקיים כבר חוסם כניסה.")],
+  [T("Ownership columns", "עמודות בעלות"), T("<code>owner_id NOT NULL</code> on <code>lead_criteria</code>, <code>lead_candidates</code>, <code>companies</code>, <code>sequence_enrollments</code>, <code>jobs</code>; <code>user_id</code> on <code>ai_usage</code>. Existing <code>deals.owner_id</code> reused; <code>tasks.assignee</code> is free text today, so add <code>tasks.assignee_id</code> (keep the text for old rows).", "<code>owner_id NOT NULL</code> ב-<code>lead_criteria</code>,‏ <code>lead_candidates</code>,‏ <code>companies</code>,‏ <code>sequence_enrollments</code>,‏ <code>jobs</code>; ‏<code>user_id</code> ב-<code>ai_usage</code>. שימוש חוזר ב-<code>deals.owner_id</code>; ‏<code>tasks.assignee</code> הוא טקסט חופשי היום, ולכן מוסיפים <code>tasks.assignee_id</code> (הטקסט נשמר לשורות ישנות).")],
+  [T("Visibility", "הרשאות צפייה"), T("One query helper adds <code>owner_id = :me</code> for members (setting: 'workers see only their own' or 'see all, edit own'); admins and approvers see all. API tests prove Shir cannot open Eden's company by id.", "פונקציית שאילתה אחת מוסיפה <code>owner_id = :me</code> לחברי צוות (הגדרה: 'עובד רואה רק את שלו' או 'רואה הכל, עורך את שלו'); מנהלים ומאשרים רואים הכל. בדיקות API מוכיחות ששיר לא יכולה לפתוח חברה של עדן לפי מזהה.")],
+  [T("Size words", "הגדרות גודל"), T("'Small / medium / large' are tenant settings (employee and revenue ranges), so every profile uses the same definitions.", "'קטנה / בינונית / גדולה' הן הגדרות של הדייר (טווחי עובדים והכנסות), כך שכל הפרופילים משתמשים באותן הגדרות.")],
+  [T("AI budget per worker", "תקציב AI לעובד"), T("Optional <code>users.ai_monthly_share_usd</code>; the cost-cap check sums <code>ai_usage</code> for the worker as well as for the tenant.", "<code>users.ai_monthly_share_usd</code> אופציונלי; בדיקת התקרה סוכמת את <code>ai_usage</code> לעובד וגם לדייר.")],
+  [T("Handover", "העברת אחריות"), T("<code>POST /api/users/:id/deactivate {handover_to | 'pool'}</code> runs in one transaction: reassign owner_id in all tables, pause enrollments on the old mailbox, revoke tokens, write audit entries.", "<code>POST /api/users/:id/deactivate {handover_to | 'pool'}</code> רץ בטרנזקציה אחת: שיוך מחדש של owner_id בכל הטבלאות, עצירת רישומים על התיבה הישנה, ביטול אסימונים, רישום ביומן הביקורת.")],
+  [T("New endpoints", "נקודות קצה חדשות"), T("<code>GET/POST/PATCH /api/me/search-profiles</code>, <code>GET /api/leads?owner=me</code>, <code>POST /api/companies/:id/owner</code> (hand over), <code>GET /api/leads/conflicts</code> (admin).", "<code>GET/POST/PATCH /api/me/search-profiles</code>,‏ <code>GET /api/leads?owner=me</code>,‏ <code>POST /api/companies/:id/owner</code> (העברה),‏ <code>GET /api/leads/conflicts</code> (מנהל).")]
+];
+
 const KIND = { lean: T("Lean · low cost", "רזה · עלות נמוכה"), balanced: T("Balanced", "מאוזנת"), scale: T("Scalable · automated", "בת-הרחבה · אוטומטית") };
 
 const LINKEDIN = [
@@ -954,7 +1080,8 @@ const LINKEDIN = [
 ];
 
 const HITL = [
-  [T("Accept leads into the pipeline", "קבלת לידים לצנרת"), T("Any staff member, or auto-accept score set by admin", "כל עובד, או ציון קבלה אוטומטית שקבע מנהל"), T("Dedup, score, show source of each lead", "איחוד כפילויות, ניקוד, הצגת המקור של כל ליד")],
+  [T("Accept leads into the pipeline", "קבלת לידים לצנרת"), T("The worker who owns the search profile, or auto-accept score set by admin", "העובד שפרופיל החיפוש שייך לו, או ציון קבלה אוטומטית שקבע מנהל"), T("Dedup, one owner per company, score, show source of each lead", "איחוד כפילויות, בעלים אחד לכל חברה, ניקוד, הצגת המקור של כל ליד")],
+  [T("Add or remove a worker; hand over their companies", "הוספה או הסרה של עובד; העברת החברות שלו"), T("Admin", "מנהל מערכת"), T("Lists everything the leaving worker owns and pauses their sending", "מציגה את כל מה ששייך לעובד שעוזב ועוצרת את השליחות שלו")],
   [T("Approve the research report", "אישור דוח המחקר"), T("Approver", "מאשר"), T("Draft with a source link for every claim", "טיוטה עם קישור מקור לכל טענה")],
   [T("Approve outreach (per mode)", "אישור פנייה (לפי מצב)"), T("Lead owner or approver; Mode 3 only approver", "בעל הליד או מאשר; מצב 3 רק מאשר"), T("Checks unsubscribe list, limits, hours", "בודקת רשימת הסרה, מגבלות, שעות")],
   [T("Confirm reply label", "אישור תווית תשובה"), T("Lead owner", "בעל הליד"), T("Suggests label + next step; applies unsubscribe at once", "מציעה תווית + צעד הבא; מפעילה הסרה מיד")],
@@ -1016,7 +1143,7 @@ const CHARGE = [
 
 const ROAD = [
   [T("Phase 0 · Discovery (now, 1–2 weeks)", "שלב 0 · אפיון (עכשיו, 1–2 שבועות)"), T("Go through the requirements checklist with YMT, choose options and budget tier, legal check for target countries.", "מעבר על רשימת הדרישות עם YMT, בחירת אפשרויות ורמת תקציב, בדיקה משפטית למדינות היעד.")],
-  [T("Phase 1 · Foundations + lead discovery (3–4 weeks)", "שלב 1 · תשתיות + איתור לידים (3–4 שבועות)"), T("tenant_id, job queue, AI usage ledger and cap, lead criteria, CSV import, Google Places, dedup, scoring, lead review queue.", "tenant_id, תור משימות, ספר הוצאות ותקרת AI, קריטריוני לידים, ייבוא CSV, Google Places, איחוד כפילויות, ניקוד, תור סקירת לידים.")],
+  [T("Phase 1 · Foundations + lead discovery (3–4 weeks)", "שלב 1 · תשתיות + איתור לידים (3–4 שבועות)"), T("tenant_id, roles, owner on every record, fair job queue, AI usage ledger and cap, each worker's search profiles with overlap check, CSV import, Google Places, dedup, scoring, per-worker review queue, worker handover.", "tenant_id, תפקידים, בעלים לכל רשומה, תור משימות הוגן, ספר הוצאות ותקרת AI, פרופילי חיפוש לכל עובד עם בדיקת חפיפה, ייבוא CSV, Google Places, איחוד כפילויות, ניקוד, תור סקירה לכל עובד, העברת עבודה של עובד.")],
   [T("Phase 2 · AI research and PDF reports (3–4 weeks)", "שלב 2 · מחקר AI ודוחות PDF (3–4 שבועות)"), T("Sources and claims, report templates per industry and language, branded PDF and private link, approval.", "מקורות וטענות, תבניות דוח לפי ענף ושפה, PDF ממותג וקישור פרטי, אישור.")],
   [T("Phase 3 · Outreach and inbound (4–6 weeks)", "שלב 3 · פניות ותשובות נכנסות (4–6 שבועות)"), T("Sequences and the three modes, unsubscribe list, Gmail/Outlook connection, LinkedIn manual assist, phone tasks, WhatsApp, reply sync and AI labels.", "רצפים ושלושת המצבים, רשימת הסרה, חיבור Gmail/Outlook, סיוע ידני ל-LinkedIn, משימות טלפון, WhatsApp, סנכרון תשובות ותוויות AI.")],
   [T("Phase 4 · Services and quotes (3 weeks)", "שלב 4 · שירותים והצעות מחיר (3 שבועות)"), T("Service catalog, AI top 3, price rules for four models, quote versions, reuse of documents and e-sign, CSV export.", "קטלוג שירותים, 3 מובילים ב-AI, כללי תמחור לארבעה מודלים, גרסאות הצעה, שימוש חוזר במסמכים ובחתימה, ייצוא CSV.")],
@@ -1036,7 +1163,8 @@ const DECIDED = [
   T("Replies: AI suggests a label, a person confirms; unsubscribes automatic", "תשובות: AI מציע תווית, אדם מאשר; הסרות אוטומטיות"),
   T("Quote models: fixed + retainer, success fee, hourly/daily, packages", "מודלי הצעה: קבוע + ריטיינר, דמי הצלחה, שעתי/יומי, חבילות"),
   T("Compliance: full checklist (Israel, EU/UK, USA, Canada)", "ציות: רשימה מלאה (ישראל, אירופה/בריטניה, ארה\"ב, קנדה)"),
-  T("Built by the developer with Claude", "נבנה על ידי המפתח עם Claude")
+  T("Built by the developer with Claude", "נבנה על ידי המפתח עם Claude"),
+  T("Admins add and remove workers; each worker sets their own search criteria, and the companies found go only to that worker without affecting others", "מנהלים מוסיפים ומסירים עובדים; כל עובד מגדיר קריטריוני חיפוש משלו, והחברות שנמצאות מגיעות רק אליו בלי להשפיע על אחרים")
 ];
 
 const DEFAULTS = [
@@ -1058,10 +1186,14 @@ const DEFAULTS = [
   T("Notifications: in-app + daily e-mail digest", "התראות: באפליקציה + סיכום יומי במייל"),
   T("Hosting: Render with a path to AWS; SQLite job queue first", "אירוח: Render עם מסלול ל-AWS; תור משימות ב-SQLite בהתחלה"),
   T("Core built in-house; optional n8n/Zapier webhooks", "הליבה נבנית בבית; webhooks אופציונליים ל-n8n/Zapier"),
-  T("Existing rules stay: human approval, audit log, bilingual RTL/LTR, no API data on devices", "הכללים הקיימים נשארים: אישור אנושי, יומן ביקורת, דו-לשוניות RTL/LTR, אין נתוני API במכשירים")
+  T("Existing rules stay: human approval, audit log, bilingual RTL/LTR, no API data on devices", "הכללים הקיימים נשארים: אישור אנושי, יומן ביקורת, דו-לשוניות RTL/LTR, אין נתוני API במכשירים"),
+  T("Territory overlap: exclusive territories, admin resolves conflicts", "חפיפת טריטוריות: טריטוריות בלעדיות, מנהל מכריע בהתנגשויות"),
+  T("Workers see only their own leads and companies; admins and approvers see all", "עובדים רואים רק את הלידים והחברות שלהם; מנהלים ומאשרים רואים הכל"),
+  T("A leaving worker is deactivated, not deleted; an admin hands over their work", "עובד שעוזב מושבת, לא נמחק; מנהל מעביר את העבודה שלו")
 ];
 
 const EXTEND = [
+  ["users", T("Already: admin adds and deactivates (Settings → Users). + roles approver/viewer, deactivated_at, optional ai_monthly_share_usd", "קיים: מנהל מוסיף ומשבית ('הגדרות ← משתמשים'). + תפקידים approver/viewer,‏ deactivated_at,‏ ai_monthly_share_usd אופציונלי"), T("all", "כולם")],
   ["companies", T("+ tenant_id, website_domain (unique per tenant), source, score, score_reasons_json, lead_status (candidate/accepted/rejected), owner_id, country_code", "+ tenant_id, website_domain (ייחודי לכל דייר), source, score, score_reasons_json, lead_status (מועמד/התקבל/נדחה), owner_id, country_code"), "1, 5, 7"],
   ["contacts", T("+ tenant_id, linkedin_url, email_status (unknown/valid/risky/invalid), whatsapp_opt_in_at, source", "+ tenant_id, linkedin_url, email_status (לא ידוע/תקין/מסוכן/לא תקין), whatsapp_opt_in_at, source"), "1, 3, 4"],
   ["triggers", T("Used as buying signals and as research facts (source URL already required)", "משמש כסימני קנייה וכעובדות מחקר (כתובת מקור כבר חובה)"), "1, 2"],
@@ -1077,8 +1209,8 @@ const EXTEND = [
 
 const MODELS = [
   ["tenants", T("Companies using the platform. Row 1 = YMT.", "חברות שמשתמשות בפלטפורמה. שורה 1 = YMT."), "id, name, slug, data_region, created_at"],
-  ["lead_criteria", T("Saved ideal-customer profiles.", "פרופילי לקוח אידיאלי שמורים."), "id, tenant_id, name, countries_json, industries_json, exclude_json, size_min, size_max, titles_json, signals_json, scoring_json, active"],
-  ["lead_candidates", T("Raw results before a person accepts them.", "תוצאות גולמיות לפני שאדם מקבל אותן."), "id, tenant_id, criteria_id, source, source_ref, name, website_domain, country_code, payload_json, score, status, duplicate_of_company_id, created_at"],
+  ["lead_criteria", T("Each worker's saved search profiles (territories).", "פרופילי החיפוש השמורים של כל עובד (טריטוריות)."), "id, tenant_id, owner_id, name, countries_json, industries_json, exclude_json, size_min, size_max, titles_json, signals_json, scoring_json, active"],
+  ["lead_candidates", T("Raw results before a person accepts them.", "תוצאות גולמיות לפני שאדם מקבל אותן."), "id, tenant_id, criteria_id, owner_id, dedup_key, source, source_ref, name, website_domain, country_code, payload_json, score, status (new|accepted|rejected|conflict|owned_by_other), duplicate_of_company_id, created_at"],
   ["lead_imports", T("CSV uploads with their column mapping.", "העלאות CSV עם מיפוי העמודות."), "id, tenant_id, file_name, mapping_json, rows_total, rows_ok, rows_error, created_by"],
   ["research_runs", T("One research job for one company.", "משימת מחקר אחת לחברה אחת."), "id, tenant_id, company_id, template_id, status, model, batch_id, cost_usd, started_at, finished_at"],
   ["research_sources", T("Each page or record used, with a text snapshot hash.", "כל דף או רשומה ששימשו, עם גיבוב של צילום הטקסט."), "id, run_id, url, title, retrieved_at, content_sha256, kind (web/places/b2b/staff)"],
@@ -1157,6 +1289,7 @@ const SCALE = [
 const TESTING = [
   T("Fake adapters for every provider (as with Google Calendar today) so tests never call real services or spend money.", "מתאמים מזויפים לכל ספק (כמו Google Calendar היום) כך שהבדיקות לעולם לא פונות לשירותים אמיתיים ולא מוציאות כסף."),
   T("API tests for the send path: each check in order blocks a send (pause, approval, suppression, country, limits, hours, reply).", "בדיקות API למסלול השליחה: כל בדיקה בסדר שלה חוסמת שליחה (עצירה, אישור, הסרה, מדינה, מגבלות, שעות, תשובה)."),
+  T("Worker isolation tests: Shir's search results never appear in Eden's queue, a company is owned once even when two searches run together, a long search by one worker does not delay another's job, and handover moves everything.", "בדיקות בידוד עובדים: תוצאות החיפוש של שיר לעולם לא מופיעות בתור של עדן, לחברה יש בעלים אחד גם כששני חיפושים רצים יחד, חיפוש ארוך של עובד אחד לא מעכב משימה של אחר, והעברת עבודה מעבירה הכל."),
   T("Cost-cap tests: a job that would exceed the cap waits; usage is recorded for every call.", "בדיקות תקרת עלות: משימה שתחרוג מהתקרה ממתינה; השימוש נרשם לכל קריאה."),
   T("Webhook contract tests with recorded payloads and bad signatures.", "בדיקות חוזה ל-webhooks עם תוכן מוקלט וחתימות שגויות."),
   T("A small evaluation set of real companies (with permission) to check report quality and that every claim has a source, run before changing prompts or models.", "סט הערכה קטן של חברות אמיתיות (באישור) לבדיקת איכות הדוחות ושלכל טענה יש מקור, שמורץ לפני שינוי הנחיות או מודלים."),
@@ -1228,6 +1361,14 @@ function stageBlock(stage, withEng) {
 }
 
 function render() {
+  byId("territory-rows").innerHTML = TERRITORIES.map(([who, countries, size, industries, where]) =>
+    `<tr><td><strong>${txt(who)}</strong></td><td>${L(countries)}</td><td>${L(size)}</td><td>${L(industries)}</td><td>${L(where)}</td></tr>`).join("");
+  byId("worker-lifecycle").innerHTML = list(WORKER_LIFECYCLE);
+  byId("worker-isolation").innerHTML = list(WORKER_ISOLATION);
+  byId("overlap-options").innerHTML = OVERLAP.map((o) => `<div class="card opt${o.rec ? " rec" : ""}">
+    <span class="opt-kind">${o.rec ? `<span class="pill warn">${L(T("Suggested", "מומלץ"))}</span>` : "&nbsp;"}</span>
+    <h4>${L(o.title)}</h4><p class="what">${L(o.what)}</p><p class="small con" style="color:var(--danger-fg);margin:0">${L(o.con)}</p></div>`).join("");
+  byId("worker-eng-rows").innerHTML = WORKER_ENG.map(row).join("");
   byId("flow").innerHTML = STAGES.map((s) => `<div class="step"><span class="n">${s.n}</span><b>${L(s.name)}</b><span class="hc">✋ ${L(s.checkpoint)}</span></div>`).join("");
   byId("stages-mgmt").innerHTML = STAGES.map((s) => stageBlock(s, false)).join("");
   byId("stages-eng").innerHTML = STAGES.map((s) => stageBlock(s, true)).join("");
