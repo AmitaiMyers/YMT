@@ -1,5 +1,6 @@
 // "Today" view: everything that needs a person, ranked by urgency, plus counts for the navigation badges.
 
+import { visibleCompanySql } from '../research/visibility.js';
 import { Router } from 'express';
 import { buildReminders } from '../reminders.js';
 import { badRequest } from '../http.js';
@@ -56,7 +57,7 @@ export function inboxRoutes(db) {
     }
     const like = `%${q}%`;
     res.json({
-      companies: db.prepare(`SELECT id, name, industry, is_client FROM companies WHERE name LIKE ? ORDER BY name LIMIT ${SEARCH_LIMIT}`).all(like),
+      companies: db.prepare(`SELECT c.id, c.name, c.industry, c.is_client FROM companies c WHERE c.name LIKE ? AND ${visibleCompanySql('c')} ORDER BY c.name LIMIT ${SEARCH_LIMIT}`).all(like),
       deals: db.prepare(`SELECT d.id, d.title, d.stage, c.name AS company_name FROM deals d JOIN companies c ON c.id = d.company_id
         WHERE d.status = 'open' AND (d.title LIKE ? OR c.name LIKE ?) ORDER BY d.title LIMIT ${SEARCH_LIMIT}`).all(like, like),
     });

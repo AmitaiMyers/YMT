@@ -20,13 +20,18 @@ const SETTINGS_SPEC = {
 };
 
 const COUNTED_TABLES = ['users', 'companies', 'contacts', 'triggers', 'deals', 'interactions', 'approvals',
-  'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'audit_log'];
+  'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'audit_log'];
 
 function fileSize(filePath) {
   return filePath === ':memory:' ? 0 : statSync(filePath).size;
 }
 
-export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled }) {
+const AI_PROVIDER_NOTES = {
+  claude: 'Anthropic Claude API – research only: public company information, search queries and the mandate text',
+  openai: 'OpenAI API – research only: public company information, search queries and the mandate text',
+};
+
+export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled, aiProviders }) {
   const router = Router();
 
   router.get('/settings', (req, res) => res.json(getSettings(db)));
@@ -45,14 +50,15 @@ export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled }) {
   /** Clear answer to "where is our data?" for the Data & Privacy page. */
   router.get('/settings/data-info', (req, res) => {
     res.json({
-      storage: 'SQLite database file on this server (no AI/LLM providers)',
+      storage: aiProviders.length > 0 ? 'SQLite database file on this server' : 'SQLite database file on this server (no AI/LLM providers)',
       hosting_location: hostingLocation,
       database_path: dbPath,
       database_size_bytes: fileSize(dbPath),
       // Honest list of every outside service that can receive company data.
-      external_services: googleEnabled
-        ? ['Google Calendar – only for staff who connect it: meeting title, time, place, organisation and person name']
-        : [],
+      external_services: [
+        ...(googleEnabled ? ['Google Calendar – only for staff who connect it: meeting title, time, place, organisation and person name'] : []),
+        ...aiProviders.map((provider) => AI_PROVIDER_NOTES[provider]),
+      ],
       row_counts: Object.fromEntries(COUNTED_TABLES.map((table) => [table, count(db, table)])),
     });
   });

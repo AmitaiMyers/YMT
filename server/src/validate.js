@@ -1,7 +1,7 @@
 // Declarative request-body validation. Every route declares a spec; invalid input fails fast with 400.
 //
-// Field spec shape: { type, required?, enum?, max?, min? }
-//   type: 'string' | 'text' | 'email' | 'url' | 'int' | 'bool' | 'date' | 'datetime' | 'id'
+// Field spec shape: { type, required?, enum?, max?, min?, minItems?, maxItems?, itemMax? }
+//   type: 'string' | 'text' | 'email' | 'url' | 'int' | 'number' | 'bool' | 'date' | 'datetime' | 'id' | 'list' (array of strings)
 // Output: a clean object ready for SQL (booleans become 0/1, absent optional fields become null).
 
 import { badRequest } from './http.js';
@@ -53,6 +53,12 @@ const CONVERTERS = {
   },
   int: (name, value, field) => convertInt(name, value, field),
   id: (name, value) => convertInt(name, value, { min: 1 }),
+  number: (name, value, field) => {
+    if (typeof value !== 'number' || !Number.isFinite(value)) throw badRequest(`${name} must be a number`);
+    if (field.min !== undefined && value < field.min) throw badRequest(`${name} must be >= ${field.min}`);
+    if (field.max !== undefined && value > field.max) throw badRequest(`${name} must be <= ${field.max}`);
+    return value;
+  },
   bool: (name, value) => {
     if (typeof value !== 'boolean') throw badRequest(`${name} must be true or false`);
     return value ? 1 : 0;
@@ -60,6 +66,14 @@ const CONVERTERS = {
   date: (name, value, field) => {
     const text = convertString(name, value, field, 10);
     return requirePattern(name, text, DATE_RE.test(text), 'a date in YYYY-MM-DD format');
+  },
+  list: (name, value, field) => {
+    if (!Array.isArray(value)) throw badRequest(`${name} must be a list`);
+    if (field.minItems !== undefined && value.length < field.minItems) throw badRequest(`${name} needs at least ${field.minItems} item(s)`);
+    if (field.maxItems !== undefined && value.length > field.maxItems) throw badRequest(`${name} allows at most ${field.maxItems} items`);
+    const items = value.map((item, index) => convertString(`${name}[${index}]`, item, { max: field.itemMax, enum: field.enum }, STRING_DEFAULT_MAX));
+    if (items.some((item) => item === '')) throw badRequest(`${name} must not contain empty items`);
+    return items;
   },
   datetime: (name, value, field) => {
     const text = convertString(name, value, field, 40);

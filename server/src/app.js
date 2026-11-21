@@ -19,13 +19,17 @@ import { settingsRoutes } from './routes/settings.js';
 import { shareRoutes, publicShareRoutes } from './routes/share.js';
 import { inboxRoutes } from './routes/inbox.js';
 import { googleRoutes, googleCallbackRoutes } from './routes/google.js';
+import { researchRoutes } from './routes/research.js';
+import { createAiService } from './ai/service.js';
 
 /**
  * @param {import('node:sqlite').DatabaseSync} db
  * @param {{ dbPath: string, hostingLocation: string, clientDist?: string, trustProxy?: string | number,
- *   google?: ReturnType<typeof import('./google.js').createGoogleClient> | null }} options
+ *   google?: ReturnType<typeof import('./google.js').createGoogleClient> | null,
+ *   ai?: ReturnType<typeof import('./ai/service.js').createAiService> }} options
+ *   Without `ai`, research screens work but runs report that no AI provider is configured.
  */
-export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy = 'loopback', google = null }) {
+export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy = 'loopback', google = null, ai = createAiService(db, {}) }) {
   const app = express();
   // Behind a hosting proxy/load balancer this must count its hops, or every visitor shares the proxy's IP
   // (one login rate-limit bucket for everybody).
@@ -56,8 +60,9 @@ export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy 
   api.use(requireAuth(db));
   for (const routes of [
     userRoutes(db), companyRoutes(db), approvalRoutes(db), crmRoutes(db), meetingRoutes(db, { google }),
-    documentRoutes(db), directoryRoutes(db), dashboardRoutes(db), settingsRoutes(db, { dbPath, hostingLocation, googleEnabled: Boolean(google) }),
-    shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }),
+    documentRoutes(db), directoryRoutes(db), dashboardRoutes(db),
+    settingsRoutes(db, { dbPath, hostingLocation, googleEnabled: Boolean(google), aiProviders: ai.configuredProviders() }),
+    shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }), researchRoutes(db, { ai }),
   ]) {
     api.use(routes);
   }

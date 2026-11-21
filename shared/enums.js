@@ -20,3 +20,56 @@ export const DOCUMENT_STATUSES = ['draft', 'finalized', 'signed'];
 
 // Hard upper bound for follow-up touchpoints per lead (business rule; settings may only lower it).
 export const MAX_FOLLOWUPS_HARD_LIMIT = 3;
+
+// ---------------------------------------------------------------- Research (Release 1)
+// Values follow YMT's classification dictionary ("How do we classify a company?").
+
+export const ISRAEL_CONNECTIONS = ['hq_israel', 'israeli_unit', 'other_connection', 'none', 'unknown'];
+// Only these two are in YMT's primary target group; the others go to "needs review".
+export const ISRAEL_TARGET_CONNECTIONS = ['hq_israel', 'israeli_unit'];
+export const BUSINESS_MODELS = ['product_owner', 'contract_producer', 'software_ip', 'distributor_retailer',
+  'service_project', 'platform', 'asset_operator', 'other', 'unknown'];
+export const SECTORS = ['agri_food', 'industry_manufacturing', 'energy_resources', 'construction_real_estate',
+  'consumer_trade', 'tech_comms', 'health_life', 'financial_business', 'transport_logistics', 'education_leisure',
+  'defence_dual_use', 'other', 'unknown'];
+export const CUSTOMER_TYPES = ['business', 'consumer', 'public_sector'];
+export const SIZE_BANDS = ['micro', 'small', 'medium', 'large', 'enterprise', 'unknown', 'spans_multiple'];
+export const REVENUE_BASES = ['reported', 'estimated'];
+export const RELATIONSHIP_ROLES = ['client', 'delivery_partner', 'supplier', 'unknown'];
+// What the company is trying to do; mandates match on target country + need type.
+export const NEED_TYPES = ['market_entry_distribution', 'implementation_partner', 'production_jv', 'operating_review',
+  'domestic_sales_growth', 'executive_search', 'growth_exit', 'technology_scouting', 'sourcing', 'other'];
+export const MANDATE_STATUSES = ['active', 'paused'];
+export const MANDATE_SCHEDULES = ['off', 'weekly'];
+export const RUN_TRIGGERS = ['manual', 'weekly'];
+export const RUN_STATUSES = ['queued', 'running', 'done', 'failed', 'waiting_budget'];
+export const OPPORTUNITY_STATUSES = ['draft', 'needs_review', 'manual_assignment', 'accepted', 'verify', 'deferred', 'rejected'];
+// Statuses that wait for a person's review decision.
+export const REVIEWABLE_STATUSES = ['draft', 'needs_review', 'manual_assignment'];
+export const REVIEW_DECISIONS = ['accept', 'verify', 'defer', 'reject'];
+export const REJECT_REASONS = ['duplicate', 'wrong_buyer', 'wrong_market', 'no_current_initiative', 'no_israeli_connection', 'other'];
+export const OPPORTUNITY_FLAGS = ['outside_preferred_size', 'weak_evidence', 'possible_duplicate'];
+export const SOURCE_KINDS = ['web', 'job', 'list', 'staff'];
+export const JUDGE_VERDICTS = ['match', 'weak', 'no_match'];
+export const EXAMPLE_LABELS = ['good', 'false_positive'];
+export const AI_PROVIDERS = ['claude', 'openai', 'fake'];
+export const AI_TASKS = ['discover', 'classify', 'judge'];
+export const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Sunday (Israeli work week starts on Sunday)
+
+// Size bands by headcount and by annual revenue in USD (YMT's internal bands). `max` is inclusive for
+// employees and exclusive for revenue, exactly as the dictionary defines them.
+export const EMPLOYEE_BANDS = [
+  { band: 'micro', min: 1, max: 9 },
+  { band: 'small', min: 10, max: 49 },
+  { band: 'medium', min: 50, max: 249 },
+  { band: 'large', min: 250, max: 999 },
+  { band: 'enterprise', min: 1000, max: Infinity },
+];
+export const REVENUE_BANDS = [
+  { band: 'micro', min: 0, max: 1_000_000 },
+  { band: 'small', min: 1_000_000, max: 10_000_000 },
+  { band: 'medium', min: 10_000_000, max: 100_000_000 },
+  { band: 'large', min: 100_000_000, max: 500_000_000 },
+  { band: 'enterprise', min: 500_000_000, max: Infinity },
+];
+export const MAX_RUN_BATCH = 20;

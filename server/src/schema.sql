@@ -50,6 +50,30 @@ CREATE TABLE IF NOT EXISTS companies (
   is_client INTEGER NOT NULL DEFAULT 0,
   notes TEXT,
   approved_brief TEXT,
+  -- Classification dictionary fields (filled by research; optional for manually created companies).
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  origin TEXT NOT NULL DEFAULT 'manual' CHECK (origin IN ('manual', 'research')),
+  parent_company TEXT,
+  business_unit TEXT,
+  israel_connection TEXT CHECK (israel_connection IN ('hq_israel', 'israeli_unit', 'other_connection', 'none', 'unknown')),
+  incorporation_country TEXT,
+  hq_country TEXT,
+  model_primary TEXT CHECK (model_primary IN ('product_owner', 'contract_producer', 'software_ip', 'distributor_retailer', 'service_project', 'platform', 'asset_operator', 'other', 'unknown')),
+  model_secondary TEXT CHECK (model_secondary IN ('product_owner', 'contract_producer', 'software_ip', 'distributor_retailer', 'service_project', 'platform', 'asset_operator', 'other', 'unknown')),
+  sector TEXT CHECK (sector IN ('agri_food', 'industry_manufacturing', 'energy_resources', 'construction_real_estate', 'consumer_trade', 'tech_comms', 'health_life', 'financial_business', 'transport_logistics', 'education_leisure', 'defence_dual_use', 'other', 'unknown')),
+  subsector TEXT,
+  customer_types TEXT NOT NULL DEFAULT '[]',   -- JSON array of CUSTOMER_TYPES
+  customer_markets TEXT NOT NULL DEFAULT '[]', -- JSON array of free-text markets
+  employees_min INTEGER,
+  employees_max INTEGER,
+  employees_as_of TEXT,
+  revenue_usd_min INTEGER,
+  revenue_usd_max INTEGER,
+  revenue_fiscal_year INTEGER,
+  revenue_basis TEXT CHECK (revenue_basis IN ('reported', 'estimated')),
+  revenue_original TEXT,                        -- amount and currency as the source states it
+  ownership TEXT,
+  outreach_owner_id INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
@@ -268,9 +292,178 @@ CREATE TABLE IF NOT EXISTS oauth_states (
   expires_at TEXT NOT NULL
 );
 
+-- Research (Release 1): mandates, runs, sourced facts and opportunities --------------------------------
+
+CREATE TABLE IF NOT EXISTS mandates (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  code TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  owner_id INTEGER REFERENCES users(id),           -- NULL until an admin assigns an owner
+  status TEXT NOT NULL DEFAULT 'paused' CHECK (status IN ('active', 'paused')),
+  current_version_id INTEGER REFERENCES mandate_versions(id),
+  schedule TEXT NOT NULL DEFAULT 'off' CHECK (schedule IN ('off', 'weekly')),
+  schedule_weekday INTEGER NOT NULL DEFAULT 0 CHECK (schedule_weekday BETWEEN 0 AND 6),
+  default_batch INTEGER NOT NULL DEFAULT 5 CHECK (default_batch BETWEEN 1 AND 20),
+  freshness_days INTEGER NOT NULL DEFAULT 183 CHECK (freshness_days BETWEEN 7 AND 1095),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- Immutable: every criteria change creates a new version so results stay comparable.
+CREATE TABLE IF NOT EXISTS mandate_versions (
+  id INTEGER PRIMARY KEY,
+  mandate_id INTEGER NOT NULL REFERENCES mandates(id) ON DELETE CASCADE,
+  version INTEGER NOT NULL,
+  target_countries TEXT NOT NULL,     -- JSON array of country names, e.g. ["India"]
+  need_types TEXT NOT NULL,           -- JSON array of NEED_TYPES
+  accept_rule TEXT NOT NULL,
+  false_positives TEXT NOT NULL,      -- JSON array of strings
+  employees_min INTEGER,
+  employees_max INTEGER,
+  revenue_min_usd INTEGER,
+  revenue_max_usd INTEGER,
+  sectors TEXT NOT NULL DEFAULT '[]', -- JSON array of SECTORS; empty = any sector
+  search_terms TEXT NOT NULL DEFAULT '[]',
+  exclusions TEXT NOT NULL DEFAULT '[]',
+  proposed_service TEXT NOT NULL,
+  change_note TEXT NOT NULL,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (mandate_id, version)
+);
+
+-- One execution of a mandate version. Runs are the work queue: the worker picks status 'queued'.
+CREATE TABLE IF NOT EXISTS research_runs (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  mandate_id INTEGER NOT NULL REFERENCES mandates(id) ON DELETE CASCADE,
+  mandate_version_id INTEGER NOT NULL REFERENCES mandate_versions(id),
+  trigger TEXT NOT NULL CHECK (trigger IN ('manual', 'weekly')),
+  week_key TEXT,                      -- ISO week for scheduled runs (one per mandate per week)
+  requested_by INTEGER REFERENCES users(id),
+  batch_size INTEGER NOT NULL CHECK (batch_size BETWEEN 1 AND 20),
+  status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed', 'waiting_budget')),
+  candidates_found INTEGER NOT NULL DEFAULT 0,
+  cards_created INTEGER NOT NULL DEFAULT 0,
+  duplicates INTEGER NOT NULL DEFAULT 0,
+  filtered INTEGER NOT NULL DEFAULT 0,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  error TEXT,
+  started_at TEXT,
+  finished_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (mandate_id, week_key)
+);
+
+-- Every page or file used as evidence, stored once.
+CREATE TABLE IF NOT EXISTS sources (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  url TEXT NOT NULL UNIQUE,
+  title TEXT,
+  published_on TEXT,                  -- YYYY-MM-DD when the source states it
+  kind TEXT NOT NULL CHECK (kind IN ('web', 'job', 'list', 'staff')),
+  retrieved_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- Evidence behind each company value: which source, which entity it covers, when it was checked.
+CREATE TABLE IF NOT EXISTS facts (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  field TEXT NOT NULL,
+  value TEXT NOT NULL,
+  source_id INTEGER NOT NULL REFERENCES sources(id),
+  quote TEXT,
+  entity_covered TEXT,
+  run_id INTEGER REFERENCES research_runs(id) ON DELETE SET NULL,
+  checked_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- One business initiative of one company (YMT's "opportunity record").
+CREATE TABLE IF NOT EXISTS opportunities (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  mandate_id INTEGER REFERENCES mandates(id) ON DELETE SET NULL,
+  mandate_version_id INTEGER REFERENCES mandate_versions(id),
+  run_id INTEGER REFERENCES research_runs(id) ON DELETE SET NULL,
+  owner_id INTEGER REFERENCES users(id),
+  relationship_role TEXT NOT NULL CHECK (relationship_role IN ('client', 'delivery_partner', 'supplier', 'unknown')),
+  target_country TEXT NOT NULL,
+  need_type TEXT NOT NULL CHECK (need_type IN ('market_entry_distribution', 'implementation_partner', 'production_jv', 'operating_review', 'domestic_sales_growth', 'executive_search', 'growth_exit', 'technology_scouting', 'sourcing', 'other')),
+  business_need TEXT NOT NULL,
+  evidence_source_id INTEGER NOT NULL REFERENCES sources(id),
+  evidence_date TEXT NOT NULL,        -- publication date of the evidence (YYYY-MM-DD)
+  evidence_quote TEXT NOT NULL,
+  verdict TEXT CHECK (verdict IN ('match', 'weak', 'no_match')),
+  verdict_reason TEXT,
+  reason_to_act TEXT,
+  proposed_service TEXT,
+  unknowns TEXT NOT NULL DEFAULT '[]',  -- JSON array of missing facts
+  flags TEXT NOT NULL DEFAULT '[]',     -- JSON array of OPPORTUNITY_FLAGS
+  status TEXT NOT NULL CHECK (status IN ('draft', 'needs_review', 'manual_assignment', 'accepted', 'verify', 'deferred', 'rejected')),
+  decision_reason TEXT CHECK (decision_reason IN ('duplicate', 'wrong_buyer', 'wrong_market', 'no_current_initiative', 'no_israeli_connection', 'other')),
+  decision_note TEXT,
+  decided_by INTEGER REFERENCES users(id),
+  decided_at TEXT,
+  opened_at TEXT,                     -- first time the owner opened the card (review time = decided - opened)
+  review_seconds INTEGER,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (company_id, evidence_source_id)
+);
+
+CREATE TABLE IF NOT EXISTS calibration_examples (
+  id INTEGER PRIMARY KEY,
+  mandate_id INTEGER NOT NULL REFERENCES mandates(id) ON DELETE CASCADE,
+  opportunity_id INTEGER NOT NULL REFERENCES opportunities(id) ON DELETE CASCADE,
+  label TEXT NOT NULL CHECK (label IN ('good', 'false_positive')),
+  note TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (mandate_id, opportunity_id)
+);
+
+-- Before/after comparison of two mandate versions on the saved examples. Also a work-queue item.
+CREATE TABLE IF NOT EXISTS calibrations (
+  id INTEGER PRIMARY KEY,
+  mandate_id INTEGER NOT NULL REFERENCES mandates(id) ON DELETE CASCADE,
+  from_version_id INTEGER NOT NULL REFERENCES mandate_versions(id),
+  to_version_id INTEGER NOT NULL REFERENCES mandate_versions(id),
+  status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed', 'waiting_budget')),
+  rows TEXT NOT NULL DEFAULT '[]',
+  owner_note TEXT,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  error TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  finished_at TEXT
+);
+
+-- Every AI call and what it cost; powers the monthly cap.
+CREATE TABLE IF NOT EXISTS ai_usage (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  run_id INTEGER REFERENCES research_runs(id) ON DELETE SET NULL,
+  calibration_id INTEGER REFERENCES calibrations(id) ON DELETE SET NULL,
+  task TEXT NOT NULL CHECK (task IN ('discover', 'classify', 'judge')),
+  provider TEXT NOT NULL,
+  model TEXT NOT NULL,
+  input_tokens INTEGER NOT NULL,
+  output_tokens INTEGER NOT NULL,
+  cache_read_tokens INTEGER NOT NULL,
+  web_searches INTEGER NOT NULL,
+  cost_usd REAL NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
 CREATE INDEX IF NOT EXISTS idx_deals_company ON deals(company_id);
 CREATE INDEX IF NOT EXISTS idx_interactions_company ON interactions(company_id, occurred_at);
 CREATE INDEX IF NOT EXISTS idx_approvals_status ON approvals(status);
 CREATE INDEX IF NOT EXISTS idx_meetings_company ON meetings(company_id, scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_meetings_time ON meetings(scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_contacts_name ON contacts(full_name);
+CREATE INDEX IF NOT EXISTS idx_opportunities_queue ON opportunities(status, owner_id, evidence_date);
+CREATE INDEX IF NOT EXISTS idx_opportunities_company ON opportunities(company_id);
+CREATE INDEX IF NOT EXISTS idx_facts_company ON facts(company_id);
+CREATE INDEX IF NOT EXISTS idx_runs_status ON research_runs(status, created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_time ON ai_usage(created_at);

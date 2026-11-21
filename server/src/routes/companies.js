@@ -1,5 +1,6 @@
 // Module 1 (lead research) + the Client 360° file.
 
+import { visibleCompanySql } from '../research/visibility.js';
 import { Router } from 'express';
 import { parseBody, parseId, parseOptionalInt, parseOptionalEnum } from '../validate.js';
 import { insert, update, findById, removeById, audit, nowIso } from '../db.js';
@@ -83,8 +84,8 @@ function buildCompanyFilter(query) {
   add('india_activity = :india_activity', 'india_activity', parseOptionalEnum(query.india_activity, 'india_activity', INDIA_ACTIVITY));
   const clientFilter = parseOptionalEnum(query.is_client, 'is_client', ['yes', 'no']);
   add('is_client = :is_client', 'is_client', clientFilter === null ? null : Number(clientFilter === 'yes'));
-  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-  return { where, params };
+  conditions.push(visibleCompanySql('c'));
+  return { where: `WHERE ${conditions.join(' AND ')}`, params };
 }
 
 export function companyRoutes(db) {
@@ -103,7 +104,7 @@ export function companyRoutes(db) {
   });
 
   router.get('/companies/industries', (req, res) => {
-    res.json(db.prepare('SELECT DISTINCT industry FROM companies ORDER BY industry').all().map((row) => row.industry));
+    res.json(db.prepare(`SELECT DISTINCT industry FROM companies c WHERE ${visibleCompanySql('c')} ORDER BY industry`).all().map((row) => row.industry));
   });
 
   router.post('/companies', (req, res) => {

@@ -12,6 +12,20 @@ export const DEFAULT_SETTINGS = {
   target_meetings_monthly: '6',
   target_revenue_yearly_usd: '500000',
   share_link_days: '14',
+  // Research (Release 1). Prices: USD per million tokens, and USD per web search.
+  ai_monthly_cap_usd: '20',
+  ai_alert_month: '',
+  ai_tasks: JSON.stringify({
+    discover: { provider: 'claude', model: 'claude-sonnet-5-5' },
+    classify: { provider: 'claude', model: 'claude-sonnet-5-5' },
+    judge: { provider: 'claude', model: 'claude-sonnet-5-5' },
+  }),
+  // Claude API list prices checked 20 Nov 2026 (platform.claude.com/docs/en/about-claude/pricing).
+  ai_prices: JSON.stringify({
+    'claude-sonnet-5-5': { input: 2, output: 10, cache_read: 0.1, search: 0.01 },
+    'claude-opus-5-5': { input: 4, output: 20, cache_read: 0.2, search: 0.01 },
+    'claude-haiku-5-5': { input: 0.1, output: 0.5, cache_read: 0.01, search: 0.01 },
+  }),
 };
 
 export const DEFAULT_WORKFLOWS = [
