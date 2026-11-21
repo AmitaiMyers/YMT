@@ -1,15 +1,17 @@
 // Post-meeting workflow as a 3-step wizard: What happened → Tasks → Follow-up.
+// Release 5: on step 1 the AI can draft the summary, decisions, tasks and recap email from rough notes or a pasted
+// transcript; nothing is saved until "Complete", and the notes themselves are never stored on the server.
 // One submit at the end creates: summary + decisions, tasks, timeline entry, optional stage change,
 // optional summary document, and a follow-up email DRAFT in the approval queue.
 // The in-progress form auto-saves to sessionStorage (cleared when the tab closes — confidential notes).
 
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Plus, Trash2, Check, ClipboardCheck, FileText, Building2, CircleCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, Check, ClipboardCheck, FileText, Building2, CircleCheck, Sparkles } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { useLoad, useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
-import { Card, Loaded, PageHeader, Button, IconButton, ErrorBox, Notice, Stepper, useToast } from '../../ui/index.js';
+import { Card, Loaded, PageHeader, Button, IconButton, ErrorBox, Notice, Stepper, useToast, useConfirm } from '../../ui/index.js';
 import { FieldInput, FieldRow, INPUT_CLASS } from '../../components/EntityForm.jsx';
 import { useCounts } from '../../app/CountsProvider.jsx';
 import { useEnumOptions } from '../../enumOptions.js';
@@ -25,9 +27,12 @@ function storageKey(meetingId) {
   return `ymt.meetingDraft.${meetingId}`;
 }
 
+/** A saved draft wins, field by field; fields added in a later release start from the defaults. */
 function readDraft(meetingId, fallback) {
   const stored = window.sessionStorage.getItem(storageKey(meetingId));
-  return stored === null ? fallback : JSON.parse(stored);
+  if (stored === null) return fallback;
+  const saved = JSON.parse(stored);
+  return { ...fallback, ...saved, form: { ...fallback.form, ...saved.form } };
 }
 
 function TaskRows({ tasks, setTasks }) {
@@ -51,6 +56,38 @@ function TaskRows({ tasks, setTasks }) {
         </fieldset>
       ))}
       <Button variant="secondary" icon={Plus} offlineOk onClick={() => setTasks([...tasks, EMPTY_TASK])}>{t('complete.addTask')}</Button>
+    </div>
+  );
+}
+
+/** Notes or a transcript → AI draft of everything the wizard asks for. Replacing typed text asks first. */
+function AiDraftBox({ meetingId, aiProblem, notes, language, onNotes, onLanguage, hasContent, onDraft }) {
+  const { t } = useI18n();
+  const confirm = useConfirm();
+  const options = useEnumOptions();
+  const draft = useAction(async () => {
+    if (hasContent) {
+      const ok = await confirm({ title: t('meetingAi.replaceTitle'), body: t('meetingAi.replaceBody'), confirmLabel: t('meetingAi.replace') });
+      if (!ok) return;
+    }
+    onDraft(await post(`/meetings/${meetingId}/draft-summary`, { notes, language }));
+  });
+  return (
+    <div className="mb-6 rounded-[10px] border border-line bg-sunken p-4">
+      <p className="mb-3 flex items-center gap-2 text-sm font-semibold"><Sparkles aria-hidden="true" size={16} />{t('meetingAi.title')}</p>
+      <FieldRow field={{ name: 'notes', label: t('meetingAi.notes'), help: t('meetingAi.notesHelp') }} inputId="wizard-notes" errorId="wizard-notes-hint">
+        <FieldInput field={{ name: 'notes', type: 'textarea', rows: 6 }} inputId="wizard-notes" errorId="wizard-notes-hint" value={notes} onChange={onNotes} />
+      </FieldRow>
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <div className="w-40">
+          <FieldRow field={{ name: 'ai_language', label: t('meetingAi.language') }} inputId="wizard-ai-language">
+            <FieldInput field={{ name: 'ai_language', type: 'select', required: true, options: options('language', LANGUAGES) }} inputId="wizard-ai-language" value={language} onChange={onLanguage} />
+          </FieldRow>
+        </div>
+        <Button icon={Sparkles} loading={draft.busy} loadingLabel={t('meetingAi.drafting')} disabled={!notes.trim() || aiProblem !== null}
+          disabledReason={aiProblem ?? t('meetingAi.needNotes')} onClick={() => draft.run()}>{t('meetingAi.draft')}</Button>
+      </div>
+      <ErrorBox message={draft.error} />
     </div>
   );
 }
@@ -99,6 +136,7 @@ function CompleteWizard({ prep, workflows }) {
       followup_contact_id: contactsWithEmail[0] ? String(contactsWithEmail[0].id) : '',
       language: contactsWithEmail[0]?.preferred_language ?? language,
       create_summary_document: hasCompany, // a summary document belongs to a company file
+      notes: '', followup_subject: '', followup_body: '',
     },
     tasks: [],
   };
@@ -123,8 +161,26 @@ function CompleteWizard({ prep, workflows }) {
     followup_contact_id: form.followup_contact_id ? Number(form.followup_contact_id) : null,
     language: form.language,
     create_summary_document: hasCompany && form.create_summary_document,
+    followup_subject: form.followup_body.trim() ? form.followup_subject : null,
+    followup_body: form.followup_body.trim() ? form.followup_body : null,
     tasks: tasks.map((task) => ({ ...task, due_date: task.due_date || null })),
   }));
+
+  function applyAiDraft(result) {
+    setDraft((d) => ({
+      ...d,
+      form: {
+        ...d.form,
+        summary: result.summary,
+        decisions: result.decisions.join('\n'),
+        followup_subject: result.recap.subject,
+        followup_body: result.recap.body,
+      },
+      tasks: result.tasks.map((task) => ({ ...task, due_date: task.due_date ?? '' })),
+    }));
+    setSummaryError(null);
+    toast({ title: t('meetingAi.drafted') });
+  }
 
   if (outcome) return <Outcome outcome={outcome} companyId={hasCompany ? prep.company.id : null} />;
 
@@ -156,6 +212,8 @@ function CompleteWizard({ prep, workflows }) {
     { name: 'followup_contact_id', label: t('complete.followupContact'), type: 'select', help: t('complete.followupHelp'),
       options: contactsWithEmail.map((c) => ({ value: String(c.id), label: `${c.full_name} <${c.email}>` })) },
     { name: 'language', label: t('contact.language'), type: 'select', required: true, options: options('language', LANGUAGES) },
+    { name: 'followup_subject', label: t('meetingAi.recapSubject'), type: 'text', wide: true },
+    { name: 'followup_body', label: t('meetingAi.recapBody'), type: 'textarea', rows: 8, wide: true, help: t('meetingAi.recapHelp') },
     ...(hasCompany ? [{ name: 'create_summary_document', label: t('complete.createDocument'), type: 'checkbox', wide: true }] : []),
   ];
   const renderFields = (fields) => (
@@ -178,7 +236,21 @@ function CompleteWizard({ prep, workflows }) {
       <Card title={t(`complete.step.${STEPS[step]}`)}>
         <ErrorBox message={submit.error} />
         <div key={step} className="animate-rise">
-          {step === 0 && renderFields(happenedFields)}
+          {step === 0 && (
+            <>
+              <AiDraftBox
+                meetingId={meetingId}
+                aiProblem={prep.ai_problem}
+                notes={form.notes}
+                language={form.language}
+                onNotes={(value) => setForm('notes', value)}
+                onLanguage={(value) => setForm('language', value)}
+                hasContent={Boolean(form.summary.trim() || form.decisions.trim() || tasks.length > 0)}
+                onDraft={applyAiDraft}
+              />
+              {renderFields(happenedFields)}
+            </>
+          )}
           {step === 1 && <TaskRows tasks={tasks} setTasks={setTasks} />}
           {step === 2 && (
             <>

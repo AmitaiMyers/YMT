@@ -21,15 +21,15 @@ const SETTINGS_SPEC = {
 };
 
 const COUNTED_TABLES = ['users', 'companies', 'contacts', 'triggers', 'deals', 'interactions', 'approvals',
-  'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'suppressions', 'replies', 'approved_answers', 'audit_log'];
+  'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'suppressions', 'replies', 'approved_answers', 'discovery_requests', 'audit_log'];
 
 function fileSize(filePath) {
   return filePath === ':memory:' ? 0 : statSync(filePath).size;
 }
 
 const AI_PROVIDER_NOTES = {
-  claude: 'Anthropic Claude API – research and outreach drafts: public company information, search queries, the mandate text, the recipient\'s name and job title, the messages exchanged with them and YMT\'s approved answers',
-  openai: 'OpenAI API – research and outreach drafts: public company information, search queries, the mandate text, the recipient\'s name and job title, the messages exchanged with them and YMT\'s approved answers',
+  claude: 'Anthropic Claude API – research, outreach and meeting-summary drafts: public company information, search queries, the mandate text, the recipient\'s name and job title, the messages exchanged with them, YMT\'s approved answers, and meeting notes or transcripts a staff member pastes',
+  openai: 'OpenAI API – research, outreach and meeting-summary drafts: public company information, search queries, the mandate text, the recipient\'s name and job title, the messages exchanged with them, YMT\'s approved answers, and meeting notes or transcripts a staff member pastes',
 };
 
 export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled, aiProviders }) {

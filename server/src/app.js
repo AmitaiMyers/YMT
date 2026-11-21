@@ -23,6 +23,7 @@ import { researchRoutes } from './routes/research.js';
 import { watchListRoutes } from './routes/watchLists.js';
 import { outreachRoutes } from './routes/outreach.js';
 import { conversationRoutes } from './routes/conversations.js';
+import { discoveryRoutes, publicDiscoveryRoutes } from './routes/discovery.js';
 import { createAiService } from './ai/service.js';
 
 /**
@@ -51,10 +52,11 @@ export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy 
     next();
   });
 
-  // Public endpoints (no login): login, client e-signing, partner share links.
+  // Public endpoints (no login): login, client e-signing, partner share links, client discovery form.
   app.use('/api/auth', authPublicRoutes(db));
   app.use('/api/public', publicSignRoutes(db));
   app.use('/api/public', publicShareRoutes(db));
+  app.use('/api/public', publicDiscoveryRoutes(db));
   app.use('/api', googleCallbackRoutes(db, { google })); // Google redirects here without our session cookie
   app.get('/api/health', (req, res) => res.json({ ok: true }));
 
@@ -62,10 +64,10 @@ export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy 
   const api = express.Router();
   api.use(requireAuth(db));
   for (const routes of [
-    userRoutes(db), companyRoutes(db), approvalRoutes(db), crmRoutes(db), meetingRoutes(db, { google }),
+    userRoutes(db), companyRoutes(db), approvalRoutes(db), crmRoutes(db), meetingRoutes(db, { google, ai }),
     documentRoutes(db), directoryRoutes(db), dashboardRoutes(db),
     settingsRoutes(db, { dbPath, hostingLocation, googleEnabled: Boolean(google), aiProviders: ai.configuredProviders() }),
-    shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }), researchRoutes(db, { ai }), watchListRoutes(db), outreachRoutes(db, { ai }), conversationRoutes(db, { ai, google }),
+    shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }), researchRoutes(db, { ai }), watchListRoutes(db), outreachRoutes(db, { ai }), conversationRoutes(db, { ai, google }), discoveryRoutes(db),
   ]) {
     api.use(routes);
   }

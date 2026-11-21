@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Pencil, Send } from 'lucide-react';
+import { Pencil, Send, ClipboardList } from 'lucide-react';
 import { useI18n, useFormat } from '../i18n/I18nProvider.jsx';
 import { useLoad } from '../hooks/useApi.js';
 import { patch } from '../api.js';
@@ -12,6 +12,7 @@ import { Timeline, LogInteractionCard } from '../components/Timeline.jsx';
 import { useDraftFlow } from '../components/useDraftFlow.jsx';
 import { useCounts } from '../app/CountsProvider.jsx';
 import { ResearchOriginCard } from './research/AcceptedPanels.jsx';
+import { DiscoveryAnswers } from './company/DiscoveryTab.jsx';
 import { useEnumOptions } from '../enumOptions.js';
 import { DEAL_MODELS, DEAL_STATUSES } from '../../../shared/enums.js';
 
@@ -96,6 +97,11 @@ function DealView({ deal, reload }) {
           <FollowupCard deal={deal} onDraft={() => flow.openFollowup(deal.id)} />
         </div>
         {deal.research_card && <ResearchOriginCard card={deal.research_card} />}
+        {deal.discovery.map((request) => (
+          <Card key={request.id} title={<span className="flex items-center gap-2"><ClipboardList aria-hidden="true" size={18} />{t('discovery.answersTitle')}</span>}>
+            <DiscoveryAnswers request={request} />
+          </Card>
+        ))}
         <div className="grid gap-6 lg:grid-cols-2">
           <Card title={t('interaction.timeline')}><Timeline interactions={deal.interactions} /></Card>
           <LogInteractionCard companyId={deal.company_id} dealId={deal.id} contacts={deal.contacts} onLogged={reload} />

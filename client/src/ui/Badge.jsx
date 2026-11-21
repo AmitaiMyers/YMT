@@ -22,6 +22,7 @@ export const STATUS_TONES = {
   run: { queued: 'neutral', running: 'info', done: 'success', failed: 'danger', waiting_budget: 'signal' },
   verdict: { match: 'success', weak: 'signal', no_match: 'danger' },
   mandate: { active: 'success', paused: 'neutral' },
+  discovery: { open: 'info', answered: 'success', expired: 'neutral', revoked: 'danger' },
 };
 
 export function statusTone(domain, status) {

@@ -33,6 +33,7 @@ const ConversationsPage = lazy(() => import('./pages/conversations/Conversations
 const ConversationPage = lazy(() => import('./pages/conversations/ConversationPage.jsx').then((module) => ({ default: module.ConversationPage })));
 const MetricsPage = lazy(() => import('./pages/research/MetricsPage.jsx').then((module) => ({ default: module.MetricsPage })));
 const PublicSignPage = lazy(() => import('./pages/public/PublicSignPage.jsx').then((module) => ({ default: module.PublicSignPage })));
+const PublicDiscoveryPage = lazy(() => import('./pages/public/PublicDiscoveryPage.jsx').then((module) => ({ default: module.PublicDiscoveryPage })));
 const PublicSharePage = lazy(() => import('./pages/public/PublicSharePage.jsx').then((module) => ({ default: module.PublicSharePage })));
 
 function Splash() {
@@ -99,6 +100,7 @@ export function App() {
     <Routes>
       {/* External pages: no login. Foreign partners default to English; signers keep their last choice. */}
       <Route path="/share/:token" element={<WithLanguage initialLanguage="en" persist={false}><Suspense fallback={<Splash />}><PublicSharePage /></Suspense></WithLanguage>} />
+      <Route path="/discovery/:token" element={<WithLanguage><Suspense fallback={<Splash />}><PublicDiscoveryPage /></Suspense></WithLanguage>} />
       <Route path="/sign/:token" element={<WithLanguage><Suspense fallback={<Splash />}><PublicSignPage /></Suspense></WithLanguage>} />
       <Route path="/*" element={<WithLanguage><StaffApp /></WithLanguage>} />
     </Routes>

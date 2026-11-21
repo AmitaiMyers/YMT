@@ -22,6 +22,7 @@ export const DEFAULT_SETTINGS = {
     contacts: { provider: 'claude', model: 'claude-sonnet-5-5' },
     outreach: { provider: 'claude', model: 'claude-sonnet-5-5' },
     reply: { provider: 'claude', model: 'claude-sonnet-5-5' },
+    meeting: { provider: 'claude', model: 'claude-sonnet-5-5' },
   }),
   // Release 4: a first approach with no reply after this many days shows "Follow up".
   followup_after_days: '7',
@@ -37,6 +38,19 @@ export const DEFAULT_SETTINGS = {
     'claude-haiku-5-5': { input: 0.1, output: 0.5, cache_read: 0.01, search: 0.01 },
   }),
 };
+
+// Release 5: the standard discovery questions YMT starts from (an admin edits them under Settings → Discovery form).
+export const DEFAULT_DISCOVERY_QUESTIONS = [
+  { question_he: 'מה תרצו להשיג ב-12 החודשים הקרובים?', question_en: 'What would you like to achieve in the next 12 months?', answer_kind: 'long', required: 1 },
+  { question_he: 'לאילו שווקים או מדינות אתם מכוונים?', question_en: 'Which markets or countries are you targeting?', answer_kind: 'short', required: 1 },
+  { question_he: 'באילו מוצרים או שירותים מדובר?', question_en: 'Which products or services is this about?', answer_kind: 'long', required: 0 },
+  { question_he: 'מהו לוח הזמנים שלכם?', question_en: 'What is your timeline?', answer_kind: 'short', required: 0 },
+  { question_he: 'איזה טווח תקציב הקציתם לכך?', question_en: 'What budget range have you set aside for this?', answer_kind: 'short', required: 0 },
+  { question_he: 'מי שותף להחלטה, ואת מי עוד כדאי לשתף?', question_en: 'Who takes part in the decision, and who else should we involve?', answer_kind: 'long', required: 0 },
+  { question_he: 'עם אילו שותפים, מפיצים או יועצים אתם כבר עובדים שם?', question_en: 'Which partners, distributors or advisors do you already work with there?', answer_kind: 'long', required: 0 },
+  { question_he: 'אילו מגבלות כדאי שנכיר (רגולציה, תקינה, כושר ייצור, פיקוח יצוא)?', question_en: 'What constraints should we know about (regulation, certifications, capacity, export controls)?', answer_kind: 'long', required: 0 },
+  { question_he: 'יש עוד משהו שחשוב שנדע?', question_en: 'Is there anything else we should know?', answer_kind: 'long', required: 0 },
+];
 
 export const DEFAULT_WORKFLOWS = [
   { name_he: 'ליווי אסטרטגי ארוך טווח', name_en: 'Long-term advisory', stages: PIPELINE_STAGES },

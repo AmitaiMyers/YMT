@@ -530,7 +530,7 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   tenant_id INTEGER NOT NULL DEFAULT 1,
   run_id INTEGER REFERENCES research_runs(id) ON DELETE SET NULL,
   calibration_id INTEGER REFERENCES calibrations(id) ON DELETE SET NULL,
-  task TEXT NOT NULL CHECK (task IN ('discover', 'classify', 'judge', 'contacts', 'outreach', 'reply')),
+  task TEXT NOT NULL CHECK (task IN ('discover', 'classify', 'judge', 'contacts', 'outreach', 'reply', 'meeting')),
   contact_search_id INTEGER REFERENCES contact_searches(id) ON DELETE SET NULL,
   provider TEXT NOT NULL,
   model TEXT NOT NULL,
@@ -592,6 +592,39 @@ CREATE TABLE IF NOT EXISTS approved_answers (
   updated_by INTEGER REFERENCES users(id),
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
+
+-- Release 5: the client discovery form. Questions are edited by an admin; each request is a personal, expiring,
+-- revocable link. Answers keep the question text as it was shown, so later edits never change what a client answered.
+CREATE TABLE IF NOT EXISTS discovery_questions (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  position INTEGER NOT NULL,
+  question_he TEXT NOT NULL,
+  question_en TEXT NOT NULL,
+  answer_kind TEXT NOT NULL DEFAULT 'long' CHECK (answer_kind IN ('short', 'long')),
+  required INTEGER NOT NULL DEFAULT 0,
+  active INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS discovery_requests (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  token TEXT NOT NULL UNIQUE,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  deal_id INTEGER REFERENCES deals(id) ON DELETE SET NULL,
+  contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+  language TEXT NOT NULL CHECK (language IN ('he', 'en')),
+  expires_at TEXT NOT NULL,
+  revoked INTEGER NOT NULL DEFAULT 0,
+  created_by INTEGER NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  submitted_at TEXT,
+  submitted_name TEXT,
+  submitted_language TEXT CHECK (submitted_language IN ('he', 'en')),
+  answers TEXT -- JSON array of { question, answer } as the client saw and wrote them
+);
+CREATE INDEX IF NOT EXISTS idx_discovery_company ON discovery_requests(company_id);
 
 CREATE INDEX IF NOT EXISTS idx_deals_company ON deals(company_id);
 CREATE INDEX IF NOT EXISTS idx_interactions_company ON interactions(company_id, occurred_at);

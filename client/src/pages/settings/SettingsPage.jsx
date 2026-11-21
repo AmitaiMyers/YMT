@@ -14,6 +14,7 @@ import { UsersSettings } from './UsersSettings.jsx';
 import { PrivacySettings, AuditLog } from './PrivacySettings.jsx';
 import { OutreachSettings } from './OutreachSettings.jsx';
 import { ApprovedAnswersSettings } from './ApprovedAnswersSettings.jsx';
+import { DiscoverySettings } from './DiscoverySettings.jsx';
 import { MAX_FOLLOWUPS_HARD_LIMIT } from '../../../../shared/enums.js';
 import { InstallButton } from '../../app/InstallButton.jsx';
 import { useInstallPrompt } from '../../app/pwa.js';
@@ -112,6 +113,7 @@ export function SettingsPage() {
     { key: 'templates', label: t('settings.templates'), Component: TemplatesSettings },
     { key: 'outreach', label: t('settings.outreach'), Component: OutreachSettings },
     { key: 'answers', label: t('settings.answers'), Component: ApprovedAnswersSettings },
+    { key: 'discovery', label: t('settings.discovery'), Component: DiscoverySettings },
     ...(isAdmin ? [{ key: 'users', label: t('settings.users'), Component: UsersSettings }] : []),
     { key: 'privacy', label: t('settings.privacy'), Component: PrivacySettings },
     ...(isAdmin ? [{ key: 'audit', label: t('settings.audit'), Component: AuditLog }] : []),

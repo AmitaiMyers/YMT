@@ -3,7 +3,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { DEFAULT_SETTINGS, DEFAULT_WORKFLOWS } from './constants.js';
+import { DEFAULT_SETTINGS, DEFAULT_WORKFLOWS, DEFAULT_DISCOVERY_QUESTIONS } from './constants.js';
 import { DEFAULT_TEMPLATES } from './defaultTemplates.js';
 import { notFound } from './http.js';
 import { seedMandates } from './research/mandates.js';
@@ -105,6 +105,9 @@ function seedDefaults(db) {
   }
   if (count(db, 'templates') === 0) {
     for (const template of DEFAULT_TEMPLATES) insert(db, 'templates', template);
+  }
+  if (count(db, 'discovery_questions') === 0) {
+    DEFAULT_DISCOVERY_QUESTIONS.forEach((question, index) => insert(db, 'discovery_questions', { ...question, position: index + 1 }));
   }
   seedMandates(db);
 }

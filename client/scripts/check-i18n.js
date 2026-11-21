@@ -16,7 +16,7 @@ const DYNAMIC_KEYS = {
   direction: enums.DIRECTIONS, resourceType: enums.RESOURCE_TYPES, documentKind: enums.DOCUMENT_KINDS, documentStatus: enums.DOCUMENT_STATUSES,
   templateKind: enums.TEMPLATE_KINDS, approvalKind: enums.APPROVAL_KINDS, approvalStatus: enums.APPROVAL_STATUSES,
   meetingStatus: ['scheduled', 'done', 'cancelled'], role: ['admin', 'member'], share: ['active', 'expired', 'revoked'],
-  companyTab: ['overview', 'contacts', 'triggers', 'pipeline', 'meetings', 'documents', 'matches', 'sharing', 'research'],
+  companyTab: ['overview', 'contacts', 'triggers', 'pipeline', 'meetings', 'documents', 'matches', 'sharing', 'discovery', 'research'],
   privacy: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
   navGroup: ['today', 'research', 'win', 'clients', 'manage'],
   nav: ['inbox', 'approvals', 'calendar', 'research', 'conversations', 'mandates', 'watchLists', 'researchMetrics', 'leads', 'pipeline', 'clients', 'documents', 'network', 'dashboard', 'settings'],
@@ -44,6 +44,7 @@ const DYNAMIC_KEYS = {
   'decision.done': ['accepted', 'verify', 'deferred', 'rejected'],
   contactProposal: enums.CONTACT_PROPOSAL_STATUSES,
   // Release 3
+  discoveryStatus: enums.DISCOVERY_STATUSES, discoveryKind: enums.DISCOVERY_ANSWER_KINDS,
   replyClass: enums.REPLY_CLASSES, replySource: enums.REPLY_SOURCES, 'conversation.view': enums.CONVERSATION_VIEWS,
   'conversation.empty': enums.CONVERSATION_VIEWS, followupBlocker: ['replied', 'in_queue', 'limit', 'waiting'],
   'approval.manualSend': enums.OUTREACH_CHANNELS, 'approval.recipientOf': enums.OUTREACH_CHANNELS, suppressionKind: enums.SUPPRESSION_KINDS,

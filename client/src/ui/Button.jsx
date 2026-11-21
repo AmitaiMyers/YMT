@@ -65,7 +65,7 @@ export function Button({
           {...rest}
         >
           {loading ? <LoaderCircle aria-hidden="true" size={16} className="animate-spin-ui" /> : Icon && <Icon aria-hidden="true" size={16} />}
-          <span>{loading && loadingLabel ? loadingLabel : children}</span>
+          <span className="inline-flex items-center gap-2">{loading && loadingLabel ? loadingLabel : children}</span>
         </button>
       )}
     </Tooltip>

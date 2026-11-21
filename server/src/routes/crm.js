@@ -9,6 +9,7 @@ import { recordInteraction } from '../timeline.js';
 import { generateFollowupEmail } from '../generators.js';
 import { enqueueApproval, followupsCommitted } from '../approvalQueue.js';
 import { SELECT_DEALS, buildReminders } from '../reminders.js';
+import { discoveryRequests } from './discovery.js';
 
 const WORKFLOW_SPEC = {
   name_he: { type: 'string', required: true, max: 120 },
@@ -141,6 +142,8 @@ export function crmRoutes(db) {
           o.evidence_date, o.evidence_quote, o.decided_at, o.decision_note, s.url AS evidence_url, m.code AS mandate_code, u.display_name AS decided_by_name
         FROM opportunities o JOIN sources s ON s.id = o.evidence_source_id LEFT JOIN mandates m ON m.id = o.mandate_id
         LEFT JOIN users u ON u.id = o.decided_by WHERE o.id = ?`).get(deal.opportunity_id),
+      // Release 5: the client's discovery answers sent for this deal.
+      discovery: discoveryRequests(db, "r.deal_id = ? AND r.submitted_at IS NOT NULL", id),
     });
   });
 

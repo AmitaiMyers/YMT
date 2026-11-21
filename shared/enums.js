@@ -66,7 +66,10 @@ export const EXAMPLE_LABELS = ['good', 'false_positive'];
 export const CONTACT_PROPOSAL_STATUSES = ['proposed', 'confirmed', 'dismissed'];
 export const JOB_STATUSES = ['queued', 'running', 'done', 'failed', 'waiting_budget'];
 export const AI_PROVIDERS = ['claude', 'openai', 'fake'];
-export const AI_TASKS = ['discover', 'classify', 'judge', 'contacts', 'outreach', 'reply'];
+export const AI_TASKS = ['discover', 'classify', 'judge', 'contacts', 'outreach', 'reply', 'meeting'];
+// Release 5: client discovery form (sent as a personal link) and its admin-editable questions.
+export const DISCOVERY_ANSWER_KINDS = ['short', 'long'];
+export const DISCOVERY_STATUSES = ['open', 'answered', 'expired', 'revoked'];
 // Release 4: replies from people we approached.
 export const REPLY_SOURCES = ['pasted', 'gmail'];
 export const REPLY_CLASSES = ['interested', 'question', 'not_now', 'not_interested', 'opt_out', 'referral', 'out_of_office', 'other'];

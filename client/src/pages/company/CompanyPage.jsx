@@ -18,10 +18,11 @@ import { DocumentsTab } from './DocumentsTab.jsx';
 import { MatchesTab } from './MatchesTab.jsx';
 import { SharingTab } from './SharingTab.jsx';
 import { ResearchTab } from './ResearchTab.jsx';
+import { DiscoveryTab } from './DiscoveryTab.jsx';
 
 const TABS = [
   ['overview', OverviewTab], ['contacts', ContactsTab], ['triggers', TriggersTab], ['pipeline', PipelineTab],
-  ['meetings', MeetingsTab], ['documents', DocumentsTab], ['matches', MatchesTab], ['sharing', SharingTab], ['research', ResearchTab],
+  ['meetings', MeetingsTab], ['documents', DocumentsTab], ['matches', MatchesTab], ['sharing', SharingTab], ['discovery', DiscoveryTab], ['research', ResearchTab],
 ];
 
 function SummaryStat({ icon: Icon, label, children }) {

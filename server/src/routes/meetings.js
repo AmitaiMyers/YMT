@@ -10,6 +10,7 @@ import { recordInteraction } from '../timeline.js';
 import { generateMeetingFollowupEmail, findTemplate } from '../generators.js';
 import { createDocumentFromTemplate } from './documents.js';
 import { enqueueApproval } from '../approvalQueue.js';
+import { meetingRequest, parseMeetingDraft } from '../research/tasks.js';
 import { assertInvitePossible, pushNewMeeting, pushMeetingChange, googleAccount, googleEventsFor, tryGoogle } from '../calendarSync.js';
 
 const DURATION = { type: 'int', min: 5, max: 720 };
@@ -54,9 +55,17 @@ const TASK_SPEC = {
 };
 
 const NEW_TASK_SPEC = { ...TASK_SPEC, company_id: { type: 'id', required: true } };
+const MAX_NOTES = 60000; // about an hour of transcript
+const DRAFT_SUMMARY_SPEC = {
+  notes: { type: 'text', required: true, max: MAX_NOTES },
+  language: { type: 'string', required: true, enum: LANGUAGES },
+};
 
 const COMPLETE_SPEC = {
   summary: { type: 'text', required: true, max: 10000 },
+  // Release 5: an edited recap email (from the AI draft) replaces the template-based follow-up email.
+  followup_subject: { type: 'string', max: 300 },
+  followup_body: { type: 'text', max: 10000 },
   decisions: { type: 'text', max: 5000 },
   new_stage: { type: 'string', enum: PIPELINE_STAGES },
   followup_contact_id: { type: 'id' },
@@ -119,7 +128,7 @@ function resolveParticipants(db, userId, values, newContactInput) {
   return { companyId, contactId: null, contactEmail: null };
 }
 
-export function meetingRoutes(db, { google }) {
+export function meetingRoutes(db, { google, ai }) {
   const router = Router();
 
   router.get('/meetings', (req, res) => {
@@ -225,7 +234,26 @@ export function meetingRoutes(db, { google }) {
       open_tasks: companyOnly('SELECT * FROM tasks WHERE company_id = ? AND done = 0 ORDER BY due_date'),
       open_documents: companyOnly(`SELECT id, kind, title, status FROM documents WHERE company_id = ? AND status != 'signed' ORDER BY created_at DESC`),
       recent_triggers: companyOnly('SELECT * FROM triggers WHERE company_id = ? ORDER BY detected_on DESC LIMIT 5'),
+      ai_problem: ai.problem('meeting'),
     });
+  });
+
+  /**
+   * Release 5: draft the summary, decisions, tasks and recap email from notes or a pasted transcript. Nothing is
+   * stored here: the owner edits the draft in the post-meeting form and saves it with "complete" as before.
+   */
+  router.post('/meetings/:id/draft-summary', async (req, res) => {
+    const meeting = findById(db, 'meetings', parseId(req.params.id));
+    if (meeting.status !== 'scheduled') throw badRequest(`Meeting is already ${meeting.status}`);
+    const { notes, language } = parseBody(DRAFT_SUMMARY_SPEC, req.body);
+    const result = await ai.call('meeting', meetingRequest({
+      meeting, language, notes,
+      companyName: meeting.company_id ? findById(db, 'companies', meeting.company_id).name : null,
+      personName: meeting.contact_id ? findById(db, 'contacts', meeting.contact_id).full_name : null,
+      organizerName: findById(db, 'users', meeting.organizer_id ?? req.user.id).display_name,
+    }));
+    audit(db, req.user.id, 'meeting.summary_drafted', 'meetings', meeting.id);
+    res.json(parseMeetingDraft(result.input));
   });
 
   /**
@@ -271,7 +299,9 @@ export function meetingRoutes(db, { google }) {
       const isCompanyContact = meeting.company_id !== null && contact.company_id === meeting.company_id;
       if (!isMeetingPerson && !isCompanyContact) throw badRequest('This contact is not part of the meeting or its organization');
       const completed = findById(db, 'meetings', id);
-      const { subject, content } = generateMeetingFollowupEmail(db, req.user, { meeting: completed, contact, language: values.language });
+      const { subject, content } = values.followup_body
+        ? { subject: values.followup_subject, content: values.followup_body }
+        : generateMeetingFollowupEmail(db, req.user, { meeting: completed, contact, language: values.language });
       const approvalId = enqueueApproval(db, req.user.id, {
         kind: 'meeting_followup_email', company_id: meeting.company_id, deal_id: meeting.deal_id,
         contact_id: contact.id, meeting_id: id, language: values.language, subject, content, recipient_email: contact.email,
