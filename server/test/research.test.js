@@ -146,6 +146,8 @@ const SEARCH = {
   vacancy: 'https://jobs.example/vp-ops',
   vietnam: 'https://news.example/delta-vietnam',
   listed: 'https://news.example/listed-india',
+  team: 'https://acmesoftware.example/team',
+  linkedin: 'https://www.linkedin.com/in/dana-levi',
   stranger: 'https://news.example/stranger-india',
 };
 const prompts = [];
@@ -181,6 +183,19 @@ function fakeScript() {
           ] },
           sources: Object.values(SEARCH).map((url) => ({ url, title: 'Result' })),
           usage: { input: 20000, output: 2000, cacheRead: 0, cacheWrite: 0, searches: 4 },
+        };
+      }
+      if (tool.name === 'submit_contacts') {
+        return {
+          input: { contacts: [
+            { full_name: 'Dana Levi', job_title: 'VP Business Development', email: 'dana@acmesoftware.example', linkedin_url: SEARCH.linkedin,
+              source_url: SEARCH.team, quote: 'Dana Levi, VP Business Development (dana@acmesoftware.example), leads partnerships.' },
+            { full_name: 'Yossi Cohen', job_title: 'CEO', email: 'yossi.cohen@gmail.com', linkedin_url: 'https://www.linkedin.com/in/not-in-search',
+              source_url: SEARCH.team, quote: 'CEO Yossi Cohen (yossi.cohen@gmail.com) founded Acme.' },
+            { full_name: 'Ghost Person', job_title: 'CTO', email: '', linkedin_url: '', source_url: 'https://invented.example/x', quote: 'Ghost is CTO.' },
+          ] },
+          sources: [{ url: SEARCH.team, title: 'Team' }, { url: SEARCH.linkedin, title: 'Dana Levi | LinkedIn' }],
+          usage: { input: 3000, output: 300, cacheRead: 0, cacheWrite: 0, searches: 2 },
         };
       }
       if (tool.name === 'submit_classification') {
@@ -352,7 +367,7 @@ test('calibration compares two versions on saved examples', async () => {
 
   const calibration = await call('shir', 'POST', `/mandates/${sh2}/calibrations`, { from_version_id: before.version.id, to_version_id: version.data.id });
   assert.equal(calibration.status, 201);
-  await processNext(db, ai, TODAY);
+  while (await processNext(db, ai, TODAY)) { /* the decision-maker search queued by Accept runs first */ }
   const detail = (await call('shir', 'GET', `/mandates/${sh2}`)).data;
   const [row] = detail.calibrations[0].rows;
   assert.equal(detail.calibrations[0].status, 'done');
@@ -461,4 +476,49 @@ test('watch lists: import with duplicates, runs check listed companies only, rot
 
   assert.equal((await call('omer', 'DELETE', `/watch-lists/${listId}`)).status, 403);
   assert.equal((await call('shir', 'DELETE', `/watch-lists/${listId}`)).status, 200);
+});
+
+test('Release 2: accept writes the timeline and finds decision makers; open one deal per card; contacts confirmed by the owner', async () => {
+  while (await processNext(db, ai, TODAY)) { /* finish queued work */ }
+  const card = (await call('shir', 'GET', `/opportunities/${ids.acme}`)).data;
+  assert.equal(card.contact_search.status, 'done', card.contact_search.error);
+  const people = Object.fromEntries(card.contact_proposals.map((p) => [p.full_name, p]));
+  assert.deepEqual(Object.keys(people).sort(), ['Dana Levi', 'Yossi Cohen']); // Ghost: source not returned by the search
+  assert.equal(people['Dana Levi'].email, 'dana@acmesoftware.example');
+  assert.equal(people['Dana Levi'].linkedin_url, SEARCH.linkedin);
+  assert.equal(people['Yossi Cohen'].email, null); // personal mailbox dropped
+  assert.equal(people['Yossi Cohen'].linkedin_url, null); // link not returned by the search
+
+  assert.equal((await call('omer', 'POST', `/contact-proposals/${people['Dana Levi'].id}/confirm`, { department: 'growth', preferred_language: 'en' })).status, 403);
+  const confirmed = await call('shir', 'POST', `/contact-proposals/${people['Dana Levi'].id}/confirm`, { department: 'growth', preferred_language: 'en' });
+  assert.equal(confirmed.status, 200);
+  const contact = db.prepare('SELECT * FROM contacts WHERE id = ?').get(confirmed.data.contact_id);
+  assert.deepEqual([contact.verified, contact.verified_source, contact.email], [1, SEARCH.team, 'dana@acmesoftware.example']);
+  assert.equal((await call('shir', 'POST', `/contact-proposals/${people['Dana Levi'].id}/confirm`, { department: 'growth', preferred_language: 'en' })).status, 409);
+  assert.equal((await call('shir', 'POST', `/contact-proposals/${people['Yossi Cohen'].id}/dismiss`)).status, 200);
+
+  // A second search does not propose the same people again.
+  assert.equal((await call('shir', 'POST', `/opportunities/${ids.acme}/contacts/search`)).status, 201);
+  while (await processNext(db, ai, TODAY)) { /* run it */ }
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM contact_proposals WHERE opportunity_id = ?').get(ids.acme).n, 2);
+
+  // Deal defaults per mandate, one deal per card, history on the deal and the company timeline.
+  const workflowId = db.prepare('SELECT id FROM workflows ORDER BY id LIMIT 1').get().id;
+  assert.equal((await call('tom', 'PATCH', `/mandates/${mandateId('SH2')}`, { default_workflow_id: workflowId, default_deal_model: 'retainer' })).status, 200);
+  assert.deepEqual((await call('shir', 'GET', `/opportunities/${ids.acme}`)).data.deal_defaults, { default_workflow_id: workflowId, default_deal_model: 'retainer' });
+  assert.equal((await call('omer', 'POST', `/opportunities/${ids.metal}/deal`, { title: 'x', workflow_id: workflowId, deal_model: 'retainer' })).data.error, 'Accept the card before opening a deal');
+  const deal = await call('shir', 'POST', `/opportunities/${ids.acme}/deal`, { title: 'SH2: Japan integration partners', workflow_id: workflowId, deal_model: 'retainer', expected_value_usd: 40000 });
+  assert.equal(deal.status, 201);
+  assert.equal((await call('shir', 'POST', `/opportunities/${ids.acme}/deal`, { title: 'again', workflow_id: workflowId, deal_model: 'retainer' })).data.error, `This card already has deal #${deal.data.id}`);
+  const dealPage = (await call('shir', 'GET', `/deals/${deal.data.id}`)).data;
+  assert.equal(dealPage.research_card.mandate_code, 'SH2');
+  assert.equal(dealPage.research_card.evidence_url, SEARCH.good);
+  assert.equal(dealPage.owner_id, ids.shir);
+  const timeline = db.prepare('SELECT summary FROM interactions WHERE company_id = ? ORDER BY id').all(dealPage.company_id).map((i) => i.summary);
+  assert.ok(timeline[0].startsWith('Research card accepted (SH2)'));
+  assert.ok(timeline.some((summary) => summary.startsWith('Deal opened from research card')));
+  assert.equal((await call('shir', 'GET', `/opportunities/${ids.acme}`)).data.deal.id, deal.data.id);
+
+  const research = (await call('shir', 'GET', `/companies/${dealPage.company_id}/research`)).data;
+  assert.deepEqual(research.map((r) => r.id), [ids.acme]);
 });

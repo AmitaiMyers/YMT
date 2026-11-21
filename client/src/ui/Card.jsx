@@ -33,13 +33,16 @@ export function PageHeader({ title, subtitle, actions, eyebrow }) {
   );
 }
 
-/** Label/value pairs. String values are bidi-isolated so mixed Hebrew/English stays readable. */
-export function DefinitionList({ items }) {
+/**
+ * Label/value pairs. String values are bidi-isolated so mixed Hebrew/English stays readable.
+ * `stacked` keeps one column with the label above the value, for narrow side panels.
+ */
+export function DefinitionList({ items, stacked = false }) {
   return (
-    <dl className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+    <dl className={`grid grid-cols-1 gap-x-8 gap-y-3 text-sm ${stacked ? '' : 'sm:grid-cols-2'}`}>
       {items.map(([label, value]) => (
-        <div key={label} className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
-          <dt className="shrink-0 text-subtle sm:w-36">{label}</dt>
+        <div key={label} className={`flex flex-col gap-0.5 ${stacked ? '' : 'sm:flex-row sm:gap-3'}`}>
+          <dt className={`shrink-0 text-subtle ${stacked ? '' : 'sm:w-36'}`}>{label}</dt>
           <dd className="min-w-0 font-medium text-fg [overflow-wrap:anywhere]">{typeof value === 'string' ? <bdi>{value}</bdi> : (value ?? '—')}</dd>
         </div>
       ))}

@@ -17,22 +17,25 @@ import { useEnumOptions } from '../../enumOptions.js';
 import { RunStatus, VerdictBadge, useCost } from './researchUi.jsx';
 import { CriteriaForm } from './CriteriaForm.jsx';
 import { RunDialog, usePolling } from './MandatesPage.jsx';
-import { MANDATE_STATUSES, MANDATE_SCHEDULES, WEEKDAYS } from '../../../../shared/enums.js';
+import { MANDATE_STATUSES, MANDATE_SCHEDULES, WEEKDAYS, DEAL_MODELS } from '../../../../shared/enums.js';
 
 const ACTIVE = ['queued', 'running'];
 
 function SettingsCard({ mandate, onSaved }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const options = useEnumOptions();
   const toast = useToast();
   const users = useLoad('/users');
   const lists = useLoad('/watch-lists');
+  const workflows = useLoad('/workflows');
   return (
     <Card title={t('research.settingsTitle')}>
       <Loaded result={users} skeleton={<SkeletonRows rows={4} />}>
         {(list) => (
           <Loaded result={lists} skeleton={<SkeletonRows rows={1} />}>
           {(watchLists) => (
+          <Loaded result={workflows} skeleton={<SkeletonRows rows={1} />}>
+          {(workflowList) => (
           <EntityForm
             fields={[
               { name: 'name', label: t('criteria.name'), type: 'text', required: true, wide: true },
@@ -44,6 +47,9 @@ function SettingsCard({ mandate, onSaved }) {
               { name: 'freshness_days', label: t('research.freshnessDays'), type: 'number', required: true, min: 7, help: t('research.freshnessHelp') },
               { name: 'weekly_watch_list_id', label: t('research.weeklySource'), type: 'select', help: t('research.weeklySourceHelp'),
                 options: watchLists.filter((w) => w.entry_count > 0).map((w) => ({ value: String(w.id), label: w.name })) },
+              { name: 'default_workflow_id', label: t('research.defaultWorkflow'), type: 'select', help: t('research.dealDefaultsHelp'),
+                options: workflowList.filter((w) => w.active).map((w) => ({ value: String(w.id), label: language === 'he' ? w.name_he : w.name_en })) },
+              { name: 'default_deal_model', label: t('research.defaultDealModel'), type: 'select', options: options('dealModel', DEAL_MODELS) },
             ]}
             initial={mandate}
             onSubmit={async (values) => {
@@ -52,11 +58,14 @@ function SettingsCard({ mandate, onSaved }) {
                 owner_id: values.owner_id === null ? null : Number(values.owner_id),
                 schedule_weekday: Number(values.schedule_weekday),
                 weekly_watch_list_id: values.weekly_watch_list_id === null ? null : Number(values.weekly_watch_list_id),
+                default_workflow_id: values.default_workflow_id === null ? null : Number(values.default_workflow_id),
               });
               toast({ title: t('toast.saved') });
               onSaved();
             }}
           />
+          )}
+          </Loaded>
           )}
           </Loaded>
         )}

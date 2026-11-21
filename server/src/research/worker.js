@@ -3,7 +3,7 @@
 
 import { insert, audit } from '../db.js';
 import { budgetStatus } from '../ai/service.js';
-import { executeRun, executeCalibration } from './runner.js';
+import { executeRun, executeCalibration, executeContactSearch } from './runner.js';
 
 const ISRAEL_TIME_ZONE = 'Asia/Jerusalem';
 const WEEKDAY_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
@@ -29,6 +29,7 @@ export function recoverInterrupted(db) {
   db.prepare("UPDATE research_runs SET status = 'failed', error = 'Interrupted by a server restart', finished_at = ? WHERE status = 'running'")
     .run(new Date().toISOString());
   db.prepare("UPDATE calibrations SET status = 'failed', error = 'Interrupted by a server restart' WHERE status = 'running'").run();
+  db.prepare("UPDATE contact_searches SET status = 'failed', error = 'Interrupted by a server restart' WHERE status = 'running'").run();
 }
 
 /** Queue this week's run for every active weekly mandate whose weekday is today (idempotent per ISO week). */
@@ -54,9 +55,10 @@ export function requeueWaiting(db, now = new Date()) {
   if (budgetStatus(db, now).remaining <= 0) return;
   db.prepare("UPDATE research_runs SET status = 'queued' WHERE status = 'waiting_budget'").run();
   db.prepare("UPDATE calibrations SET status = 'queued' WHERE status = 'waiting_budget'").run();
+  db.prepare("UPDATE contact_searches SET status = 'queued' WHERE status = 'waiting_budget'").run();
 }
 
-/** The queued run whose owner was served longest ago (owners take turns), else the oldest calibration. */
+/** The queued run whose owner was served longest ago (owners take turns), else a decision-maker search, else a calibration. */
 function nextItem(db) {
   const run = db.prepare(`SELECT r.id FROM research_runs r JOIN mandates m ON m.id = r.mandate_id
     WHERE r.status = 'queued'
@@ -64,6 +66,8 @@ function nextItem(db) {
               WHERE m2.owner_id IS m.owner_id) ASC NULLS FIRST, r.id ASC
     LIMIT 1`).get();
   if (run) return { kind: 'run', id: run.id };
+  const search = db.prepare("SELECT id FROM contact_searches WHERE status = 'queued' ORDER BY id LIMIT 1").get();
+  if (search) return { kind: 'contacts', id: search.id };
   const calibration = db.prepare("SELECT id FROM calibrations WHERE status = 'queued' ORDER BY id LIMIT 1").get();
   return calibration ? { kind: 'calibration', id: calibration.id } : null;
 }
@@ -73,6 +77,7 @@ export async function processNext(db, ai, now = new Date()) {
   const item = nextItem(db);
   if (!item) return false;
   if (item.kind === 'run') await executeRun(db, ai, item.id, now);
+  else if (item.kind === 'contacts') await executeContactSearch(db, ai, item.id, now);
   else await executeCalibration(db, ai, item.id, now);
   return true;
 }

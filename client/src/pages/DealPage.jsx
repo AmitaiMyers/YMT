@@ -11,6 +11,7 @@ import { EntityForm } from '../components/EntityForm.jsx';
 import { Timeline, LogInteractionCard } from '../components/Timeline.jsx';
 import { useDraftFlow } from '../components/useDraftFlow.jsx';
 import { useCounts } from '../app/CountsProvider.jsx';
+import { ResearchOriginCard } from './research/AcceptedPanels.jsx';
 import { useEnumOptions } from '../enumOptions.js';
 import { DEAL_MODELS, DEAL_STATUSES } from '../../../shared/enums.js';
 
@@ -94,6 +95,7 @@ function DealView({ deal, reload }) {
           </Card>
           <FollowupCard deal={deal} onDraft={() => flow.openFollowup(deal.id)} />
         </div>
+        {deal.research_card && <ResearchOriginCard card={deal.research_card} />}
         <div className="grid gap-6 lg:grid-cols-2">
           <Card title={t('interaction.timeline')}><Timeline interactions={deal.interactions} /></Card>
           <LogInteractionCard companyId={deal.company_id} dealId={deal.id} contacts={deal.contacts} onLogged={reload} />

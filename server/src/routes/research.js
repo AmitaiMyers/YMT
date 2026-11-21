@@ -8,12 +8,13 @@ import { badRequest, forbidden, conflict, notFound } from '../http.js';
 import { requireAdmin } from '../auth.js';
 import {
   NEED_TYPES, SECTORS, RELATIONSHIP_ROLES, REVIEW_DECISIONS, REJECT_REASONS, MANDATE_STATUSES, MANDATE_SCHEDULES,
-  ISRAEL_CONNECTIONS, EXAMPLE_LABELS, AI_PROVIDERS, AI_TASKS, MAX_RUN_BATCH, REVIEWABLE_STATUSES,
+  ISRAEL_CONNECTIONS, EXAMPLE_LABELS, AI_PROVIDERS, AI_TASKS, MAX_RUN_BATCH, REVIEWABLE_STATUSES, DEAL_MODELS, DEPARTMENTS, LANGUAGES,
 } from '../constants.js';
 import { loadMandate, findVersion, createMandate, createVersion, parseVersion, CRITERIA_FIELDS } from '../research/mandates.js';
-import { findExistingCompany, normalizeUrl, employeeBand, revenueBand } from '../research/classification.js';
+import { findExistingCompany, normalizeUrl, normalizeName, employeeBand, revenueBand } from '../research/classification.js';
 import { budgetStatus } from '../ai/service.js';
 import { requeueWaiting } from '../research/worker.js';
+import { recordInteraction } from '../timeline.js';
 
 const MANDATE_FIELDS_SPEC = {
   name: { type: 'string', max: 120 },
@@ -24,6 +25,8 @@ const MANDATE_FIELDS_SPEC = {
   default_batch: { type: 'int', min: 1, max: MAX_RUN_BATCH },
   freshness_days: { type: 'int', min: 7, max: 1095 },
   weekly_watch_list_id: { type: 'id' },
+  default_workflow_id: { type: 'id' },
+  default_deal_model: { type: 'string', enum: DEAL_MODELS },
 };
 
 const CRITERIA_SPEC = {
@@ -68,6 +71,16 @@ const STAFF_OPPORTUNITY_SPEC = {
   evidence_quote: { type: 'text', required: true, max: 1000 },
 };
 const MERGE_SPEC = { into_company_id: { type: 'id', required: true } };
+const OPEN_DEAL_SPEC = {
+  title: { type: 'string', required: true, max: 200 },
+  workflow_id: { type: 'id', required: true },
+  deal_model: { type: 'string', required: true, enum: DEAL_MODELS },
+  expected_value_usd: { type: 'int', min: 0 },
+};
+const CONFIRM_CONTACT_SPEC = {
+  department: { type: 'string', required: true, enum: DEPARTMENTS },
+  preferred_language: { type: 'string', required: true, enum: LANGUAGES },
+};
 const AI_SETTINGS_SPEC = {
   ai_monthly_cap_usd: { type: 'int', min: 1, max: 1000 },
   ...Object.fromEntries(AI_TASKS.flatMap((task) => [
@@ -187,6 +200,17 @@ export function researchRoutes(db, { ai }) {
     return { ...mandate, owner_name: owner ? owner.display_name : null, last_run: lastRun ?? null, pending_cards: pending };
   }
 
+  /** Queue (or re-queue) the decision-maker search for an accepted card. */
+  function queueContactSearch(opportunityId, userId) {
+    const existing = db.prepare('SELECT id, status FROM contact_searches WHERE opportunity_id = ?').get(opportunityId);
+    if (!existing) {
+      insert(db, 'contact_searches', { opportunity_id: opportunityId, requested_by: userId });
+      return;
+    }
+    if (existing.status === 'queued' || existing.status === 'running') return;
+    update(db, 'contact_searches', existing.id, { status: 'queued', error: null, requested_by: userId, finished_at: null });
+  }
+
   // ---------------------------------------------------------- mandates
   router.get('/mandates', (req, res) => {
     const ids = db.prepare('SELECT id FROM mandates ORDER BY code').all();
@@ -232,6 +256,7 @@ export function researchRoutes(db, { ai }) {
     const changes = parseBody(MANDATE_FIELDS_SPEC, req.body, { partial: true });
     if ('owner_id' in changes && changes.owner_id !== null) assertActiveUser(db, changes.owner_id);
     if ('weekly_watch_list_id' in changes && changes.weekly_watch_list_id !== null) assertUsableWatchList(db, changes.weekly_watch_list_id);
+    if ('default_workflow_id' in changes && changes.default_workflow_id !== null) findById(db, 'workflows', changes.default_workflow_id);
     const ownerAfter = 'owner_id' in changes ? changes.owner_id : mandate.owner_id;
     const statusAfter = changes.status ?? mandate.status;
     if (statusAfter === 'active' && ownerAfter === null) throw badRequest('An active mandate needs an owner');
@@ -328,6 +353,12 @@ export function researchRoutes(db, { ai }) {
         FROM facts f JOIN sources s ON s.id = f.source_id WHERE f.company_id = ? ORDER BY f.field, f.id`).all(company.id),
       other_opportunities: db.prepare(`${CARD_LIST_SQL} WHERE o.company_id = ? AND o.id != ? ORDER BY o.id DESC`).all(company.id, id).map(parseCard),
       examples: db.prepare('SELECT id, mandate_id, label, note FROM calibration_examples WHERE opportunity_id = ?').all(id),
+      deal: db.prepare('SELECT id, title, stage, status FROM deals WHERE opportunity_id = ?').get(id) ?? null,
+      company_deals: db.prepare('SELECT id, title, stage, status FROM deals WHERE company_id = ? AND (opportunity_id IS NULL OR opportunity_id != ?) ORDER BY id DESC').all(company.id, id),
+      deal_defaults: card.mandate_id ? db.prepare('SELECT default_workflow_id, default_deal_model FROM mandates WHERE id = ?').get(card.mandate_id) : null,
+      contact_search: db.prepare('SELECT id, status, found, cost_usd, error, created_at, finished_at FROM contact_searches WHERE opportunity_id = ?').get(id) ?? null,
+      contact_proposals: db.prepare(`SELECT p.id, p.full_name, p.job_title, p.email, p.linkedin_url, p.quote, p.status, p.contact_id, s.url AS source_url
+        FROM contact_proposals p JOIN sources s ON s.id = p.source_id WHERE p.opportunity_id = ? ORDER BY p.id`).all(id),
     });
   });
 
@@ -355,6 +386,16 @@ export function researchRoutes(db, { ai }) {
       if (decision === 'accept' && company.outreach_owner_id === null && opportunity.owner_id !== null) {
         update(db, 'companies', company.id, { outreach_owner_id: opportunity.owner_id, updated_at: nowIso() });
       }
+      if (decision === 'accept') {
+        // The company file shows where it came from, and the decision-maker search starts right away.
+        const evidence = findById(db, 'sources', opportunity.evidence_source_id);
+        const mandate = opportunity.mandate_id ? findById(db, 'mandates', opportunity.mandate_id) : null;
+        recordInteraction(db, {
+          company_id: company.id, channel: 'note', direction: 'internal', user_id: req.user.id, occurred_at: decidedAt.toISOString(),
+          summary: `Research card accepted${mandate ? ` (${mandate.code})` : ''}: ${opportunity.business_need} — ${evidence.url}${note ? ` — ${note}` : ''}`,
+        });
+        queueContactSearch(id, req.user.id);
+      }
       if (decision === 'verify') {
         const owner = findById(db, 'users', opportunity.owner_id ?? req.user.id);
         const due = new Date(decidedAt.getTime() + VERIFY_TASK_DAYS * 86400000).toISOString().slice(0, 10);
@@ -363,6 +404,87 @@ export function researchRoutes(db, { ai }) {
       audit(db, req.user.id, `opportunity.${decision}`, 'opportunities', id, reason ?? note);
     });
     res.json(parseCard(findById(db, 'opportunities', id)));
+  });
+
+  /** One deal per card (the stable link): opening it again returns 409 with the existing deal. */
+  router.post('/opportunities/:id/deal', (req, res) => {
+    const id = parseId(req.params.id);
+    const opportunity = findById(db, 'opportunities', id);
+    assertCanSee(req.user, opportunity);
+    if (opportunity.status !== 'accepted') throw conflict('Accept the card before opening a deal');
+    const existing = db.prepare('SELECT id FROM deals WHERE opportunity_id = ?').get(id);
+    if (existing) throw conflict(`This card already has deal #${existing.id}`);
+    const values = parseBody(OPEN_DEAL_SPEC, req.body);
+    const workflow = findById(db, 'workflows', values.workflow_id);
+    if (!workflow.active) throw badRequest('Workflow is inactive');
+    const stages = JSON.parse(workflow.stages);
+    const dealId = transaction(db, () => {
+      const newId = insert(db, 'deals', {
+        company_id: opportunity.company_id, workflow_id: workflow.id, title: values.title, stage: stages[0],
+        owner_id: opportunity.owner_id ?? req.user.id, deal_model: values.deal_model, expected_value_usd: values.expected_value_usd ?? 0,
+        opportunity_id: id,
+      });
+      recordInteraction(db, {
+        company_id: opportunity.company_id, deal_id: newId, channel: 'note', direction: 'internal', user_id: req.user.id,
+        occurred_at: nowIso(), summary: `Deal opened from research card: ${opportunity.business_need}`,
+      });
+      return newId;
+    });
+    audit(db, req.user.id, 'deal.created_from_research', 'deals', dealId, `opportunity ${id}`);
+    res.status(201).json({ id: dealId });
+  });
+
+  /** Run the decision-maker search again (e.g. after a failure, or when the company has published new people). */
+  router.post('/opportunities/:id/contacts/search', (req, res) => {
+    const id = parseId(req.params.id);
+    const opportunity = findById(db, 'opportunities', id);
+    assertCanSee(req.user, opportunity);
+    if (opportunity.status !== 'accepted') throw conflict('The decision-maker search runs for accepted cards');
+    const problem = ai.problem('contacts');
+    if (problem) throw conflict(problem);
+    queueContactSearch(id, req.user.id);
+    res.status(201).json(db.prepare('SELECT * FROM contact_searches WHERE opportunity_id = ?').get(id));
+  });
+
+  function proposalFor(req) {
+    const proposal = findById(db, 'contact_proposals', parseId(req.params.id));
+    assertCanSee(req.user, findById(db, 'opportunities', proposal.opportunity_id));
+    if (proposal.status !== 'proposed') throw conflict(`This person was already ${proposal.status}`);
+    return proposal;
+  }
+
+  /** The owner confirms a proposed person: saved as a verified contact, with the source as verification. */
+  router.post('/contact-proposals/:id/confirm', (req, res) => {
+    const proposal = proposalFor(req);
+    const values = parseBody(CONFIRM_CONTACT_SPEC, req.body);
+    const source = findById(db, 'sources', proposal.source_id);
+    const contactId = transaction(db, () => {
+      const sameName = db.prepare('SELECT id, full_name FROM contacts WHERE company_id = ?').all(proposal.company_id)
+        .find((contact) => normalizeName(contact.full_name) === proposal.name_key);
+      const id = sameName ? sameName.id : insert(db, 'contacts', {
+        company_id: proposal.company_id, full_name: proposal.full_name, job_title: proposal.job_title, department: values.department,
+        email: proposal.email, linkedin_url: proposal.linkedin_url, preferred_language: values.preferred_language,
+        verified: 1, verified_source: source.url, verified_by: req.user.id, verified_at: nowIso(),
+      });
+      update(db, 'contact_proposals', proposal.id, { status: 'confirmed', contact_id: id, decided_by: req.user.id, decided_at: nowIso() });
+      return id;
+    });
+    audit(db, req.user.id, 'contact.confirmed_from_research', 'contacts', contactId, proposal.full_name);
+    res.json({ contact_id: contactId });
+  });
+
+  router.post('/contact-proposals/:id/dismiss', (req, res) => {
+    const proposal = proposalFor(req);
+    update(db, 'contact_proposals', proposal.id, { status: 'dismissed', decided_by: req.user.id, decided_at: nowIso() });
+    res.json({ ok: true });
+  });
+
+  /** Research cards of one company (company page). Owners see their own cards; admins see all. */
+  router.get('/companies/:id/research', (req, res) => {
+    const company = findById(db, 'companies', parseId(req.params.id));
+    const rows = db.prepare(`${CARD_LIST_SQL} WHERE o.company_id = ? ${req.user.role === 'admin' ? '' : 'AND o.owner_id = ?'} ORDER BY o.id DESC`)
+      .all(...(req.user.role === 'admin' ? [company.id] : [company.id, req.user.id]));
+    res.json(rows.map(parseCard));
   });
 
   router.post('/opportunities/:id/assign', requireAdmin, (req, res) => {

@@ -91,7 +91,7 @@ export function createAiService(db, providers) {
     if (message) throw new AiConfigError(message);
   }
 
-  async function call(task, request, { runId = null, calibrationId = null, now = new Date() } = {}) {
+  async function call(task, request, { runId = null, calibrationId = null, contactSearchId = null, now = new Date() } = {}) {
     assertReady(task);
     const { provider, model } = taskConfig(db, task);
     const price = priceFor(db, model);
@@ -104,7 +104,7 @@ export function createAiService(db, providers) {
     const result = await providers[provider].run({ model, ...request });
     const costUsd = costOf(price, result.usage);
     insert(db, 'ai_usage', {
-      run_id: runId, calibration_id: calibrationId, task, provider, model,
+      run_id: runId, calibration_id: calibrationId, contact_search_id: contactSearchId, task, provider, model,
       input_tokens: result.usage.input, output_tokens: result.usage.output, cache_read_tokens: result.usage.cacheRead,
       web_searches: result.usage.searches, cost_usd: costUsd,
     });

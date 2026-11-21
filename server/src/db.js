@@ -31,13 +31,20 @@ export function openDatabase(dbPath) {
 // ------------------------------------------------------------------ schema migrations
 //
 // schema.sql is the single source of truth. On start-up every existing table is compared with its definition
-// there (column names + NOT NULL). If they differ, the table is rebuilt with SQLite's documented 12-step
+// there (column names + NOT NULL, and the text of the column list, so changed CHECK rules count too). If they
+// differ, the table is rebuilt with SQLite's documented 12-step
 // procedure: create the new shape, copy every row of the shared columns, drop the old table, rename, then
 // verify all foreign keys before committing. No data is discarded.
 
 function tableShape(db, table) {
   return db.prepare(`SELECT name, "notnull" AS required FROM pragma_table_info('${table}') ORDER BY cid`).all()
     .map((column) => `${column.name}:${column.required}`).join(',');
+}
+
+/** The column list of a table's CREATE statement, whitespace-collapsed (the table name is left out: renames change it). */
+function tableDefinition(db, table) {
+  const { sql } = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?").get(table);
+  return sql.slice(sql.indexOf('(')).replace(/\s+/g, ' ').trim();
 }
 
 function rebuildTable(db, table, createSql) {
@@ -74,7 +81,8 @@ function migrateTables(db, schemaSql) {
   for (const { name, sql } of tables) {
     assertIdentifier(name);
     const exists = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name);
-    if (!exists || tableShape(db, name) === tableShape(reference, name)) continue;
+    if (!exists) continue;
+    if (tableShape(db, name) === tableShape(reference, name) && tableDefinition(db, name) === tableDefinition(reference, name)) continue;
     rebuildTable(db, name, sql);
     migrated.push(name);
   }
@@ -85,6 +93,10 @@ function migrateTables(db, schemaSql) {
 function seedDefaults(db) {
   const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) insertSetting.run(key, value);
+  // AI tasks added in later releases get their default provider and model; existing choices are kept.
+  const tasks = JSON.parse(db.prepare("SELECT value FROM settings WHERE key = 'ai_tasks'").get().value);
+  const withDefaults = { ...JSON.parse(DEFAULT_SETTINGS.ai_tasks), ...tasks };
+  db.prepare("UPDATE settings SET value = ? WHERE key = 'ai_tasks'").run(JSON.stringify(withDefaults));
 
   if (count(db, 'workflows') === 0) {
     for (const workflow of DEFAULT_WORKFLOWS) {

@@ -15,6 +15,8 @@ import {
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { useEnumOptions } from '../../enumOptions.js';
 import { OpportunityStatus, VerdictBadge, FlagBadges, useEmployeesText } from './researchUi.jsx';
+import { PipelinePanel, DecisionMakersPanel } from './AcceptedPanels.jsx';
+import { usePolling } from './MandatesPage.jsx';
 import { REJECT_REASONS, EXAMPLE_LABELS, CUSTOMER_TYPES } from '../../../../shared/enums.js';
 
 const DECIDABLE = ['draft', 'needs_review', 'verify', 'deferred'];
@@ -193,6 +195,8 @@ export function CardPage() {
   const { user } = useAuth();
   const { refresh } = useCounts();
   const result = useLoad(`/opportunities/${id}`);
+  const searching = Boolean(result.data && result.data.contact_search && ['queued', 'running'].includes(result.data.contact_search.status));
+  usePolling(result, searching);
 
   async function openNext(card) {
     refresh();
@@ -293,13 +297,19 @@ export function CardPage() {
                 {canDecide && <DecisionPanel card={card} onDecided={openNext} />}
                 {!DECIDABLE.includes(card.status) && card.status !== 'manual_assignment' && (
                   <Card title={t('research.decisionTitle')}>
-                    <DefinitionList items={[
+                    <DefinitionList stacked items={[
                       [t('research.status'), <OpportunityStatus key="s" status={card.status} />],
                       [t('research.decidedBy'), card.decided_by_name ? `${card.decided_by_name} · ${format.dateTime(card.decided_at)}` : null],
                       [t('research.rejectReason'), card.decision_reason ? t(`rejectReason.${card.decision_reason}`) : null],
                       [t('research.note'), card.decision_note],
                     ]} />
                   </Card>
+                )}
+                {card.status === 'accepted' && (card.owner_id === user.id || user.role === 'admin') && (
+                  <>
+                    <PipelinePanel card={card} onChanged={result.reload} />
+                    <DecisionMakersPanel card={card} onChanged={result.reload} />
+                  </>
                 )}
                 {card.mandate_id !== null && (card.owner_id === user.id || user.role === 'admin') && <ExamplePanel card={card} onSaved={result.reload} />}
               </div>

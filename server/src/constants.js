@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS = {
     discover: { provider: 'claude', model: 'claude-sonnet-5-5' },
     classify: { provider: 'claude', model: 'claude-sonnet-5-5' },
     judge: { provider: 'claude', model: 'claude-sonnet-5-5' },
+    contacts: { provider: 'claude', model: 'claude-sonnet-5-5' },
   }),
   // Claude API list prices checked 20 Nov 2026 (platform.claude.com/docs/en/about-claude/pricing).
   ai_prices: JSON.stringify({

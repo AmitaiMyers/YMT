@@ -52,8 +52,10 @@ export const OPPORTUNITY_FLAGS = ['outside_preferred_size', 'weak_evidence', 'po
 export const SOURCE_KINDS = ['web', 'job', 'list', 'staff'];
 export const JUDGE_VERDICTS = ['match', 'weak', 'no_match'];
 export const EXAMPLE_LABELS = ['good', 'false_positive'];
+export const CONTACT_PROPOSAL_STATUSES = ['proposed', 'confirmed', 'dismissed'];
+export const JOB_STATUSES = ['queued', 'running', 'done', 'failed', 'waiting_budget'];
 export const AI_PROVIDERS = ['claude', 'openai', 'fake'];
-export const AI_TASKS = ['discover', 'classify', 'judge'];
+export const AI_TASKS = ['discover', 'classify', 'judge', 'contacts'];
 export const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Sunday (Israeli work week starts on Sunday)
 
 // Size bands by headcount and by annual revenue in USD (YMT's internal bands). `max` is inclusive for

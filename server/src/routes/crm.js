@@ -136,6 +136,11 @@ export function crmRoutes(db) {
         FROM interactions i LEFT JOIN users u ON u.id = i.user_id LEFT JOIN contacts k ON k.id = i.contact_id
         WHERE i.deal_id = ? ORDER BY i.occurred_at DESC`).all(id),
       contacts: db.prepare('SELECT * FROM contacts WHERE company_id = ? ORDER BY full_name').all(deal.company_id),
+      // The research card this deal came from (Release 2): evidence and decision stay visible on the deal.
+      research_card: deal.opportunity_id === null ? null : db.prepare(`SELECT o.id, o.business_need, o.target_country, o.need_type,
+          o.evidence_date, o.evidence_quote, o.decided_at, o.decision_note, s.url AS evidence_url, m.code AS mandate_code, u.display_name AS decided_by_name
+        FROM opportunities o JOIN sources s ON s.id = o.evidence_source_id LEFT JOIN mandates m ON m.id = o.mandate_id
+        LEFT JOIN users u ON u.id = o.decided_by WHERE o.id = ?`).get(deal.opportunity_id),
     });
   });
 

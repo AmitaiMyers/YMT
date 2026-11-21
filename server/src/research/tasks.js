@@ -350,3 +350,72 @@ export function parseJudgement(raw) {
     unknowns: list(raw.unknowns, 'unknowns').map((u) => text(u, 'unknowns[]', { max: 200 })),
   };
 }
+
+// ------------------------------------------------------------------ decision makers (Release 2)
+
+const CONTACT_SCHEMA = {
+  type: 'object',
+  properties: { full_name: str, job_title: str, email: str, linkedin_url: str, source_url: str, quote: str },
+  required: ['full_name', 'job_title', 'email', 'linkedin_url', 'source_url', 'quote'],
+  additionalProperties: false,
+};
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Personal mailboxes are never stored: YMT records business contact details only.
+const PERSONAL_EMAIL_DOMAINS = ['gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com', 'icloud.com', 'walla.co.il', 'walla.com', 'aol.com', 'proton.me', 'protonmail.com'];
+const LINKEDIN_PROFILE_RE = /^https:\/\/([a-z]{2,3}\.)?(www\.)?linkedin\.com\/in\/[^/?#]+\/?$/i;
+export const MAX_CONTACTS = 3;
+
+export function contactsRequest({ company, opportunity, proposedService }) {
+  return {
+    system: `You find business decision makers for YMT Group. Business contact details only. ${SAFETY}`,
+    prompt: [
+      `Company: ${company.name}${company.website ? ` (${company.website})` : ''}.`,
+      `Its initiative: ${opportunity.business_need} (target country: ${opportunity.target_country}).`,
+      `YMT would offer: ${proposedService ?? 'an introductory conversation'}.`,
+      '',
+      `Find up to ${MAX_CONTACTS} people at this company who own this decision (for example the CEO, VP Sales or Business Development,`,
+      'Head of International, VP Operations, or HR for a senior hire). Use the company\'s own website (team, about and press pages),',
+      'press releases and business news. For each person give the full name, job title and the sentence from the source that names',
+      'them in that role. Give a business email only if the source page publishes it, and a LinkedIn profile link only if it appeared',
+      'in your search results; otherwise leave them empty. Never give personal phone numbers, home addresses or personal email.',
+      'Do not open LinkedIn pages. When done, call submit_contacts (an empty list is a valid answer).',
+    ].join('\n'),
+    tool: {
+      name: 'submit_contacts',
+      description: 'Submit the decision makers found, each with the source that names them.',
+      schema: { type: 'object', properties: { contacts: { type: 'array', items: CONTACT_SCHEMA } }, required: ['contacts'], additionalProperties: false },
+    },
+    webSearch: { maxUses: 4 },
+    maxTokens: 6000,
+  };
+}
+
+/**
+ * Validate one proposed person. Optional details that cannot be backed are dropped (not the person):
+ * an email must appear in the quoted sentence and not be a personal mailbox; a LinkedIn link must be a profile
+ * URL that the search returned. The source itself must be one the search returned.
+ */
+export function parseContact(raw, isAllowedSource) {
+  if (typeof raw !== 'object' || raw === null) fail('contact must be an object');
+  const sourceUrl = httpUrl(raw.source_url, 'source_url');
+  if (!isAllowedSource(sourceUrl)) fail('source_url was not returned by the search');
+  const quote = text(raw.quote, 'quote', { max: 600 });
+  const emailText = text(raw.email, 'email', { max: 200, optional: true });
+  const email = emailText !== null && EMAIL_RE.test(emailText) && quote.toLowerCase().includes(emailText.toLowerCase())
+    && !PERSONAL_EMAIL_DOMAINS.includes(emailText.split('@')[1].toLowerCase()) ? emailText : null;
+  const linkedinText = text(raw.linkedin_url, 'linkedin_url', { max: 300, optional: true });
+  const linkedinUrl = linkedinText !== null && LINKEDIN_PROFILE_RE.test(linkedinText) && isAllowedSource(linkedinText) ? linkedinText : null;
+  return {
+    fullName: text(raw.full_name, 'full_name', { max: 120 }),
+    jobTitle: text(raw.job_title, 'job_title', { max: 150 }),
+    email,
+    linkedinUrl,
+    sourceUrl,
+    quote,
+  };
+}
+
+export function parseContacts(input) {
+  if (typeof input !== 'object' || input === null) fail('result must be an object');
+  return list(input.contacts, 'contacts');
+}

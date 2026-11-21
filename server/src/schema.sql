@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS deals (
   stage_changed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   last_activity_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   closed_at TEXT,
+  opportunity_id INTEGER UNIQUE REFERENCES opportunities(id) ON DELETE SET NULL, -- research card this deal came from (stable link)
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
@@ -307,6 +308,8 @@ CREATE TABLE IF NOT EXISTS mandates (
   default_batch INTEGER NOT NULL DEFAULT 5 CHECK (default_batch BETWEEN 1 AND 20),
   freshness_days INTEGER NOT NULL DEFAULT 183 CHECK (freshness_days BETWEEN 7 AND 1095),
   weekly_watch_list_id INTEGER REFERENCES watch_lists(id) ON DELETE SET NULL, -- NULL: weekly runs search the open web
+  default_workflow_id INTEGER REFERENCES workflows(id) ON DELETE SET NULL,         -- prefilled when a card opens a deal
+  default_deal_model TEXT CHECK (default_deal_model IN ('commission', 'brokerage_fee', 'future_orders_pct', 'retainer')),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
@@ -476,13 +479,47 @@ CREATE TABLE IF NOT EXISTS calibrations (
   finished_at TEXT
 );
 
+-- Decision-maker search for an accepted card (queue item; one per card, re-run on request).
+CREATE TABLE IF NOT EXISTS contact_searches (
+  id INTEGER PRIMARY KEY,
+  opportunity_id INTEGER NOT NULL UNIQUE REFERENCES opportunities(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed', 'waiting_budget')),
+  found INTEGER NOT NULL DEFAULT 0,
+  cost_usd REAL NOT NULL DEFAULT 0,
+  error TEXT,
+  requested_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  finished_at TEXT
+);
+
+-- People proposed by the search. Saved as contacts only after the owner confirms. Business details only.
+CREATE TABLE IF NOT EXISTS contact_proposals (
+  id INTEGER PRIMARY KEY,
+  opportunity_id INTEGER NOT NULL REFERENCES opportunities(id) ON DELETE CASCADE,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  name_key TEXT NOT NULL,
+  job_title TEXT NOT NULL,
+  email TEXT,
+  linkedin_url TEXT,
+  source_id INTEGER NOT NULL REFERENCES sources(id),
+  quote TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed', 'confirmed', 'dismissed')),
+  contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+  decided_by INTEGER REFERENCES users(id),
+  decided_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (company_id, name_key)
+);
+
 -- Every AI call and what it cost; powers the monthly cap.
 CREATE TABLE IF NOT EXISTS ai_usage (
   id INTEGER PRIMARY KEY,
   tenant_id INTEGER NOT NULL DEFAULT 1,
   run_id INTEGER REFERENCES research_runs(id) ON DELETE SET NULL,
   calibration_id INTEGER REFERENCES calibrations(id) ON DELETE SET NULL,
-  task TEXT NOT NULL CHECK (task IN ('discover', 'classify', 'judge')),
+  task TEXT NOT NULL CHECK (task IN ('discover', 'classify', 'judge', 'contacts')),
+  contact_search_id INTEGER REFERENCES contact_searches(id) ON DELETE SET NULL,
   provider TEXT NOT NULL,
   model TEXT NOT NULL,
   input_tokens INTEGER NOT NULL,
