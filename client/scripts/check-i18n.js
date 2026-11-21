@@ -18,8 +18,8 @@ const DYNAMIC_KEYS = {
   meetingStatus: ['scheduled', 'done', 'cancelled'], role: ['admin', 'member'], share: ['active', 'expired', 'revoked'],
   companyTab: ['overview', 'contacts', 'triggers', 'pipeline', 'meetings', 'documents', 'matches', 'sharing'],
   privacy: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
-  navGroup: ['today', 'win', 'clients', 'manage'],
-  nav: ['inbox', 'approvals', 'calendar', 'leads', 'pipeline', 'clients', 'documents', 'network', 'dashboard', 'settings'],
+  navGroup: ['today', 'research', 'win', 'clients', 'manage'],
+  nav: ['inbox', 'approvals', 'calendar', 'research', 'mandates', 'researchMetrics', 'leads', 'pipeline', 'clients', 'documents', 'network', 'dashboard', 'settings'],
   theme: ['system', 'light', 'dark'],
   'leads.tab': ['search', 'triggers', 'new'],
   'clients.scope': ['clients', 'all'],
@@ -29,6 +29,21 @@ const DYNAMIC_KEYS = {
   inbox: ['morning', 'afternoon', 'evening'],
   calendarState: ['scheduled', 'needsSummary', 'done', 'cancelled'],
   'calendar.view': ['day', 'week', 'month'],
+  // Research (Release 1)
+  opportunityStatus: enums.OPPORTUNITY_STATUSES, verdict: enums.JUDGE_VERDICTS, runStatus: enums.RUN_STATUSES,
+  flag: enums.OPPORTUNITY_FLAGS, needType: enums.NEED_TYPES, israelConnection: enums.ISRAEL_CONNECTIONS,
+  relationshipRole: enums.RELATIONSHIP_ROLES, businessModel: enums.BUSINESS_MODELS, sector: enums.SECTORS,
+  customerType: enums.CUSTOMER_TYPES, sizeBand: enums.SIZE_BANDS, revenueBasis: enums.REVENUE_BASES,
+  rejectReason: enums.REJECT_REASONS, exampleLabel: enums.EXAMPLE_LABELS, sourceKind: enums.SOURCE_KINDS,
+  mandateStatus: enums.MANDATE_STATUSES, mandateSchedule: enums.MANDATE_SCHEDULES, runTrigger: enums.RUN_TRIGGERS,
+  aiProvider: ['claude', 'openai'], aiTask: enums.AI_TASKS, weekday: enums.WEEKDAYS.map(String),
+  'research.view': ['queue', 'manual', 'followup', 'accepted', 'rejected'],
+  'research.field': ['entity_name', 'parent_company', 'business_unit', 'israel_connection', 'incorporation_country', 'hq_country',
+    'model_primary', 'model_secondary', 'sector', 'subsector', 'customer_types', 'customer_markets', 'employees', 'revenue', 'ownership'],
+  decision: enums.REVIEW_DECISIONS, 'decision.confirm': enums.REVIEW_DECISIONS,
+  'decision.done': ['accepted', 'verify', 'deferred', 'rejected'],
+  criteria: ['code', 'name', 'target_countries', 'proposed_service', 'accept_rule', 'false_positives', 'employees_min', 'employees_max',
+    'revenue_min_usd', 'revenue_max_usd', 'search_terms', 'exclusions', 'change_note'],
 };
 
 function sourceFiles(dir) {

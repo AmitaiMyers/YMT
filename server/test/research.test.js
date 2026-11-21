@@ -281,7 +281,8 @@ test('a run creates draft cards for the right owners and drops unverifiable or f
   assert.equal(card.company.israel_connection, 'hq_israel');
   assert.equal(card.company.employee_band, 'medium');
   assert.equal(card.company.sector, null);
-  assert.ok(card.unknowns.includes('sector (no cited source)'));
+  assert.ok(card.unknowns.includes('sector'));
+  assert.ok(!card.unknowns.includes('entity_name'));
   assert.deepEqual(card.facts.map((f) => f.field).sort(), ['employees', 'israel_connection']);
   assert.equal(card.evidence_url, SEARCH.good);
   assert.equal((await call('omer', 'GET', `/opportunities/${ids.acme}`)).status, 403);

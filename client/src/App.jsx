@@ -23,6 +23,11 @@ const DocumentsPage = lazy(() => import('./pages/documents/DocumentsPage.jsx').t
 const DocumentPage = lazy(() => import('./pages/documents/DocumentPage.jsx').then((module) => ({ default: module.DocumentPage })));
 const NetworkPage = lazy(() => import('./pages/NetworkPage.jsx').then((module) => ({ default: module.NetworkPage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage.jsx').then((module) => ({ default: module.SettingsPage })));
+const ReviewPage = lazy(() => import('./pages/research/ReviewPage.jsx').then((module) => ({ default: module.ReviewPage })));
+const CardPage = lazy(() => import('./pages/research/CardPage.jsx').then((module) => ({ default: module.CardPage })));
+const MandatesPage = lazy(() => import('./pages/research/MandatesPage.jsx').then((module) => ({ default: module.MandatesPage })));
+const MandatePage = lazy(() => import('./pages/research/MandatePage.jsx').then((module) => ({ default: module.MandatePage })));
+const MetricsPage = lazy(() => import('./pages/research/MetricsPage.jsx').then((module) => ({ default: module.MetricsPage })));
 const PublicSignPage = lazy(() => import('./pages/public/PublicSignPage.jsx').then((module) => ({ default: module.PublicSignPage })));
 const PublicSharePage = lazy(() => import('./pages/public/PublicSharePage.jsx').then((module) => ({ default: module.PublicSharePage })));
 
@@ -43,6 +48,11 @@ function StaffApp() {
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="meetings/:id/prep" element={<MeetingPrepPage />} />
           <Route path="meetings/:id/complete" element={<MeetingCompletePage />} />
+          <Route path="research" element={<ReviewPage />} />
+          <Route path="research/cards/:id" element={<CardPage />} />
+          <Route path="research/mandates" element={<MandatesPage />} />
+          <Route path="research/mandates/:id" element={<MandatePage />} />
+          <Route path="research/metrics" element={<MetricsPage />} />
           <Route path="leads" element={<LeadsPage />} />
           <Route path="pipeline" element={<PipelinePage />} />
           <Route path="deals/:id" element={<DealPage />} />

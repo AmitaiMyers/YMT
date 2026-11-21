@@ -18,6 +18,10 @@ export const STATUS_TONES = {
   document: { draft: 'neutral', finalized: 'signal', signed: 'success' },
   meeting: { scheduled: 'info', done: 'success', cancelled: 'neutral' },
   share: { active: 'success', expired: 'neutral', revoked: 'danger' },
+  opportunity: { draft: 'signal', needs_review: 'signal', manual_assignment: 'signal', accepted: 'success', verify: 'info', deferred: 'neutral', rejected: 'danger' },
+  run: { queued: 'neutral', running: 'info', done: 'success', failed: 'danger', waiting_budget: 'signal' },
+  verdict: { match: 'success', weak: 'signal', no_match: 'danger' },
+  mandate: { active: 'success', paused: 'neutral' },
 };
 
 export function statusTone(domain, status) {

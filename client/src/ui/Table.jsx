@@ -1,11 +1,13 @@
 // Accessible data table: caption (visually hidden), scoped headers, bidi-isolated text cells.
+// The scroll box is `relative` so visually hidden labels stay inside it (otherwise they widen the whole page on
+// phones), and it is a focusable, labelled region so keyboard users can scroll wide tables (WCAG 2.1.1).
 
 import { EmptyState } from './Feedback.jsx';
 
 export function Table({ caption, columns, rows, rowKey = 'id', empty }) {
   if (rows.length === 0) return typeof empty === 'string' ? <EmptyState title={empty} /> : empty;
   return (
-    <div className="-mx-4 overflow-x-auto sm:-mx-6">
+    <div className="relative -mx-4 overflow-x-auto sm:-mx-6" role="region" aria-label={caption} tabIndex={0}>
       <table className="min-w-full text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead>

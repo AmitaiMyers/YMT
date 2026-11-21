@@ -242,9 +242,11 @@ export function parseClassification(raw, isAllowedSource) {
     }));
   const cited = new Set(facts.map((fact) => fact.field));
   const unknowns = list(raw.unknowns, 'unknowns').map((u) => text(u, 'unknowns[]', { max: 200 }));
+  // A value without a cited source is dropped and its field listed as missing (field codes; screens translate them).
+  // The entity name is excepted: the candidate already names the company.
   const keep = (field, value) => {
     if (cited.has(field)) return value;
-    if (value !== null && !(Array.isArray(value) && value.length === 0)) unknowns.push(`${field} (no cited source)`);
+    if (field !== 'entity_name' && value !== null && !(Array.isArray(value) && value.length === 0)) unknowns.push(field);
     return null;
   };
 
