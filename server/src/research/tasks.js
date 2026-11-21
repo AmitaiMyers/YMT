@@ -115,18 +115,31 @@ const CANDIDATE_SCHEMA = {
   additionalProperties: false,
 };
 
-export function discoverRequest({ mandate, version, batchSize, knownCompanies, publishedAfter }) {
+/**
+ * Open search: find Israeli companies with a matching initiative, skipping companies YMT already has.
+ * Watch-list search (`watchCompanies` given): check only those listed companies for a matching initiative.
+ */
+export function discoverRequest({ mandate, version, batchSize, knownCompanies, publishedAfter, watchCompanies = null }) {
+  const scope = watchCompanies
+    ? [
+      `Check each of these ${watchCompanies.length} Israeli companies from YMT's watch list for a public, dated business initiative`,
+      `matching the mandate below, and report up to ${batchSize} that have one. Report only companies from this list, with the name as listed:`,
+      ...watchCompanies.map((company) => `- ${company.name}${company.website ? ` (${company.website})` : ''}`),
+    ]
+    : [
+      `Find up to ${batchSize} Israeli companies (headquartered in Israel, or an Israeli business unit of a foreign group) that have a`,
+      'public, dated business initiative matching this mandate:',
+    ];
   return {
     system: `You research Israeli companies for YMT Group, a firm that helps Israeli mid-size and large companies grow abroad and in Israel. ${SAFETY}`,
     prompt: [
-      `Find up to ${batchSize} Israeli companies (headquartered in Israel, or an Israeli business unit of a foreign group) that have a`,
-      'public, dated business initiative matching this mandate:',
+      ...scope,
       '',
       describeVersion(mandate, version),
       '',
       `Only use sources published on or after ${publishedAfter}. Each candidate needs one source page that states the initiative,`,
       'with its publication date. Job postings count when the page shows the posting date. Do not use LinkedIn pages.',
-      `Skip these companies, which YMT already has: ${knownCompanies.length ? knownCompanies.join('; ') : 'none'}.`,
+      ...(watchCompanies ? [] : [`Skip these companies, which YMT already has: ${knownCompanies.length ? knownCompanies.join('; ') : 'none'}.`]),
       'Quote the sentence that states the initiative. When done, call submit_candidates (an empty list is a valid answer).',
     ].join('\n'),
     tool: {
@@ -134,7 +147,7 @@ export function discoverRequest({ mandate, version, batchSize, knownCompanies, p
       description: 'Submit the companies found, each with the source that states its initiative.',
       schema: { type: 'object', properties: { candidates: { type: 'array', items: CANDIDATE_SCHEMA } }, required: ['candidates'], additionalProperties: false },
     },
-    webSearch: { maxUses: Math.min(3 + batchSize, 12) },
+    webSearch: { maxUses: watchCompanies ? Math.min(watchCompanies.length + 2, 15) : Math.min(3 + batchSize, 12) },
     maxTokens: 16000,
   };
 }

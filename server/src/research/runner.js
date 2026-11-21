@@ -6,6 +6,7 @@ import { BudgetError } from '../ai/service.js';
 import { findExistingCompany, normalizeDomain, normalizeUrl } from './classification.js';
 import { assignOpportunity, isStale } from './assign.js';
 import { loadMandates, findVersion } from './mandates.js';
+import { entriesPerRun, pickEntries, recordChecks, matchEntry } from './watchLists.js';
 import {
   discoverRequest, parseCandidates, parseCandidate, classifyRequest, parseClassification, judgeRequest, parseJudgement,
   InvalidResultError,
@@ -128,7 +129,7 @@ function finishRun(db, runId, values) {
 export async function executeRun(db, ai, runId, now = new Date()) {
   const run = findById(db, 'research_runs', runId);
   update(db, 'research_runs', runId, { status: 'running', started_at: nowIso(), error: null });
-  const stats = { candidates_found: 0, cards_created: 0, duplicates: 0, filtered: 0 };
+  const stats = { candidates_found: 0, cards_created: 0, duplicates: 0, filtered: 0, companies_checked: 0 };
 
   try {
     const mandates = loadMandates(db);
@@ -137,9 +138,16 @@ export async function executeRun(db, ai, runId, now = new Date()) {
     const runMandate = { ...base, version: findVersion(db, run.mandate_version_id) };
     const publishedAfter = new Date(now.getTime() - base.freshness_days * DAY_MS).toISOString().slice(0, 10);
 
+    const watched = run.watch_list_id === null ? null : pickEntries(db, run.watch_list_id, base.id, entriesPerRun(run.batch_size));
+    if (watched !== null && watched.length === 0) throw new Error('The watch list has no companies');
     const discovery = await ai.call('discover', discoverRequest({
       mandate: runMandate, version: runMandate.version, batchSize: run.batch_size, knownCompanies: knownCompanyNames(db), publishedAfter,
+      watchCompanies: watched,
     }), { runId, now });
+    if (watched !== null) {
+      recordChecks(db, watched, base.id, runId, now); // checked even when nothing was found, so the rotation moves on
+      stats.companies_checked = watched.length;
+    }
     const searchSources = new Set(discovery.sources.map((s) => normalizeUrl(s.url)));
     const rawCandidates = parseCandidates(discovery.input).slice(0, run.batch_size + EXTRA_CANDIDATES);
     stats.candidates_found = rawCandidates.length;
@@ -150,9 +158,13 @@ export async function executeRun(db, ai, runId, now = new Date()) {
       try {
         // A result that breaks the contract is counted and skipped; it must not stop the rest of the batch.
         // Only InvalidResultError is handled here: AI, budget and database errors still stop the run.
-        const candidate = parseCandidate(raw, now);
+        const parsed = parseCandidate(raw, now);
+        const entry = watched === null ? null : matchEntry(watched, parsed);
+        // Watch-list runs report listed companies only; the listed website fills in when the search gave none.
+        const candidate = entry && !parsed.website ? { ...parsed, website: entry.website } : parsed;
+        const listed = watched === null || entry !== null;
         const verifiable = searchSources.has(normalizeUrl(candidate.sourceUrl)); // else the URL may be invented
-        outcome = verifiable && !isStale(candidate.publishedOn, base.freshness_days, now)
+        outcome = verifiable && listed && !isStale(candidate.publishedOn, base.freshness_days, now)
           ? await processCandidate(db, ai, { run, runMandate, mandates, candidate, searchSources, now })
           : 'filtered';
       } catch (error) {

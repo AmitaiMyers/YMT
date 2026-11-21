@@ -1,0 +1,143 @@
+// Watch lists: company lists imported from public sources. A mandate run can check these companies instead of
+// searching the open web; checks rotate so repeated runs work through the whole list.
+
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ClipboardList, Upload, Trash2 } from 'lucide-react';
+import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
+import { useLoad, useAction } from '../../hooks/useApi.js';
+import { del } from '../../api.js';
+import { useAuth } from '../../auth/AuthProvider.jsx';
+import { Card, Loaded, PageHeader, Table, Button, SkeletonRows, EmptyState, ExternalLink, ErrorBox, useToast, useConfirm } from '../../ui/index.js';
+import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
+import { ImportListDialog } from './ImportListDialog.jsx';
+
+function useImportedToast() {
+  const { t } = useI18n();
+  const toast = useToast();
+  return (result) => toast({ title: t('watch.imported', { added: result.added, skipped: result.skipped }) });
+}
+
+export function WatchListsPage() {
+  const { t } = useI18n();
+  const format = useFormat();
+  const navigate = useNavigate();
+  const importedToast = useImportedToast();
+  const result = useLoad('/watch-lists');
+  const [importing, setImporting] = useState(false);
+  const columns = [
+    { key: 'name', label: t('watch.listName'), render: (list) => (
+      <div className="min-w-48">
+        <Link className="font-medium text-link hover:underline" to={`/research/watch-lists/${list.id}`}><bdi>{list.name}</bdi></Link>
+        {list.source_url && <div className="text-[13px] text-subtle" dir="ltr">{new URL(list.source_url).hostname}</div>}
+      </div>
+    ) },
+    { key: 'entry_count', label: t('watch.companies'), numeric: true },
+    { key: 'checked_count', label: t('watch.checked'), numeric: true },
+    { key: 'cards_found', label: t('watch.cardsFound'), numeric: true },
+    { key: 'created_by_name', label: t('watch.importedBy'), render: (list) => <div>{list.created_by_name ?? '—'}<div className="text-[13px] text-subtle">{format.date(list.created_at)}</div></div> },
+  ];
+  return (
+    <>
+      <PageHeader title={t('nav.watchLists')} subtitle={t('watch.subtitle')} actions={<Button icon={Upload} onClick={() => setImporting(true)}>{t('watch.import')}</Button>} />
+      <Card padded>
+        <Loaded result={result} skeleton={<SkeletonRows rows={4} />}>
+          {(lists) => <Table caption={t('nav.watchLists')} columns={columns} rows={lists} empty={<EmptyState icon={ClipboardList} title={t('watch.none')}>{t('watch.noneHint')}</EmptyState>} />}
+        </Loaded>
+      </Card>
+      {importing && (
+        <ImportListDialog
+          open
+          onClose={() => setImporting(false)}
+          onImported={(created) => {
+            setImporting(false);
+            importedToast(created);
+            navigate(`/research/watch-lists/${created.id}`);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+export function WatchListPage() {
+  const { id } = useParams();
+  const { t } = useI18n();
+  const format = useFormat();
+  const navigate = useNavigate();
+  const confirm = useConfirm();
+  const importedToast = useImportedToast();
+  const { user } = useAuth();
+  const result = useLoad(`/watch-lists/${id}`);
+  const [importing, setImporting] = useState(false);
+  const [query, setQuery] = useState('');
+  const remove = useAction(async (list) => {
+    const ok = await confirm({ title: t('watch.delete'), body: t('watch.deleteBody', { name: list.name }), confirmLabel: t('watch.delete'), tone: 'danger' });
+    if (!ok) return;
+    await del(`/watch-lists/${list.id}`);
+    navigate('/research/watch-lists');
+  });
+
+  return (
+    <Loaded result={result} skeleton={<Card><SkeletonRows rows={8} /></Card>}>
+      {(list) => {
+        const canDelete = user.role === 'admin' || list.created_by === user.id;
+        const needle = query.trim().toLowerCase();
+        const shown = needle ? list.entries.filter((entry) => `${entry.name} ${entry.website ?? ''}`.toLowerCase().includes(needle)) : list.entries;
+        return (
+          <>
+            <PageHeader
+              eyebrow={<Link className="text-link hover:underline" to="/research/watch-lists">{t('nav.watchLists')}</Link>}
+              title={list.name}
+              subtitle={(
+                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span>{t('watch.countLine', { count: list.entries.length })}</span>
+                  {list.source_note && <bdi>{list.source_note}</bdi>}
+                  {list.source_url && <ExternalLink href={list.source_url}>{t('watch.sourceUrl')}</ExternalLink>}
+                </span>
+              )}
+              actions={(
+                <>
+                  <Button icon={Upload} onClick={() => setImporting(true)}>{t('watch.importMoreShort')}</Button>
+                  {canDelete && <Button variant="danger" icon={Trash2} loading={remove.busy} onClick={() => remove.run(list)}>{t('watch.delete')}</Button>}
+                </>
+              )}
+            />
+            {remove.error && <ErrorBox message={remove.error} />}
+            <Card padded>
+              <div className="mb-4 max-w-sm">
+                <FieldRow field={{ name: 'q', label: t('common.search') }} inputId="watch-search">
+                  <FieldInput field={{ name: 'q', type: 'text' }} inputId="watch-search" value={query} onChange={setQuery} />
+                </FieldRow>
+              </div>
+              <Table
+                caption={list.name}
+                columns={[
+                  { key: 'name', label: t('watch.field.name') },
+                  { key: 'website', label: t('watch.field.website'), render: (entry) => (entry.website ? <span dir="ltr">{entry.website}</span> : '—') },
+                  { key: 'country', label: t('watch.field.country') },
+                  { key: 'notes', label: t('watch.field.notes') },
+                  { key: 'last_checked_at', label: t('watch.lastChecked'), render: (entry) => (entry.last_checked_at ? format.date(entry.last_checked_at) : t('watch.notYet')) },
+                ]}
+                rows={shown}
+                empty={t('watch.noMatches')}
+              />
+            </Card>
+            {importing && (
+              <ImportListDialog
+                open
+                list={list}
+                onClose={() => setImporting(false)}
+                onImported={(imported) => {
+                  setImporting(false);
+                  importedToast(imported);
+                  result.reload();
+                }}
+              />
+            )}
+          </>
+        );
+      }}
+    </Loaded>
+  );
+}

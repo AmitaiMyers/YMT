@@ -306,7 +306,42 @@ CREATE TABLE IF NOT EXISTS mandates (
   schedule_weekday INTEGER NOT NULL DEFAULT 0 CHECK (schedule_weekday BETWEEN 0 AND 6),
   default_batch INTEGER NOT NULL DEFAULT 5 CHECK (default_batch BETWEEN 1 AND 20),
   freshness_days INTEGER NOT NULL DEFAULT 183 CHECK (freshness_days BETWEEN 7 AND 1095),
+  weekly_watch_list_id INTEGER REFERENCES watch_lists(id) ON DELETE SET NULL, -- NULL: weekly runs search the open web
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- Watch lists: imported company lists (registries, exhibitor lists). A run can check these companies instead of
+-- searching the open web; checks rotate so repeated runs work through the whole list.
+CREATE TABLE IF NOT EXISTS watch_lists (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  name TEXT NOT NULL,
+  source_url TEXT,                    -- where the list came from
+  source_note TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+CREATE TABLE IF NOT EXISTS watch_list_entries (
+  id INTEGER PRIMARY KEY,
+  list_id INTEGER NOT NULL REFERENCES watch_lists(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  name_key TEXT NOT NULL,             -- normalised name, for duplicates within the list
+  website TEXT,
+  domain TEXT,
+  country TEXT,
+  notes TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (list_id, name_key)
+);
+
+-- When each listed company was last checked for each mandate (rotation order).
+CREATE TABLE IF NOT EXISTS watch_checks (
+  entry_id INTEGER NOT NULL REFERENCES watch_list_entries(id) ON DELETE CASCADE,
+  mandate_id INTEGER NOT NULL REFERENCES mandates(id) ON DELETE CASCADE,
+  last_checked_at TEXT NOT NULL,
+  last_run_id INTEGER REFERENCES research_runs(id) ON DELETE SET NULL,
+  PRIMARY KEY (entry_id, mandate_id)
 );
 
 -- Immutable: every criteria change creates a new version so results stay comparable.
@@ -342,6 +377,8 @@ CREATE TABLE IF NOT EXISTS research_runs (
   week_key TEXT,                      -- ISO week for scheduled runs (one per mandate per week)
   requested_by INTEGER REFERENCES users(id),
   batch_size INTEGER NOT NULL CHECK (batch_size BETWEEN 1 AND 20),
+  watch_list_id INTEGER REFERENCES watch_lists(id) ON DELETE SET NULL, -- NULL: open web search
+  companies_checked INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed', 'waiting_budget')),
   candidates_found INTEGER NOT NULL DEFAULT 0,
   cards_created INTEGER NOT NULL DEFAULT 0,
@@ -467,3 +504,4 @@ CREATE INDEX IF NOT EXISTS idx_opportunities_company ON opportunities(company_id
 CREATE INDEX IF NOT EXISTS idx_facts_company ON facts(company_id);
 CREATE INDEX IF NOT EXISTS idx_runs_status ON research_runs(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_time ON ai_usage(created_at);
+CREATE INDEX IF NOT EXISTS idx_watch_entries_list ON watch_list_entries(list_id);

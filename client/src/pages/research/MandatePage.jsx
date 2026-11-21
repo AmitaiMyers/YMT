@@ -26,10 +26,13 @@ function SettingsCard({ mandate, onSaved }) {
   const options = useEnumOptions();
   const toast = useToast();
   const users = useLoad('/users');
+  const lists = useLoad('/watch-lists');
   return (
     <Card title={t('research.settingsTitle')}>
       <Loaded result={users} skeleton={<SkeletonRows rows={4} />}>
         {(list) => (
+          <Loaded result={lists} skeleton={<SkeletonRows rows={1} />}>
+          {(watchLists) => (
           <EntityForm
             fields={[
               { name: 'name', label: t('criteria.name'), type: 'text', required: true, wide: true },
@@ -39,6 +42,8 @@ function SettingsCard({ mandate, onSaved }) {
               { name: 'schedule_weekday', label: t('research.weekday'), type: 'select', required: true, options: WEEKDAYS.map((day) => ({ value: String(day), label: t(`weekday.${day}`) })) },
               { name: 'default_batch', label: t('research.defaultBatch'), type: 'number', required: true, min: 1 },
               { name: 'freshness_days', label: t('research.freshnessDays'), type: 'number', required: true, min: 7, help: t('research.freshnessHelp') },
+              { name: 'weekly_watch_list_id', label: t('research.weeklySource'), type: 'select', help: t('research.weeklySourceHelp'),
+                options: watchLists.filter((w) => w.entry_count > 0).map((w) => ({ value: String(w.id), label: w.name })) },
             ]}
             initial={mandate}
             onSubmit={async (values) => {
@@ -46,11 +51,14 @@ function SettingsCard({ mandate, onSaved }) {
                 ...values,
                 owner_id: values.owner_id === null ? null : Number(values.owner_id),
                 schedule_weekday: Number(values.schedule_weekday),
+                weekly_watch_list_id: values.weekly_watch_list_id === null ? null : Number(values.weekly_watch_list_id),
               });
               toast({ title: t('toast.saved') });
               onSaved();
             }}
           />
+          )}
+          </Loaded>
         )}
       </Loaded>
     </Card>
@@ -214,7 +222,13 @@ export function MandatePage() {
         const isAdmin = user.role === 'admin';
         const canEdit = isAdmin || mandate.owner_id === user.id;
         const runColumns = [
-          { key: 'created_at', label: t('research.runAt'), render: (r) => <div>{format.dateTime(r.created_at)}<div className="text-[13px] text-subtle">{t(`runTrigger.${r.trigger}`)} · v{r.version} · {r.requested_by_name ?? t('research.schedule')}</div></div> },
+          { key: 'created_at', label: t('research.runAt'), render: (r) => (
+            <div>
+              {format.dateTime(r.created_at)}
+              <div className="text-[13px] text-subtle">{t(`runTrigger.${r.trigger}`)} · v{r.version} · {r.requested_by_name ?? t('research.schedule')}</div>
+              <div className="text-[13px] text-subtle">{r.watch_list_name ? t('research.checkedFromList', { count: r.companies_checked, name: r.watch_list_name }) : t('research.openSearch')}</div>
+            </div>
+          ) },
           { key: 'status', label: t('research.status'), render: (r) => <div className="flex flex-col items-start gap-1"><RunStatus status={r.status} />{r.error && <span className="text-[13px] text-danger-fg"><bdi>{r.error}</bdi></span>}</div> },
           { key: 'batch_size', label: t('research.batch'), numeric: true },
           { key: 'cards_created', label: t('research.cards'), numeric: true },

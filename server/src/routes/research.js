@@ -23,6 +23,7 @@ const MANDATE_FIELDS_SPEC = {
   schedule_weekday: { type: 'int', min: 0, max: 6 },
   default_batch: { type: 'int', min: 1, max: MAX_RUN_BATCH },
   freshness_days: { type: 'int', min: 7, max: 1095 },
+  weekly_watch_list_id: { type: 'id' },
 };
 
 const CRITERIA_SPEC = {
@@ -42,7 +43,7 @@ const CRITERIA_SPEC = {
 
 const CREATE_MANDATE_SPEC = { code: { type: 'string', required: true, max: 12 }, ...MANDATE_FIELDS_SPEC, name: { type: 'string', required: true, max: 120 }, ...CRITERIA_SPEC };
 const VERSION_SPEC = { ...CRITERIA_SPEC, change_note: { type: 'text', required: true, max: 500 } };
-const RUN_SPEC = { batch_size: { type: 'int', required: true, min: 1, max: MAX_RUN_BATCH } };
+const RUN_SPEC = { batch_size: { type: 'int', required: true, min: 1, max: MAX_RUN_BATCH }, watch_list_id: { type: 'id' } };
 const DECISION_SPEC = {
   decision: { type: 'string', required: true, enum: REVIEW_DECISIONS },
   reason: { type: 'string', enum: REJECT_REASONS },
@@ -109,6 +110,12 @@ function assertCanSee(user, opportunity) {
 function assertActiveUser(db, userId) {
   const user = db.prepare('SELECT id FROM users WHERE id = ? AND active = 1').get(userId);
   if (!user) throw badRequest(`User #${userId} does not exist or is inactive`);
+}
+
+/** A watch list used for runs must exist and contain companies. */
+function assertUsableWatchList(db, listId) {
+  findById(db, 'watch_lists', listId);
+  if (!db.prepare('SELECT 1 FROM watch_list_entries WHERE list_id = ? LIMIT 1').get(listId)) throw badRequest('This watch list has no companies yet');
 }
 
 function assertRanges(criteria) {
@@ -192,8 +199,9 @@ export function researchRoutes(db, { ai }) {
       ...mandateSummary(mandate),
       versions: db.prepare(`SELECT v.*, u.display_name AS created_by_name FROM mandate_versions v LEFT JOIN users u ON u.id = v.created_by
         WHERE v.mandate_id = ? ORDER BY v.version DESC`).all(mandate.id).map(parseVersion),
-      runs: db.prepare(`SELECT r.*, v.version, u.display_name AS requested_by_name FROM research_runs r
+      runs: db.prepare(`SELECT r.*, v.version, u.display_name AS requested_by_name, w.name AS watch_list_name FROM research_runs r
         JOIN mandate_versions v ON v.id = r.mandate_version_id LEFT JOIN users u ON u.id = r.requested_by
+        LEFT JOIN watch_lists w ON w.id = r.watch_list_id
         WHERE r.mandate_id = ? ORDER BY r.id DESC LIMIT 20`).all(mandate.id),
       examples: db.prepare(`SELECT e.*, c.name AS company_name, o.business_need, o.verdict, o.status AS opportunity_status
         FROM calibration_examples e JOIN opportunities o ON o.id = e.opportunity_id JOIN companies c ON c.id = o.company_id
@@ -223,6 +231,7 @@ export function researchRoutes(db, { ai }) {
     const mandate = findById(db, 'mandates', parseId(req.params.id));
     const changes = parseBody(MANDATE_FIELDS_SPEC, req.body, { partial: true });
     if ('owner_id' in changes && changes.owner_id !== null) assertActiveUser(db, changes.owner_id);
+    if ('weekly_watch_list_id' in changes && changes.weekly_watch_list_id !== null) assertUsableWatchList(db, changes.weekly_watch_list_id);
     const ownerAfter = 'owner_id' in changes ? changes.owner_id : mandate.owner_id;
     const statusAfter = changes.status ?? mandate.status;
     if (statusAfter === 'active' && ownerAfter === null) throw badRequest('An active mandate needs an owner');
@@ -248,7 +257,8 @@ export function researchRoutes(db, { ai }) {
     const mandate = findById(db, 'mandates', parseId(req.params.id));
     assertMandateManager(req.user, mandate);
     if (mandate.owner_id === null) throw badRequest('Assign an owner to this mandate before running it');
-    const { batch_size: batchSize } = parseBody(RUN_SPEC, req.body);
+    const { batch_size: batchSize, watch_list_id: watchListId } = parseBody(RUN_SPEC, req.body);
+    if (watchListId !== null) assertUsableWatchList(db, watchListId);
     for (const task of AI_TASKS) {
       const problem = ai.problem(task);
       if (problem) throw conflict(problem);
@@ -256,6 +266,7 @@ export function researchRoutes(db, { ai }) {
     if (budgetStatus(db).remaining <= 0) throw conflict('The monthly AI cap is used up. An admin can raise it in AI settings.');
     const id = insert(db, 'research_runs', {
       mandate_id: mandate.id, mandate_version_id: mandate.current_version_id, trigger: 'manual', requested_by: req.user.id, batch_size: batchSize,
+      watch_list_id: watchListId,
     });
     audit(db, req.user.id, 'research.run_requested', 'research_runs', id, `${mandate.code} × ${batchSize}`);
     res.status(201).json(findById(db, 'research_runs', id));
@@ -303,8 +314,9 @@ export function researchRoutes(db, { ai }) {
     }
     const card = db.prepare(`SELECT o.*, s.url AS evidence_url, s.title AS evidence_title, s.kind AS evidence_kind,
         m.code AS mandate_code, m.name AS mandate_name, u.display_name AS owner_name, d.display_name AS decided_by_name,
-        v.version AS mandate_version
+        v.version AS mandate_version, w.name AS watch_list_name
       FROM opportunities o JOIN sources s ON s.id = o.evidence_source_id
+      LEFT JOIN research_runs r ON r.id = o.run_id LEFT JOIN watch_lists w ON w.id = r.watch_list_id
       LEFT JOIN mandates m ON m.id = o.mandate_id LEFT JOIN users u ON u.id = o.owner_id
       LEFT JOIN users d ON d.id = o.decided_by LEFT JOIN mandate_versions v ON v.id = o.mandate_version_id
       WHERE o.id = ?`).get(id);

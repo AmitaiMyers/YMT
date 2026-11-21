@@ -145,7 +145,10 @@ const SEARCH = {
   homepage: 'https://acme-two.example/ja',
   vacancy: 'https://jobs.example/vp-ops',
   vietnam: 'https://news.example/delta-vietnam',
+  listed: 'https://news.example/listed-india',
+  stranger: 'https://news.example/stranger-india',
 };
+const prompts = [];
 
 /** Scripted AI: discovery returns four candidates; classification and judgement depend on the company. */
 function fakeScript() {
@@ -156,6 +159,17 @@ function fakeScript() {
   });
   return {
     run: async ({ tool, prompt }) => {
+      prompts.push(prompt);
+      if (tool.name === 'submit_candidates' && prompt.includes("YMT's watch list")) {
+        return {
+          input: { candidates: [
+            { ...candidate('Listed Co', SEARCH.listed, 'market_entry_distribution', 'India', 'Listed Co is appointing a distributor in India.'), website: '' },
+            candidate('Stranger Co', SEARCH.stranger, 'market_entry_distribution', 'India', 'Stranger Co enters India.'),
+          ] },
+          sources: Object.values(SEARCH).map((url) => ({ url, title: 'Result' })),
+          usage: { input: 5000, output: 500, cacheRead: 0, cacheWrite: 0, searches: 2 },
+        };
+      }
       if (tool.name === 'submit_candidates') {
         return {
           input: { candidates: [
@@ -400,4 +414,51 @@ test('weekly runs are queued once per mandate per week; interrupted runs fail', 
   db.prepare("UPDATE research_runs SET status = 'running' WHERE trigger = 'weekly'").run();
   recoverInterrupted(db);
   assert.equal(db.prepare("SELECT status FROM research_runs WHERE trigger = 'weekly'").get().status, 'failed');
+});
+
+test('watch lists: import with duplicates, runs check listed companies only, rotation and weekly runs', async () => {
+  const bad = await call('shir', 'POST', '/watch-lists', { name: 'Bad', entries: [{ name: 'X', website: 'not a site' }] });
+  assert.equal(bad.status, 400);
+  assert.equal(bad.data.error, 'Row 1: website "not a site" is not a web address');
+
+  const created = await call('shir', 'POST', '/watch-lists', {
+    name: 'Exporters 2026', source_url: 'https://data.example/exporters',
+    entries: [{ name: 'Listed Co', website: 'listedco.example' }, { name: 'Listed Co Ltd' }, { name: 'Other Co', website: 'https://other.example' }],
+  });
+  assert.equal(created.status, 201);
+  assert.deepEqual([created.data.added, created.data.skipped], [2, 1]);
+  const listId = created.data.id;
+
+  const empty = await call('shir', 'POST', '/watch-lists', { name: 'Empty', entries: [{ name: 'Only Co' }] });
+  db.prepare('DELETE FROM watch_list_entries WHERE list_id = ?').run(empty.data.id);
+  assert.equal((await call('shir', 'POST', `/mandates/${mandateId('SH1')}/runs`, { batch_size: 2, watch_list_id: empty.data.id })).data.error, 'This watch list has no companies yet');
+
+  while (await processNext(db, ai, TODAY)) { /* finish runs queued by earlier tests */ }
+  const run = await call('shir', 'POST', `/mandates/${mandateId('SH1')}/runs`, { batch_size: 2, watch_list_id: listId });
+  assert.equal(run.status, 201);
+  prompts.length = 0;
+  await processNext(db, ai, TODAY);
+  const done = db.prepare('SELECT * FROM research_runs WHERE id = ?').get(run.data.id);
+  assert.equal(done.status, 'done', done.error);
+  assert.equal(done.companies_checked, 2);
+  assert.equal(done.cards_created, 1);
+  assert.equal(done.filtered, 1); // Stranger Co is not on the list
+  assert.ok(prompts[0].includes('- Listed Co (listedco.example)'));
+  assert.ok(!prompts[0].includes('Skip these companies'));
+  const listed = db.prepare("SELECT website FROM companies WHERE name = 'Listed Co'").get();
+  assert.equal(listed.website, 'listedco.example'); // filled in from the list
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM watch_checks WHERE mandate_id = ?').get(mandateId('SH1')).n, 2);
+
+  const card = db.prepare("SELECT o.id FROM opportunities o JOIN companies c ON c.id = o.company_id WHERE c.name = 'Listed Co'").get();
+  assert.equal((await call('shir', 'GET', `/opportunities/${card.id}`)).data.watch_list_name, 'Exporters 2026');
+  const lists = (await call('omer', 'GET', '/watch-lists')).data;
+  const summary = lists.find((l) => l.id === listId);
+  assert.deepEqual([summary.entry_count, summary.checked_count, summary.cards_found], [2, 2, 1]);
+
+  assert.equal((await call('tom', 'PATCH', `/mandates/${mandateId('SH1')}`, { weekly_watch_list_id: listId, schedule: 'weekly', schedule_weekday: 1 })).status, 200);
+  assert.equal(scheduleWeeklyRuns(db, new Date('2026-11-23T08:00:00Z')), 1); // Monday
+  assert.equal(db.prepare("SELECT watch_list_id FROM research_runs WHERE trigger = 'weekly' AND mandate_id = ?").get(mandateId('SH1')).watch_list_id, listId);
+
+  assert.equal((await call('omer', 'DELETE', `/watch-lists/${listId}`)).status, 403);
+  assert.equal((await call('shir', 'DELETE', `/watch-lists/${listId}`)).status, 200);
 });

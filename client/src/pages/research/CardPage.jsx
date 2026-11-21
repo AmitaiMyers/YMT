@@ -258,6 +258,7 @@ export function CardPage() {
                     [t('research.proposedService'), card.proposed_service],
                     [t('research.mandate'), card.mandate_code ? `${card.mandate_code} · ${card.mandate_name} (v${card.mandate_version})` : null],
                     [t('research.foundOn'), format.dateTime(card.created_at)],
+                    [t('research.foundVia'), card.watch_list_name ? t('research.foundViaList', { name: card.watch_list_name }) : null],
                   ]} />
                   {card.unknowns.length > 0 && (
                     <div className="mt-4">

@@ -33,7 +33,7 @@ export function recoverInterrupted(db) {
 
 /** Queue this week's run for every active weekly mandate whose weekday is today (idempotent per ISO week). */
 export function scheduleWeeklyRuns(db, now = new Date()) {
-  const due = db.prepare(`SELECT id, current_version_id, default_batch FROM mandates
+  const due = db.prepare(`SELECT id, current_version_id, default_batch, weekly_watch_list_id FROM mandates
     WHERE status = 'active' AND schedule = 'weekly' AND owner_id IS NOT NULL AND schedule_weekday = ?`).all(israelWeekday(now));
   const week = isoWeekKey(now);
   let created = 0;
@@ -42,6 +42,7 @@ export function scheduleWeeklyRuns(db, now = new Date()) {
     if (exists) continue;
     insert(db, 'research_runs', {
       mandate_id: mandate.id, mandate_version_id: mandate.current_version_id, trigger: 'weekly', week_key: week, batch_size: mandate.default_batch,
+      watch_list_id: mandate.weekly_watch_list_id,
     });
     created += 1;
   }

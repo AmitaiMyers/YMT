@@ -57,6 +57,7 @@ Research agents find **Israeli companies with a dated business initiative** that
 
 - **Run** a mandate and choose how many cards (1–20), or set it to run weekly on a chosen day. A run takes a few minutes; each card costs roughly $0.08–0.13.
 - **Research review:** open a card, check the quoted evidence and the source of every fact, then **Accept / Verify / Defer / Reject** (keys A, V, D, R select; a click confirms). Reject needs a reason; Verify and Defer need a note, and Verify creates a task. The next card opens automatically.
+- **Watch lists:** import a company list from a public source (CSV with a header row, e.g. Companies Registrar open data or a trade-show exhibitor list; choose *Windows-1255* for Hebrew Excel files), map the columns and import; duplicates are skipped. When running a mandate, choose the watch list instead of *Open web search*: the agent checks only those companies, starting with the ones this mandate checked longest ago, so repeated runs work through the whole list. A mandate's weekly run can also use a watch list.
 - Initiatives no mandate covers (e.g. Vietnam, China sourcing) wait in **Manual assignment** for an admin.
 - **Calibration:** save a good match and a false positive as examples, change one criterion (each change is a new version), and **Compare** the two versions on the same examples.
 - **Research metrics:** acceptance rate, duplicates, wrong-market matches, minutes per card and cost per accepted card, per mandate.

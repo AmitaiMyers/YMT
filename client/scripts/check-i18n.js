@@ -19,7 +19,7 @@ const DYNAMIC_KEYS = {
   companyTab: ['overview', 'contacts', 'triggers', 'pipeline', 'meetings', 'documents', 'matches', 'sharing'],
   privacy: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
   navGroup: ['today', 'research', 'win', 'clients', 'manage'],
-  nav: ['inbox', 'approvals', 'calendar', 'research', 'mandates', 'researchMetrics', 'leads', 'pipeline', 'clients', 'documents', 'network', 'dashboard', 'settings'],
+  nav: ['inbox', 'approvals', 'calendar', 'research', 'mandates', 'watchLists', 'researchMetrics', 'leads', 'pipeline', 'clients', 'documents', 'network', 'dashboard', 'settings'],
   theme: ['system', 'light', 'dark'],
   'leads.tab': ['search', 'triggers', 'new'],
   'clients.scope': ['clients', 'all'],
@@ -42,6 +42,7 @@ const DYNAMIC_KEYS = {
     'model_primary', 'model_secondary', 'sector', 'subsector', 'customer_types', 'customer_markets', 'employees', 'revenue', 'ownership'],
   decision: enums.REVIEW_DECISIONS, 'decision.confirm': enums.REVIEW_DECISIONS,
   'decision.done': ['accepted', 'verify', 'deferred', 'rejected'],
+  'watch.field': ['name', 'website', 'country', 'notes'], 'watch.encoding': ['utf-8', 'windows-1255'],
   criteria: ['code', 'name', 'target_countries', 'proposed_service', 'accept_rule', 'false_positives', 'employees_min', 'employees_max',
     'revenue_min_usd', 'revenue_max_usd', 'search_terms', 'exclusions', 'change_note'],
 };

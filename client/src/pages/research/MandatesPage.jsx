@@ -9,7 +9,7 @@ import { useLoad, useAction } from '../../hooks/useApi.js';
 import { post, patch, api } from '../../api.js';
 import { useAuth } from '../../auth/AuthProvider.jsx';
 import { Card, Loaded, PageHeader, Table, Button, Dialog, Notice, ErrorBox, SkeletonRows, EmptyState, StatusBadge, statusTone, Badge, useToast } from '../../ui/index.js';
-import { EntityForm, FieldRow, FieldInput } from '../../components/EntityForm.jsx';
+import { EntityForm, FieldRow, FieldInput, INPUT_CLASS } from '../../components/EntityForm.jsx';
 import { useEnumOptions } from '../../enumOptions.js';
 import { BudgetBar, RunStatus, useCost } from './researchUi.jsx';
 import { CriteriaForm } from './CriteriaForm.jsx';
@@ -30,13 +30,23 @@ export function usePolling(result, active) {
 export function RunDialog({ mandate, onClose, onQueued }) {
   const { t } = useI18n();
   const [size, setSize] = useState(String(mandate.default_batch));
-  const run = useAction(async () => onQueued(await post(`/mandates/${mandate.id}/runs`, { batch_size: Number(size) })));
+  const [listId, setListId] = useState('');
+  const lists = useLoad('/watch-lists');
+  const run = useAction(async () => onQueued(await post(`/mandates/${mandate.id}/runs`, { batch_size: Number(size), watch_list_id: listId === '' ? null : Number(listId) })));
   const valid = Number.isInteger(Number(size)) && Number(size) >= 1 && Number(size) <= MAX_RUN_BATCH;
   return (
     <Dialog open onClose={onClose} title={t('research.runTitle', { code: mandate.code })} description={t('research.runHint')}>
       <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); run.run(); }}>
         <FieldRow field={{ name: 'batch', label: t('research.batchSize', { max: MAX_RUN_BATCH }), required: true }} inputId="run-batch">
           <FieldInput field={{ name: 'batch', type: 'number', required: true, min: 1 }} inputId="run-batch" value={size} onChange={setSize} />
+        </FieldRow>
+        <FieldRow field={{ name: 'source', label: t('research.searchSource'), help: t('research.searchSourceHelp') }} inputId="run-source" errorId="run-source-hint">
+          <select id="run-source" aria-describedby="run-source-hint" className={`${INPUT_CLASS} border-line-strong`} value={listId} onChange={(event) => setListId(event.target.value)}>
+            <option value="">{t('research.openSearch')}</option>
+            {(lists.data ?? []).filter((list) => list.entry_count > 0).map((list) => (
+              <option key={list.id} value={String(list.id)}>{t('research.watchListOption', { name: list.name, count: list.entry_count })}</option>
+            ))}
+          </select>
         </FieldRow>
         {run.error && <ErrorBox message={run.error} />}
         <div className="flex flex-wrap gap-2">
