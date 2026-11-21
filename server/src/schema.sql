@@ -99,6 +99,9 @@ CREATE TABLE IF NOT EXISTS contacts (
   phone TEXT,
   linkedin_url TEXT,
   preferred_language TEXT NOT NULL DEFAULT 'he' CHECK (preferred_language IN ('he', 'en')),
+  country TEXT,                                  -- where the person sits; empty = the company's HQ country (outreach legal gate)
+  whatsapp_consent INTEGER NOT NULL DEFAULT 0,   -- WhatsApp messages only to people who agreed to them
+  opted_out_at TEXT,                             -- asked not to be contacted: blocks every channel
   verified INTEGER NOT NULL DEFAULT 0,
   verified_source TEXT,
   verified_by INTEGER REFERENCES users(id),
@@ -109,7 +112,9 @@ CREATE TABLE IF NOT EXISTS contacts (
 -- Human approval queue: every generated text lands here before any use.
 CREATE TABLE IF NOT EXISTS approvals (
   id INTEGER PRIMARY KEY,
-  kind TEXT NOT NULL CHECK (kind IN ('company_brief', 'outreach_email', 'followup_email', 'meeting_followup_email')),
+  kind TEXT NOT NULL CHECK (kind IN ('company_brief', 'outreach_email', 'followup_email', 'meeting_followup_email', 'first_approach')),
+  channel TEXT NOT NULL DEFAULT 'email' CHECK (channel IN ('email', 'linkedin', 'whatsapp')),
+  opportunity_id INTEGER REFERENCES opportunities(id) ON DELETE SET NULL, -- the research card a first approach came from
   company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE, -- optional: people and meetings can exist before a company is known
   deal_id INTEGER REFERENCES deals(id) ON DELETE SET NULL,
   contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
@@ -119,6 +124,8 @@ CREATE TABLE IF NOT EXISTS approvals (
   content TEXT NOT NULL,
   original_content TEXT, -- the text exactly as generated, so reviewers can see what was changed
   recipient_email TEXT,
+  recipient_phone TEXT,    -- WhatsApp
+  recipient_linkedin TEXT, -- LinkedIn profile URL
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'sent')),
   created_by INTEGER NOT NULL REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
@@ -163,7 +170,7 @@ CREATE TABLE IF NOT EXISTS interactions (
   company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE, -- optional: people and meetings can exist before a company is known
   deal_id INTEGER REFERENCES deals(id) ON DELETE SET NULL,
   contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
-  channel TEXT NOT NULL CHECK (channel IN ('phone', 'email', 'linkedin', 'meeting', 'note')),
+  channel TEXT NOT NULL CHECK (channel IN ('phone', 'email', 'linkedin', 'whatsapp', 'meeting', 'note')),
   direction TEXT NOT NULL CHECK (direction IN ('outbound', 'inbound', 'internal')),
   summary TEXT NOT NULL,
   occurred_at TEXT NOT NULL,
@@ -518,7 +525,7 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   tenant_id INTEGER NOT NULL DEFAULT 1,
   run_id INTEGER REFERENCES research_runs(id) ON DELETE SET NULL,
   calibration_id INTEGER REFERENCES calibrations(id) ON DELETE SET NULL,
-  task TEXT NOT NULL CHECK (task IN ('discover', 'classify', 'judge', 'contacts')),
+  task TEXT NOT NULL CHECK (task IN ('discover', 'classify', 'judge', 'contacts', 'outreach')),
   contact_search_id INTEGER REFERENCES contact_searches(id) ON DELETE SET NULL,
   provider TEXT NOT NULL,
   model TEXT NOT NULL,
@@ -528,6 +535,19 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   web_searches INTEGER NOT NULL,
   cost_usd REAL NOT NULL,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- Release 3: do-not-contact list. Values are normalised (lower-case email/domain/URL, phone digits only).
+CREATE TABLE IF NOT EXISTS suppressions (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  kind TEXT NOT NULL CHECK (kind IN ('email', 'phone', 'linkedin', 'domain')),
+  value TEXT NOT NULL,
+  reason TEXT,
+  contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (kind, value)
 );
 
 CREATE INDEX IF NOT EXISTS idx_deals_company ON deals(company_id);

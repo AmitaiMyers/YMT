@@ -83,10 +83,19 @@ test('outreach drafts cannot be marked sent before human approval', async () => 
   const early = await call('POST', `/approvals/${draft.data.id}/mark-sent`, {});
   assert.equal(early.status, 409);
 
+  const generated = (await call('GET', `/approvals/${draft.data.id}`)).data;
+  assert.match(generated.subject, /^פרסומת: /, 'cold email to a recipient in Israel is marked as an advertisement');
+  const optOut = (await call('GET', '/outreach/rules')).data.opt_out.en;
+  assert.ok(generated.content.endsWith(optOut), 'the opt-out sentence is added');
+
   assert.equal((await call('PATCH', `/approvals/${draft.data.id}`, { content: 'Edited by reviewer' })).status, 200);
   const edited = await call('GET', `/approvals/${draft.data.id}`);
   assert.equal(edited.data.content, 'Edited by reviewer');
   assert.match(edited.data.original_content, /Dana/, 'the generated text is kept for the "show changes" view');
+  const noOptOut = await call('POST', `/approvals/${draft.data.id}/approve`, {});
+  assert.equal(noOptOut.status, 400);
+  assert.match(noOptOut.data.error, /opt-out sentence/);
+  assert.equal((await call('PATCH', `/approvals/${draft.data.id}`, { content: `Edited by reviewer\n\n${optOut}` })).status, 200);
   assert.equal((await call('POST', `/approvals/${draft.data.id}/approve`, {})).status, 200);
   assert.equal((await call('PATCH', `/approvals/${draft.data.id}`, { content: 'changed' })).status, 409, 'approved items are frozen');
   assert.equal((await call('POST', `/approvals/${draft.data.id}/mark-sent`, {})).status, 200);

@@ -1,4 +1,4 @@
-// The three AI tasks of a research run: their prompts, tool schemas and strict validators.
+// The AI tasks (research run, decision makers, first messages): their prompts, tool schemas and strict validators.
 // The validators are the real contract: anything outside YMT's dictionary is rejected here, never stored.
 
 import {
@@ -27,7 +27,9 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 // ------------------------------------------------------------------ small validators (throw with a precise message)
 
 /** An AI result that breaks the contract. The runner skips that candidate; any other error stops the run. */
-export class InvalidResultError extends Error {}
+export class InvalidResultError extends Error {
+  httpStatus = 502; // when a person waits for the answer (first-message drafts)
+}
 
 function fail(message) {
   throw new InvalidResultError(message);
@@ -418,4 +420,54 @@ export function parseContact(raw, isAllowedSource) {
 export function parseContacts(input) {
   if (typeof input !== 'object' || input === null) fail('result must be an object');
   return list(input.contacts, 'contacts');
+}
+
+// ------------------------------------------------------------------ Release 3: first message (no web search)
+
+const CHANNEL_GUIDANCE = {
+  email: { label: 'email', bodyMax: 1500, advice: 'A subject of at most 80 characters and a body of 80 to 150 words with one clear ask (a short call).' },
+  linkedin: { label: 'LinkedIn message', bodyMax: 600, advice: 'At most 500 characters, no subject, one clear ask.' },
+  whatsapp: { label: 'WhatsApp message', bodyMax: 500, advice: 'At most 400 characters, no subject, friendly and direct, ending with one question.' },
+};
+const SUBJECT_MAX = 90;
+const LANGUAGE_NAMES = { he: 'Hebrew', en: 'English' };
+
+const DRAFT_SCHEMA = {
+  type: 'object',
+  properties: { subject: { ...str, description: 'Email subject; empty for LinkedIn and WhatsApp' }, body: str },
+  required: ['subject', 'body'],
+  additionalProperties: false,
+};
+
+/** Ask for a first message from YMT to one confirmed decision maker, written only from the accepted card. */
+export function outreachRequest({ card, company, contact, channel, language, senderName, proposedService }) {
+  const guidance = CHANNEL_GUIDANCE[channel];
+  return {
+    system: 'You write first messages for YMT Group, an Israeli business-development firm that connects Israeli companies with '
+      + 'partners, customers and markets abroad. You write as one named YMT team member to one decision maker. Use only the facts given; '
+      + `never invent numbers, clients, results, prices or promises. ${SAFETY}`,
+    prompt: [
+      `Write a first ${guidance.label} in ${LANGUAGE_NAMES[language]}.`,
+      `Recipient: ${contact.full_name}${contact.job_title ? `, ${contact.job_title}` : ''}, at ${company.name}.`,
+      `What we read (public source "${card.evidence_title ?? card.evidence_url}", published ${card.evidence_date}): "${card.evidence_quote}"`,
+      `Their initiative: ${card.business_need} (target country: ${card.target_country}; need: ${NEED_LABELS[card.need_type]}).`,
+      `Why now: ${card.reason_to_act ?? 'the initiative is recent'}.`,
+      `What YMT would offer: ${proposedService ?? card.proposed_service ?? 'an introductory conversation'}.`,
+      `Sender: ${senderName}, YMT Group.`,
+      '',
+      guidance.advice,
+      'Mention what you read in one natural sentence (no links). Polite, personal and short; no flattery, no attachments.',
+      `Do not add an unsubscribe or opt-out line and do not write "פרסומת": the app adds them. Sign with the sender's name and YMT Group.`,
+      'When done, call submit_draft.',
+    ].join('\n'),
+    tool: { name: 'submit_draft', description: 'Submit the drafted message.', schema: DRAFT_SCHEMA },
+    webSearch: null,
+    maxTokens: 2000,
+  };
+}
+
+export function parseDraft(raw, channel) {
+  if (typeof raw !== 'object' || raw === null) fail('draft must be an object');
+  const subject = text(raw.subject, 'subject', { max: SUBJECT_MAX, optional: channel !== 'email' });
+  return { subject: channel === 'email' ? subject : null, body: text(raw.body, 'body', { max: CHANNEL_GUIDANCE[channel].bodyMax }) };
 }

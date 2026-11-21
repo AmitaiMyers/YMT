@@ -18,6 +18,11 @@ export function errorHandler(err, req, res, next) {
     res.status(err.status).json({ error: err.message });
     return;
   }
+  // Domain errors outside the HTTP layer (AI budget/config, unusable AI answer) declare their own status.
+  if (Number.isInteger(err.httpStatus)) {
+    res.status(err.httpStatus).json({ error: err.message });
+    return;
+  }
   if (err.type === 'entity.parse.failed') {
     res.status(400).json({ error: 'Malformed JSON body' });
     return;

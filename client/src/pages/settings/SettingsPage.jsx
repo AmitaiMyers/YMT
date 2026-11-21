@@ -12,6 +12,7 @@ import { WorkflowsSettings } from './WorkflowsSettings.jsx';
 import { TemplatesSettings } from './TemplatesSettings.jsx';
 import { UsersSettings } from './UsersSettings.jsx';
 import { PrivacySettings, AuditLog } from './PrivacySettings.jsx';
+import { OutreachSettings } from './OutreachSettings.jsx';
 import { MAX_FOLLOWUPS_HARD_LIMIT } from '../../../../shared/enums.js';
 import { InstallButton } from '../../app/InstallButton.jsx';
 import { useInstallPrompt } from '../../app/pwa.js';
@@ -107,6 +108,7 @@ export function SettingsPage() {
     { key: 'general', label: t('settings.general'), Component: GeneralSettings },
     { key: 'workflows', label: t('settings.workflows'), Component: WorkflowsSettings },
     { key: 'templates', label: t('settings.templates'), Component: TemplatesSettings },
+    { key: 'outreach', label: t('settings.outreach'), Component: OutreachSettings },
     ...(isAdmin ? [{ key: 'users', label: t('settings.users'), Component: UsersSettings }] : []),
     { key: 'privacy', label: t('settings.privacy'), Component: PrivacySettings },
     ...(isAdmin ? [{ key: 'audit', label: t('settings.audit'), Component: AuditLog }] : []),

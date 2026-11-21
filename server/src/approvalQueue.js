@@ -5,13 +5,31 @@
 import { insert, update, findById, audit, nowIso, transaction, getNumericSetting } from './db.js';
 import { badRequest, conflict } from './http.js';
 import { recordInteraction } from './timeline.js';
+import { assertRecipientAllowed, assertMessageCompliant, ADVERTISEMENT_MARK } from './outreachRules.js';
+import { MESSAGE_KINDS } from './constants.js';
 
-import { EMAIL_KINDS } from './constants.js';
+/** Approval rows with the names a reviewer needs. */
+export const SELECT_APPROVALS = `
+  SELECT a.*, c.name AS company_name, k.full_name AS contact_name, d.title AS deal_title,
+    cu.display_name AS created_by_name, ru.display_name AS reviewed_by_name, su.display_name AS sent_by_name
+  FROM approvals a
+  LEFT JOIN companies c ON c.id = a.company_id
+  LEFT JOIN contacts k ON k.id = a.contact_id
+  LEFT JOIN deals d ON d.id = a.deal_id
+  LEFT JOIN users cu ON cu.id = a.created_by
+  LEFT JOIN users ru ON ru.id = a.reviewed_by
+  LEFT JOIN users su ON su.id = a.sent_by`;
 
 export function enqueueApproval(db, userId, item) {
   const id = insert(db, 'approvals', { ...item, original_content: item.content, created_by: userId, status: 'pending' });
   audit(db, userId, 'approval.created', 'approvals', id, item.kind);
   return id;
+}
+
+/** Timeline summary for a message without a subject (LinkedIn, WhatsApp): its first real line. */
+function firstLine(content) {
+  const SUMMARY_MAX = 200;
+  return content.split('\n').map((line) => line.trim()).find((line) => line !== '' && line !== ADVERTISEMENT_MARK).slice(0, SUMMARY_MAX);
 }
 
 function requireStatus(approval, expected, action) {
@@ -30,9 +48,8 @@ export function editPendingApproval(db, userId, id, changes) {
 export function approve(db, userId, id, note) {
   const approval = findById(db, 'approvals', id);
   requireStatus(approval, 'pending', 'approve');
-  if (EMAIL_KINDS.includes(approval.kind) && !approval.recipient_email) {
-    throw badRequest('Set a recipient email before approving an email draft');
-  }
+  assertRecipientAllowed(db, approval);
+  assertMessageCompliant(db, approval);
   transaction(db, () => {
     update(db, 'approvals', id, { status: 'approved', reviewed_by: userId, reviewed_at: nowIso(), review_note: note });
     // An approved brief becomes the company's official brief; it is internal and never "sent".
@@ -59,13 +76,15 @@ export function followupsCommitted(db, dealId) {
 }
 
 /**
- * A staff member confirms they personally sent this approved message (from their own mailbox / LinkedIn).
- * The system records the touchpoint in the timeline; it never sends anything itself.
+ * A staff member confirms they personally sent this approved message (from their own mailbox, LinkedIn or WhatsApp).
+ * The system records the touchpoint in the timeline; it never sends anything itself. An opt-out that arrived after
+ * the approval still blocks it.
  */
 export function markSent(db, userId, id) {
   const approval = findById(db, 'approvals', id);
-  if (!EMAIL_KINDS.includes(approval.kind)) throw badRequest('Only email drafts can be marked as sent');
+  if (!MESSAGE_KINDS.includes(approval.kind)) throw badRequest('Only messages can be marked as sent');
   requireStatus(approval, 'approved', 'mark as sent');
+  assertRecipientAllowed(db, approval);
 
   transaction(db, () => {
     const sentAt = nowIso();
@@ -74,9 +93,9 @@ export function markSent(db, userId, id) {
       company_id: approval.company_id,
       deal_id: approval.deal_id,
       contact_id: approval.contact_id,
-      channel: 'email',
+      channel: approval.channel,
       direction: 'outbound',
-      summary: approval.subject ?? approval.kind,
+      summary: approval.subject ?? firstLine(approval.content),
       occurred_at: sentAt,
       user_id: userId,
     });

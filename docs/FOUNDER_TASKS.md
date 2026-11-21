@@ -26,6 +26,7 @@ Estimated total: half a day spread over 1–2 weeks.
 ## Research pilot
 
 6c. **Switch on the research agents** (about 20 minutes). Create an Anthropic Console account owned by YMT, create an API key and set a monthly spend limit there. Add `ANTHROPIC_API_KEY` on Render. Then in the app: **Research → Mandates** → open each mandate, choose its owner (Shir, Omer, Tomer) and set it Active; check the $20 monthly cap under AI settings. Go through the open questions with Tom in `docs/client-requirements-checklist.html`.
+6d. **Have a lawyer confirm the outreach rules** (before the first real approach). In **Settings → Outreach rules**, show the lawyer the opt-out sentences (Hebrew and English), the "פרסומת" marking for recipients in Israel (email subject and WhatsApp) and the cleared countries (default: Israel only). Ask whether LinkedIn messages need the marking too and what is needed before adding countries (EU: GDPR, US: CAN-SPAM). An admin updates the rules; anyone can add a "do not contact" entry.
 
 ## Week 1 – Set it up for the team
 

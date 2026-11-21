@@ -43,6 +43,9 @@ const DYNAMIC_KEYS = {
   decision: enums.REVIEW_DECISIONS, 'decision.confirm': enums.REVIEW_DECISIONS,
   'decision.done': ['accepted', 'verify', 'deferred', 'rejected'],
   contactProposal: enums.CONTACT_PROPOSAL_STATUSES,
+  // Release 3
+  'approval.manualSend': enums.OUTREACH_CHANNELS, 'approval.recipientOf': enums.OUTREACH_CHANNELS, suppressionKind: enums.SUPPRESSION_KINDS,
+  outreachBlock: ['opted_out', 'suppressed', 'no_country', 'country_not_cleared', 'no_email', 'no_linkedin', 'no_phone', 'phone_format', 'no_whatsapp_consent'],
   'watch.field': ['name', 'website', 'country', 'notes'], 'watch.encoding': ['utf-8', 'windows-1255'],
   criteria: ['code', 'name', 'target_countries', 'proposed_service', 'accept_rule', 'false_positives', 'employees_min', 'employees_max',
     'revenue_min_usd', 'revenue_max_usd', 'search_terms', 'exclusions', 'change_note'],

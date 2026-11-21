@@ -20,7 +20,13 @@ export const DEFAULT_SETTINGS = {
     classify: { provider: 'claude', model: 'claude-sonnet-5-5' },
     judge: { provider: 'claude', model: 'claude-sonnet-5-5' },
     contacts: { provider: 'claude', model: 'claude-sonnet-5-5' },
+    outreach: { provider: 'claude', model: 'claude-sonnet-5-5' },
   }),
+  // Release 3 legal gate. Countries are names as used on companies ("Israel"). Israel is cleared by default because
+  // the gate implements its Communications Law rules (opt-out sentence + "פרסומת" marking); YMT's lawyer confirms.
+  outreach_cleared_countries: JSON.stringify(['Israel']),
+  outreach_optout_he: 'אם אינכם מעוניינים לקבל מאיתנו פניות נוספות, השיבו "הסר" ולא נפנה אליכם שוב.',
+  outreach_optout_en: 'If you would prefer not to hear from us, reply "remove" and we will not contact you again.',
   // Claude API list prices checked 20 Nov 2026 (platform.claude.com/docs/en/about-claude/pricing).
   ai_prices: JSON.stringify({
     'claude-sonnet-5-5': { input: 2, output: 10, cache_read: 0.1, search: 0.01 },

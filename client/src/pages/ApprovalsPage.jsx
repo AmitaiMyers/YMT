@@ -5,10 +5,10 @@ import { Link } from 'react-router-dom';
 import { ShieldCheck, Inbox as InboxIcon } from 'lucide-react';
 import { useI18n, useFormat } from '../i18n/I18nProvider.jsx';
 import { useLoad } from '../hooks/useApi.js';
-import { Card, Loaded, PageHeader, Tabs, Notice, StatusBadge, statusTone, EmptyState, SkeletonRows } from '../ui/index.js';
+import { Card, Loaded, PageHeader, Tabs, Notice, StatusBadge, statusTone, EmptyState, SkeletonRows, Badge } from '../ui/index.js';
 import { ApprovalEditor } from '../components/ApprovalEditor.jsx';
 import { useCounts } from '../app/CountsProvider.jsx';
-import { APPROVAL_STATUSES } from '../../../shared/enums.js';
+import { APPROVAL_STATUSES, MESSAGE_KINDS } from '../../../shared/enums.js';
 
 const LEAVE_MS = 260;
 
@@ -25,6 +25,7 @@ function ApprovalCard({ item, onLeave, onReload }) {
             <span className="flex flex-wrap items-center gap-2">
               <StatusBadge tone={statusTone('approval', item.status)}>{t(`approvalStatus.${item.status}`)}</StatusBadge>
               <span>{t(`approvalKind.${item.kind}`)}</span>
+              {MESSAGE_KINDS.includes(item.kind) && <Badge tone="neutral">{t(`channel.${item.channel}`)}</Badge>}
               <span aria-hidden="true" className="text-subtle">·</span>
               {item.company_id && <Link className="text-link hover:underline" to={`/companies/${item.company_id}`}><bdi>{item.company_name}</bdi></Link>}
               {item.contact_name && <span className="text-sm font-normal text-muted">→ <bdi>{item.contact_name}</bdi></span>}

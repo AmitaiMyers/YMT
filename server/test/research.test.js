@@ -198,6 +198,13 @@ function fakeScript() {
           usage: { input: 3000, output: 300, cacheRead: 0, cacheWrite: 0, searches: 2 },
         };
       }
+      if (tool.name === 'submit_draft') {
+        return {
+          input: { subject: 'Japanese integration partners', body: 'Dear Dana,\nI read that Acme is seeking Japanese implementation partners.\nShir, YMT Group' },
+          sources: [],
+          usage: { input: 1500, output: 200, cacheRead: 0, cacheWrite: 0, searches: 0 },
+        };
+      }
       if (tool.name === 'submit_classification') {
         const name = /Classify the company "([^"]+)"/.exec(prompt)[1];
         const url = Object.values(SEARCH).find((u) => prompt.includes(u));
@@ -521,4 +528,85 @@ test('Release 2: accept writes the timeline and finds decision makers; open one 
 
   const research = (await call('shir', 'GET', `/companies/${dealPage.company_id}/research`)).data;
   assert.deepEqual(research.map((r) => r.id), [ids.acme]);
+});
+
+test('Release 3: first approach drafted from the card, legal gate, manual channels, opt-out and do-not-contact list', async () => {
+  const card = (await call('shir', 'GET', `/opportunities/${ids.acme}`)).data;
+  const companyId = card.company.id;
+  const dana = card.outreach.contacts.find((c) => c.full_name === 'Dana Levi');
+  assert.equal(card.outreach.ai_problem, null);
+  assert.equal(dana.recipient_country, 'Israel'); // falls back to the company's HQ country
+  assert.deepEqual(dana.channels, { email: null, linkedin: null, whatsapp: 'no_phone' });
+
+  // AI draft → approval queue with the opt-out sentence and the "פרסומת" marking.
+  assert.equal((await call('omer', 'POST', `/opportunities/${ids.acme}/approaches`, { contact_id: dana.id, channel: 'email', mode: 'ai' })).status, 403);
+  const drafted = await call('shir', 'POST', `/opportunities/${ids.acme}/approaches`, { contact_id: dana.id, channel: 'email', mode: 'ai' });
+  assert.equal(drafted.status, 201, drafted.data.error);
+  assert.ok(prompts.at(-1).includes('Acme is seeking Japanese implementation partners.') && prompts.at(-1).includes('Dana Levi'));
+  const rules = (await call('shir', 'GET', '/outreach/rules')).data;
+  const item = (await call('shir', 'GET', `/approvals/${drafted.data.id}`)).data;
+  assert.deepEqual([item.kind, item.channel, item.recipient_email, item.opportunity_id, item.language],
+    ['first_approach', 'email', 'dana@acmesoftware.example', ids.acme, 'en']);
+  assert.equal(item.subject, 'פרסומת: Japanese integration partners');
+  assert.ok(item.content.startsWith('Dear Dana') && item.content.endsWith(rules.opt_out.en));
+  assert.equal(item.deal_id, card.deal.id);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM ai_usage WHERE task = 'outreach'").get().n, 1);
+  assert.match((await call('shir', 'POST', `/opportunities/${ids.acme}/approaches`, { contact_id: dana.id, channel: 'linkedin', mode: 'ai' })).data.error, /already waiting/);
+
+  // The marking and the opt-out sentence cannot be removed.
+  await call('shir', 'PATCH', `/approvals/${item.id}`, { subject: 'Japanese integration partners', content: item.content });
+  assert.match((await call('shir', 'POST', `/approvals/${item.id}/approve`, {})).data.error, /must start with "פרסומת"/);
+  await call('shir', 'PATCH', `/approvals/${item.id}`, { subject: item.subject, content: item.content });
+  assert.equal((await call('shir', 'POST', `/approvals/${item.id}/approve`, {})).status, 200);
+  assert.equal((await call('shir', 'POST', `/approvals/${item.id}/mark-sent`)).status, 200);
+  const sent = { ...db.prepare('SELECT channel, summary, deal_id FROM interactions WHERE contact_id = ? ORDER BY id DESC').get(dana.id) };
+  assert.deepEqual(sent, { channel: 'email', summary: item.subject, deal_id: card.deal.id });
+  assert.match((await call('shir', 'POST', `/opportunities/${ids.acme}/approaches`, { contact_id: dana.id, channel: 'linkedin', mode: 'blank' })).data.error, /already sent/);
+
+  // Countries an admin has not cleared are blocked; clearing is admin-only.
+  const hans = (await call('shir', 'POST', `/companies/${companyId}/contacts`, {
+    full_name: 'Hans Weber', department: 'sales', country: 'Germany', preferred_language: 'en', linkedin_url: 'https://de.linkedin.com/in/Hans-Weber/',
+  })).data.id;
+  assert.match((await call('shir', 'POST', `/opportunities/${ids.acme}/approaches`, { contact_id: hans, channel: 'linkedin', mode: 'blank' })).data.error, /not cleared/);
+  const newRules = { cleared_countries: ['Israel', 'Germany'], opt_out_he: rules.opt_out.he, opt_out_en: rules.opt_out.en };
+  assert.equal((await call('shir', 'PUT', '/outreach/rules', newRules)).status, 403);
+  assert.equal((await call('tom', 'PUT', '/outreach/rules', newRules)).status, 200);
+  const linkedin = await call('shir', 'POST', `/opportunities/${ids.acme}/approaches`, { contact_id: hans, channel: 'linkedin', mode: 'blank' });
+  assert.equal(linkedin.status, 201, linkedin.data.error);
+  const linkedinItem = (await call('shir', 'GET', `/approvals/${linkedin.data.id}`)).data;
+  assert.deepEqual([linkedinItem.subject, linkedinItem.recipient_linkedin, linkedinItem.content.trim()], [null, 'https://de.linkedin.com/in/Hans-Weber/', rules.opt_out.en]);
+
+  // An opt-out withdraws waiting messages and puts the person's details on the do-not-contact list.
+  assert.equal((await call('shir', 'POST', `/contacts/${hans}/opt-out`, { reason: 'Replied "remove"' })).status, 200);
+  assert.equal((await call('shir', 'GET', `/approvals/${linkedin.data.id}`)).data.status, 'rejected');
+  const listed = (await call('shir', 'GET', '/suppressions')).data;
+  assert.deepEqual(listed.map((row) => [row.kind, row.value]), [['linkedin', 'https://linkedin.com/in/hans-weber']]);
+  const afterOptOut = (await call('shir', 'GET', `/opportunities/${ids.acme}`)).data.outreach.contacts.find((c) => c.id === hans);
+  assert.equal(afterOptOut.channels.linkedin, 'opted_out');
+
+  // WhatsApp: international number and consent; an opt-out after approval still blocks "mark as sent".
+  const noa = (await call('shir', 'POST', `/companies/${companyId}/contacts`, {
+    full_name: 'Noa Bar', department: 'management', phone: '050-123-4567', email: 'noa@acmesoftware.example',
+  })).data.id;
+  const channelsOf = async (id) => (await call('shir', 'GET', `/opportunities/${ids.acme}`)).data.outreach.contacts.find((c) => c.id === id).channels;
+  assert.equal((await channelsOf(noa)).whatsapp, 'phone_format');
+  await call('shir', 'PATCH', `/contacts/${noa}`, { phone: '+972 50-123-4567' });
+  assert.equal((await channelsOf(noa)).whatsapp, 'no_whatsapp_consent');
+  await call('shir', 'PATCH', `/contacts/${noa}`, { whatsapp_consent: true });
+  assert.equal((await channelsOf(noa)).whatsapp, null);
+  const whatsapp = (await call('shir', 'POST', `/opportunities/${ids.acme}/approaches`, { contact_id: noa, channel: 'whatsapp', mode: 'blank' })).data.id;
+  const whatsappItem = (await call('shir', 'GET', `/approvals/${whatsapp}`)).data;
+  assert.equal(whatsappItem.language, 'he');
+  assert.ok(whatsappItem.content.startsWith('פרסומת\n') && whatsappItem.content.endsWith(rules.opt_out.he));
+  await call('shir', 'PATCH', `/approvals/${whatsapp}`, { content: whatsappItem.content.replace('\n\n', '\nשלום נועה\n\n'), recipient_phone: whatsappItem.recipient_phone });
+  assert.equal((await call('shir', 'POST', `/approvals/${whatsapp}/approve`, {})).status, 200);
+  assert.equal((await call('omer', 'POST', '/suppressions', { kind: 'domain', value: 'https://www.AcmeSoftware.example/about' })).status, 201);
+  assert.match((await call('shir', 'POST', `/approvals/${whatsapp}/mark-sent`)).data.error, /do-not-contact/);
+  const domainRow = db.prepare("SELECT id, value FROM suppressions WHERE kind = 'domain'").get();
+  assert.equal(domainRow.value, 'acmesoftware.example');
+  assert.equal((await call('omer', 'DELETE', `/suppressions/${domainRow.id}`)).status, 403);
+  assert.equal((await call('tom', 'DELETE', `/suppressions/${domainRow.id}`)).status, 200);
+  assert.equal((await call('shir', 'POST', `/approvals/${whatsapp}/mark-sent`)).status, 200);
+  const whatsappSent = { ...db.prepare('SELECT channel, summary FROM interactions WHERE contact_id = ? ORDER BY id DESC').get(noa) };
+  assert.deepEqual(whatsappSent, { channel: 'whatsapp', summary: 'שלום נועה' });
 });

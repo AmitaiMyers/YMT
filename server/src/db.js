@@ -105,7 +105,8 @@ function seedDefaults(db) {
   }
   if (count(db, 'templates') === 0) {
     for (const template of DEFAULT_TEMPLATES) insert(db, 'templates', template);
-  }  seedMandates(db);
+  }
+  seedMandates(db);
 }
 
 // ------------------------------------------------------------------ generic helpers

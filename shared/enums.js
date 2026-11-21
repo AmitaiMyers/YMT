@@ -8,13 +8,21 @@ export const TRIGGER_TYPES = ['trade_show', 'delegation', 'job_posting', 'news',
 export const DEPARTMENTS = ['sales', 'growth', 'asia_desk', 'management', 'other'];
 export const DEAL_MODELS = ['commission', 'brokerage_fee', 'future_orders_pct', 'retainer'];
 export const DEAL_STATUSES = ['open', 'won', 'lost'];
-export const CHANNELS = ['phone', 'email', 'linkedin', 'meeting', 'note'];
+export const CHANNELS = ['phone', 'email', 'linkedin', 'whatsapp', 'meeting', 'note'];
 export const DIRECTIONS = ['outbound', 'inbound', 'internal'];
 export const RESOURCE_TYPES = ['manufacturer', 'supplier', 'expert'];
 export const DOCUMENT_KINDS = ['quote', 'agreement', 'meeting_summary'];
 export const EMAIL_KINDS = ['outreach_email', 'followup_email', 'meeting_followup_email'];
 export const TEMPLATE_KINDS = [...DOCUMENT_KINDS, ...EMAIL_KINDS, 'company_brief'];
-export const APPROVAL_KINDS = ['company_brief', ...EMAIL_KINDS];
+// Release 3: a first message to a decision maker, drafted from an accepted research card, on one channel.
+export const OUTREACH_CHANNELS = ['email', 'linkedin', 'whatsapp'];
+// Every approval kind that is a message to an outside person (everything except the internal brief).
+export const MESSAGE_KINDS = [...EMAIL_KINDS, 'first_approach'];
+// Unsolicited first contacts: the legal gate (cleared countries, opt-out sentence, "פרסומת" marking) applies to these.
+export const COLD_KINDS = ['outreach_email', 'first_approach'];
+export const APPROVAL_KINDS = ['company_brief', ...MESSAGE_KINDS];
+// Do-not-contact list entries; a domain blocks everyone at that company.
+export const SUPPRESSION_KINDS = ['email', 'phone', 'linkedin', 'domain'];
 export const APPROVAL_STATUSES = ['pending', 'approved', 'rejected', 'sent'];
 export const DOCUMENT_STATUSES = ['draft', 'finalized', 'signed'];
 
@@ -55,7 +63,7 @@ export const EXAMPLE_LABELS = ['good', 'false_positive'];
 export const CONTACT_PROPOSAL_STATUSES = ['proposed', 'confirmed', 'dismissed'];
 export const JOB_STATUSES = ['queued', 'running', 'done', 'failed', 'waiting_budget'];
 export const AI_PROVIDERS = ['claude', 'openai', 'fake'];
-export const AI_TASKS = ['discover', 'classify', 'judge', 'contacts'];
+export const AI_TASKS = ['discover', 'classify', 'judge', 'contacts', 'outreach'];
 export const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Sunday (Israeli work week starts on Sunday)
 
 // Size bands by headcount and by annual revenue in USD (YMT's internal bands). `max` is inclusive for

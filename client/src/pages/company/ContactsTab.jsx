@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { Users, Send, Pencil, Trash2, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Users, Send, Pencil, Trash2, ShieldCheck, ShieldAlert, Ban } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { useAction } from '../../hooks/useApi.js';
 import { patch, post, del } from '../../api.js';
-import { Card, Button, IconButton, ErrorBox, Badge, Table, ExternalLink, EmptyState, useConfirm, useToast } from '../../ui/index.js';
+import { Card, Button, IconButton, ErrorBox, Badge, Table, ExternalLink, EmptyState, useConfirm, useToast, usePrompt } from '../../ui/index.js';
 import { EntityForm } from '../../components/EntityForm.jsx';
 import { useContactFields, CONTACT_DEFAULTS } from '../../fields.js';
 
 export function ContactsTab({ data, reload, flow }) {
   const { t } = useI18n();
   const confirm = useConfirm();
+  const prompt = usePrompt();
   const toast = useToast();
   const fields = useContactFields();
   const [editingId, setEditingId] = useState(null);
@@ -19,6 +20,13 @@ export function ContactsTab({ data, reload, flow }) {
     const { id } = await post(`/companies/${companyId}/outreach`, { contact_id: contact.id, language: contact.preferred_language });
     reload();
     flow.openDraft(id);
+  });
+  const optOut = useAction(async (contact) => {
+    const reason = await prompt({ title: t('contact.optOutTitle', { name: contact.full_name }), body: t('contact.optOutBody'), label: t('contact.optOutReason'), confirmLabel: t('contact.optOut'), tone: 'danger', invalidReason: t('contact.optOutNeedsReason') });
+    if (reason === null) return;
+    await post(`/contacts/${contact.id}/opt-out`, { reason });
+    toast({ title: t('contact.optedOutToast') });
+    reload();
   });
   const remove = useAction(async (contact) => {
     const ok = await confirm({ title: t('contact.deleteTitle'), body: t('contact.deleteBody', { name: contact.full_name }), confirmLabel: t('common.delete'), tone: 'danger' });
@@ -37,6 +45,7 @@ export function ContactsTab({ data, reload, flow }) {
           {c.verified
             ? <Badge tone="success"><ShieldCheck aria-hidden="true" size={13} />{t('contact.verifiedShort')}</Badge>
             : <Badge tone="signal"><ShieldAlert aria-hidden="true" size={13} />{t('contact.unverified')}</Badge>}
+          {c.opted_out_at && <Badge tone="danger"><Ban aria-hidden="true" size={13} />{t('contact.optedOut')}</Badge>}
         </div>
         <bdi className="text-[13px] text-subtle">{c.job_title}</bdi>
       </div>
@@ -57,13 +66,14 @@ export function ContactsTab({ data, reload, flow }) {
           size="sm"
           icon={Send}
           loading={outreach.busy}
-          disabled={!c.email}
-          disabledReason={t('contact.needsEmail')}
+          disabled={!c.email || c.opted_out_at !== null}
+          disabledReason={c.opted_out_at ? t('contact.optedOut') : t('contact.needsEmail')}
           onClick={() => outreach.run(c)}
         >
           {t('contact.draftOutreach')}
         </Button>
         <IconButton icon={Pencil} label={`${t('common.edit')}: ${c.full_name}`} onClick={() => setEditingId(c.id)} />
+        {!c.opted_out_at && <IconButton icon={Ban} label={`${t('contact.optOut')}: ${c.full_name}`} onClick={() => optOut.run(c)} />}
         <IconButton icon={Trash2} label={`${t('common.delete')}: ${c.full_name}`} onClick={() => remove.run(c)} />
       </div>
     ) },
@@ -72,7 +82,7 @@ export function ContactsTab({ data, reload, flow }) {
   return (
     <div className="space-y-6">
       <Card title={t('contact.list')}>
-        <ErrorBox message={outreach.error ?? remove.error} />
+        <ErrorBox message={outreach.error ?? remove.error ?? optOut.error} />
         <Table caption={t('contact.list')} columns={columns} rows={data.contacts} empty={<EmptyState icon={Users} title={t('contact.none')}>{t('contact.noneHint')}</EmptyState>} />
       </Card>
       <Card title={editing ? `${t('common.edit')}: ${editing.full_name}` : t('contact.add')}>

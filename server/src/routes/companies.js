@@ -9,6 +9,7 @@ import { requireAdmin } from '../auth.js';
 import { LANGUAGES, INDIA_ACTIVITY, TRIGGER_TYPES, DEPARTMENTS } from '../constants.js';
 import { generateCompanyBrief, generateOutreachEmail } from '../generators.js';
 import { enqueueApproval } from '../approvalQueue.js';
+import { assertMayContact, composeMessage } from '../outreachRules.js';
 
 const COMPANY_SPEC = {
   name: { type: 'string', required: true, max: 200 },
@@ -39,6 +40,8 @@ const CONTACT_SPEC = {
   phone: { type: 'string', max: 40 },
   linkedin_url: { type: 'url' },
   preferred_language: { type: 'string', enum: LANGUAGES },
+  country: { type: 'string', max: 80 },
+  whatsapp_consent: { type: 'bool' },
   verified: { type: 'bool' },
   verified_source: { type: 'string', max: 300 },
 };
@@ -175,7 +178,7 @@ export function companyRoutes(db) {
   router.post('/companies/:id/contacts', (req, res) => {
     const companyId = parseId(req.params.id);
     findById(db, 'companies', companyId);
-    const contact = withDefaults(parseBody(CONTACT_SPEC, req.body), { verified: 0, preferred_language: 'he' });
+    const contact = withDefaults(parseBody(CONTACT_SPEC, req.body), { verified: 0, preferred_language: 'he', whatsapp_consent: 0 });
     const id = insert(db, 'contacts', { ...contact, ...contactVerificationFields(contact, req.user.id), company_id: companyId });
     res.status(201).json({ id });
   });
@@ -221,8 +224,10 @@ export function companyRoutes(db) {
   router.post('/companies/:id/outreach', (req, res) => {
     const companyId = parseId(req.params.id);
     const { contact_id: contactId, deal_id: dealId, language } = parseBody(OUTREACH_SPEC, req.body);
-    const { subject, content } = generateOutreachEmail(db, req.user, { companyId, contactId, dealId, language });
     const contact = findById(db, 'contacts', contactId);
+    assertMayContact(db, contact, 'email'); // a cold email: same legal gate as a first approach from a research card
+    const generated = generateOutreachEmail(db, req.user, { companyId, contactId, dealId, language });
+    const { subject, content } = composeMessage(db, { contact, channel: 'email', language, subject: generated.subject, body: generated.content });
     const id = enqueueApproval(db, req.user.id, {
       kind: 'outreach_email', company_id: companyId, deal_id: dealId, contact_id: contactId,
       language, subject, content, recipient_email: contact.email,

@@ -2,7 +2,7 @@
 // Reversible: edit & save. Irreversible (approve, reject, mark as sent): confirmation dialog stating the consequence.
 
 import { useMemo, useState } from 'react';
-import { Check, X, Mail, Send, GitCompare, Save } from 'lucide-react';
+import { Check, X, Mail, Send, GitCompare, Save, MessageCircle, ExternalLink as ExternalLinkIcon, Scale } from 'lucide-react';
 import { useI18n, useFormat } from '../i18n/I18nProvider.jsx';
 import { useAction } from '../hooks/useApi.js';
 import { patch, post } from '../api.js';
@@ -11,13 +11,34 @@ import { INPUT_CLASS } from './EntityForm.jsx';
 import { CopyButton } from './CopyButton.jsx';
 import { useCounts } from '../app/CountsProvider.jsx';
 import { lineDiff } from '../lib/lineDiff.js';
-import { EMAIL_KINDS } from '../../../shared/enums.js';
+import { MESSAGE_KINDS, COLD_KINDS } from '../../../shared/enums.js';
 
 const FIELD_CLASS = `${INPUT_CLASS} border-line-strong`;
+const LINK_BUTTON_CLASS = 'inline-flex min-h-11 items-center gap-2 rounded-[6px] bg-primary px-4 text-sm font-medium text-on-primary shadow-e1 hover:bg-primary-hover sm:min-h-10';
+
+// Where each channel keeps its recipient, and how the field is typed.
+const RECIPIENT = {
+  email: { field: 'recipient_email', type: 'email' },
+  linkedin: { field: 'recipient_linkedin', type: 'url' },
+  whatsapp: { field: 'recipient_phone', type: 'tel' },
+};
+
+function recipientOf(item) {
+  return item[RECIPIENT[item.channel].field];
+}
+
+function queryString(params) {
+  return new URLSearchParams(params).toString().replace(/\+/g, '%20');
+}
 
 function mailtoHref(item) {
-  const params = new URLSearchParams({ subject: item.subject ?? '', body: item.content });
-  return `mailto:${encodeURIComponent(item.recipient_email)}?${params.toString().replace(/\+/g, '%20')}`;
+  return `mailto:${encodeURIComponent(item.recipient_email)}?${queryString({ subject: item.subject ?? '', body: item.content })}`;
+}
+
+/** WhatsApp click-to-chat: opens WhatsApp with the approved text; the person presses send themselves. */
+function whatsappHref(item) {
+  const digits = item.recipient_phone.replace(/\D/g, '').replace(/^00/, '');
+  return `https://wa.me/${digits}?${queryString({ text: item.content })}`;
 }
 
 function DiffView({ before, after, language }) {
@@ -54,24 +75,28 @@ function PendingEditor({ item, onDone }) {
   const { t } = useI18n();
   const confirm = useConfirm();
   const complete = useCompletion(onDone);
-  const isEmail = EMAIL_KINDS.includes(item.kind);
-  const saved = { subject: item.subject ?? '', content: item.content, recipient_email: item.recipient_email ?? '' };
+  const isMessage = MESSAGE_KINDS.includes(item.kind);
+  const hasSubject = isMessage && item.channel === 'email';
+  const recipient = RECIPIENT[item.channel];
+  const saved = { subject: item.subject ?? '', content: item.content, recipient: isMessage ? recipientOf(item) ?? '' : '' };
   const [draft, setDraft] = useState(saved);
   const [showChanges, setShowChanges] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [note, setNote] = useState('');
-  const changed = draft.subject !== saved.subject || draft.content !== saved.content || draft.recipient_email !== saved.recipient_email;
+  const changed = draft.subject !== saved.subject || draft.content !== saved.content || draft.recipient !== saved.recipient;
   const differsFromGenerated = item.original_content !== null && draft.content !== item.original_content;
 
   const save = useAction(async () => {
-    const body = isEmail ? { ...draft, recipient_email: draft.recipient_email || null } : { content: draft.content };
+    const body = isMessage
+      ? { content: draft.content, [recipient.field]: draft.recipient || null, ...(hasSubject ? { subject: draft.subject } : {}) }
+      : { content: draft.content };
     await patch(`/approvals/${item.id}`, body);
     complete(t('toast.saved'), 'pending');
   });
   const approve = useAction(async () => {
     const ok = await confirm({
       title: t('approval.confirmApproveTitle'),
-      body: isEmail ? t('approval.confirmApproveEmail', { recipient: item.recipient_email }) : t('approval.confirmApproveBrief'),
+      body: isMessage ? t('approval.confirmApproveMessage', { recipient: saved.recipient, channel: t(`channel.${item.channel}`) }) : t('approval.confirmApproveBrief'),
       confirmLabel: t('approval.approve'),
       tone: 'success',
     });
@@ -84,20 +109,23 @@ function PendingEditor({ item, onDone }) {
     complete(t('toast.rejected'), 'rejected');
   });
 
-  const missingRecipient = isEmail && !saved.recipient_email;
+  const missingRecipient = isMessage && !saved.recipient;
   const approveReason = changed ? t('approval.saveBeforeApprove') : missingRecipient ? t('approval.needsRecipient') : undefined;
 
   return (
     <div className="space-y-4">
       <ErrorBox message={save.error ?? approve.error ?? reject.error} />
-      {isEmail && (
+      {COLD_KINDS.includes(item.kind) && <Notice icon={Scale}>{t('approval.legalHint')}</Notice>}
+      {isMessage && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block text-sm font-medium">{t('approval.recipient')}
-            <input type="email" dir="ltr" className={`${FIELD_CLASS} mt-1.5`} value={draft.recipient_email} onChange={(e) => setDraft({ ...draft, recipient_email: e.target.value })} />
+          <label className="block text-sm font-medium">{t(`approval.recipientOf.${item.channel}`)}
+            <input type={recipient.type} dir="ltr" className={`${FIELD_CLASS} mt-1.5`} value={draft.recipient} onChange={(e) => setDraft({ ...draft, recipient: e.target.value })} />
           </label>
-          <label className="block text-sm font-medium">{t('approval.subject')}
-            <input dir="auto" className={`${FIELD_CLASS} mt-1.5`} value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
-          </label>
+          {hasSubject && (
+            <label className="block text-sm font-medium">{t('approval.subject')}
+              <input dir="auto" className={`${FIELD_CLASS} mt-1.5`} value={draft.subject} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
+            </label>
+          )}
         </div>
       )}
       <div>
@@ -152,6 +180,35 @@ function PendingEditor({ item, onDone }) {
   );
 }
 
+/** The manual send step per channel: open the message in the person's own app, then confirm it was sent. */
+function SendStep({ item }) {
+  const { t } = useI18n();
+  const text = item.channel === 'email' ? `${item.subject ?? ''}\n\n${item.content}` : item.content;
+  const copy = <CopyButton text={text} label={t('approval.copyText')} />;
+  if (item.channel === 'email') {
+    return (
+      <>
+        <li><a className={LINK_BUTTON_CLASS} href={mailtoHref(item)}><Mail aria-hidden="true" size={16} />1. {t('approval.openInMail')}</a></li>
+        <li>{copy}</li>
+      </>
+    );
+  }
+  if (item.channel === 'linkedin') {
+    return (
+      <>
+        <li><CopyButton text={text} label={`1. ${t('approval.copyText')}`} /></li>
+        <li><a className={LINK_BUTTON_CLASS} href={item.recipient_linkedin} target="_blank" rel="noopener noreferrer"><ExternalLinkIcon aria-hidden="true" size={16} />2. {t('approval.openLinkedin')}</a></li>
+      </>
+    );
+  }
+  return (
+    <>
+      <li><a className={LINK_BUTTON_CLASS} href={whatsappHref(item)} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" size={16} />1. {t('approval.openWhatsapp')}</a></li>
+      <li>{copy}</li>
+    </>
+  );
+}
+
 function ApprovedActions({ item, onDone }) {
   const { t } = useI18n();
   const confirm = useConfirm();
@@ -159,7 +216,7 @@ function ApprovedActions({ item, onDone }) {
   const markSent = useAction(async () => {
     const ok = await confirm({
       title: t('approval.confirmSentTitle'),
-      body: t('approval.confirmSentBody', { recipient: item.recipient_email }),
+      body: t('approval.confirmSentMessage', { recipient: recipientOf(item), channel: t(`channel.${item.channel}`) }),
       confirmLabel: t('approval.markSent'),
       tone: 'success',
     });
@@ -167,17 +224,15 @@ function ApprovedActions({ item, onDone }) {
     await post(`/approvals/${item.id}/mark-sent`);
     complete(t('toast.markedSent'), 'sent');
   });
-  if (!EMAIL_KINDS.includes(item.kind)) return <Notice>{t('approval.briefSaved')}</Notice>;
+  if (!MESSAGE_KINDS.includes(item.kind)) return <Notice>{t('approval.briefSaved')}</Notice>;
+  const lastStep = item.channel === 'linkedin' ? 3 : 2;
   return (
     <div className="space-y-3">
       <ErrorBox message={markSent.error} />
-      <Notice tone="signal" icon={Mail}>{t('approval.manualSendHelp')}</Notice>
+      <Notice tone="signal" icon={Send}>{t(`approval.manualSend.${item.channel}`)}</Notice>
       <ol className="flex flex-wrap items-center gap-2">
-        <li><a className="inline-flex min-h-11 items-center gap-2 rounded-[6px] bg-primary px-4 text-sm font-medium text-on-primary shadow-e1 hover:bg-primary-hover sm:min-h-10" href={mailtoHref(item)}>
-          <Mail aria-hidden="true" size={16} />1. {t('approval.openInMail')}
-        </a></li>
-        <li><CopyButton text={`${item.subject ?? ''}\n\n${item.content}`} label={t('approval.copyText')} /></li>
-        <li><Button variant="success" icon={Send} loading={markSent.busy} onClick={markSent.run}>2. {t('approval.markSent')}</Button></li>
+        <SendStep item={item} />
+        <li><Button variant="success" icon={Send} loading={markSent.busy} onClick={markSent.run}>{lastStep}. {t('approval.markSent')}</Button></li>
       </ol>
     </div>
   );
@@ -190,7 +245,7 @@ export function ApprovalEditor({ item, onDone }) {
   if (item.status === 'pending') return <PendingEditor key={item.content} item={item} onDone={onDone} />;
   return (
     <div className="space-y-4">
-      {item.recipient_email && <p className="text-sm"><span className="text-subtle">{t('approval.recipient')}:</span> <bdi dir="ltr">{item.recipient_email}</bdi></p>}
+      {MESSAGE_KINDS.includes(item.kind) && recipientOf(item) && <p className="text-sm"><span className="text-subtle">{t(`approval.recipientOf.${item.channel}`)}:</span> <bdi dir="ltr">{recipientOf(item)}</bdi></p>}
       {item.subject && <p className="text-sm"><span className="text-subtle">{t('approval.subject')}:</span> <bdi className="font-medium">{item.subject}</bdi></p>}
       <div className="rounded-[6px] border border-line bg-canvas p-4"><GeneratedText text={item.content} language={item.language} /></div>
       {item.status === 'approved' && <ApprovedActions item={item} onDone={onDone} />}

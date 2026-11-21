@@ -20,15 +20,15 @@ const SETTINGS_SPEC = {
 };
 
 const COUNTED_TABLES = ['users', 'companies', 'contacts', 'triggers', 'deals', 'interactions', 'approvals',
-  'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'audit_log'];
+  'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'suppressions', 'audit_log'];
 
 function fileSize(filePath) {
   return filePath === ':memory:' ? 0 : statSync(filePath).size;
 }
 
 const AI_PROVIDER_NOTES = {
-  claude: 'Anthropic Claude API – research only: public company information, search queries and the mandate text',
-  openai: 'OpenAI API – research only: public company information, search queries and the mandate text',
+  claude: 'Anthropic Claude API – research and first-message drafts: public company information, search queries, the mandate text, and the recipient\'s name and job title',
+  openai: 'OpenAI API – research and first-message drafts: public company information, search queries, the mandate text, and the recipient\'s name and job title',
 };
 
 export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled, aiProviders }) {

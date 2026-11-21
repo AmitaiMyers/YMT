@@ -15,6 +15,8 @@ import { findExistingCompany, normalizeUrl, normalizeName, employeeBand, revenue
 import { budgetStatus } from '../ai/service.js';
 import { requeueWaiting } from '../research/worker.js';
 import { recordInteraction } from '../timeline.js';
+import { isAdmin, assertCanSee } from '../research/access.js';
+import { outreachPanel } from '../outreach.js';
 
 const MANDATE_FIELDS_SPEC = {
   name: { type: 'string', max: 120 },
@@ -110,14 +112,8 @@ const VERIFY_TASK_DAYS = 7;
 
 // ------------------------------------------------------------------ helpers
 
-const isAdmin = (user) => user.role === 'admin';
-
 function assertMandateManager(user, mandate) {
   if (!isAdmin(user) && mandate.owner_id !== user.id) throw forbidden('Only the mandate owner or an admin can do this');
-}
-
-function assertCanSee(user, opportunity) {
-  if (!isAdmin(user) && opportunity.owner_id !== user.id) throw forbidden('This card belongs to another owner');
 }
 
 function assertActiveUser(db, userId) {
@@ -359,6 +355,7 @@ export function researchRoutes(db, { ai }) {
       contact_search: db.prepare('SELECT id, status, found, cost_usd, error, created_at, finished_at FROM contact_searches WHERE opportunity_id = ?').get(id) ?? null,
       contact_proposals: db.prepare(`SELECT p.id, p.full_name, p.job_title, p.email, p.linkedin_url, p.quote, p.status, p.contact_id, s.url AS source_url
         FROM contact_proposals p JOIN sources s ON s.id = p.source_id WHERE p.opportunity_id = ? ORDER BY p.id`).all(id),
+      outreach: opportunity.status === 'accepted' ? outreachPanel(db, ai, opportunity) : null,
     });
   });
 

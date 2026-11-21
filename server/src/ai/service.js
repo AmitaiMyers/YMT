@@ -6,7 +6,9 @@
 import { AI_PROVIDERS, AI_TASKS } from '../constants.js';
 import { getNumericSetting, insert, audit } from '../db.js';
 
-export class AiError extends Error {}
+export class AiError extends Error {
+  httpStatus = 409; // a request that needs AI cannot run now (no key, no price, monthly cap reached)
+}
 export class AiConfigError extends AiError {}
 export class BudgetError extends AiError {}
 

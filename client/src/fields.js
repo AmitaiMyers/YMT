@@ -46,14 +46,16 @@ export function useContactFields() {
     { name: 'department', label: t('contact.department'), type: 'select', required: true, options: options('department', DEPARTMENTS) },
     { name: 'preferred_language', label: t('contact.language'), type: 'select', required: true, options: options('language', LANGUAGES) },
     { name: 'email', label: t('contact.email'), type: 'email' },
-    { name: 'phone', label: t('contact.phone'), type: 'text' },
+    { name: 'phone', label: t('contact.phone'), type: 'text', help: t('contact.phoneHelp') },
+    { name: 'country', label: t('contact.country'), type: 'text', help: t('contact.countryHelp') },
     { name: 'linkedin_url', label: t('contact.linkedin'), type: 'url', wide: true, advanced: true },
+    { name: 'whatsapp_consent', label: t('contact.whatsappConsent'), type: 'checkbox', help: t('contact.whatsappConsentHelp') },
     { name: 'verified', label: t('contact.verified'), type: 'checkbox' },
     { name: 'verified_source', label: t('contact.verifiedSource'), type: 'text', help: t('contact.verifiedHelp') },
   ];
 }
 
-export const CONTACT_DEFAULTS = { department: 'sales', preferred_language: 'he', verified: false };
+export const CONTACT_DEFAULTS = { department: 'sales', preferred_language: 'he', verified: false, whatsapp_consent: false };
 
 export function useDealFields({ workflows, companies }) {
   const { t, language } = useI18n();

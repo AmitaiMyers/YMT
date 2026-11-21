@@ -21,6 +21,7 @@ import { inboxRoutes } from './routes/inbox.js';
 import { googleRoutes, googleCallbackRoutes } from './routes/google.js';
 import { researchRoutes } from './routes/research.js';
 import { watchListRoutes } from './routes/watchLists.js';
+import { outreachRoutes } from './routes/outreach.js';
 import { createAiService } from './ai/service.js';
 
 /**
@@ -63,7 +64,7 @@ export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy 
     userRoutes(db), companyRoutes(db), approvalRoutes(db), crmRoutes(db), meetingRoutes(db, { google }),
     documentRoutes(db), directoryRoutes(db), dashboardRoutes(db),
     settingsRoutes(db, { dbPath, hostingLocation, googleEnabled: Boolean(google), aiProviders: ai.configuredProviders() }),
-    shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }), researchRoutes(db, { ai }), watchListRoutes(db),
+    shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }), researchRoutes(db, { ai }), watchListRoutes(db), outreachRoutes(db, { ai }),
   ]) {
     api.use(routes);
   }

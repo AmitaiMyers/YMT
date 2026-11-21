@@ -4,7 +4,7 @@ import { useI18n } from '../i18n/I18nProvider.jsx';
 import { useLoad } from '../hooks/useApi.js';
 import { Dialog, Loaded, StatusBadge, statusTone } from '../ui/index.js';
 import { ApprovalEditor } from './ApprovalEditor.jsx';
-import { EMAIL_KINDS } from '../../../shared/enums.js';
+import { MESSAGE_KINDS } from '../../../shared/enums.js';
 
 export function DraftSheet({ approvalId, onClose, onChanged }) {
   const { t } = useI18n();
@@ -24,8 +24,8 @@ export function DraftSheet({ approvalId, onClose, onChanged }) {
             item={loaded}
             onDone={(nextStatus) => {
               onChanged();
-              // Approved emails stay open for the manual send step; everything else is finished.
-              const continues = nextStatus === 'pending' || (nextStatus === 'approved' && EMAIL_KINDS.includes(loaded.kind));
+              // Approved messages stay open for the manual send step; everything else is finished.
+              const continues = nextStatus === 'pending' || (nextStatus === 'approved' && MESSAGE_KINDS.includes(loaded.kind));
               if (continues) result.reload();
               else onClose();
             }}

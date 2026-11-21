@@ -16,6 +16,7 @@ import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { useEnumOptions } from '../../enumOptions.js';
 import { OpportunityStatus, VerdictBadge, FlagBadges, useEmployeesText } from './researchUi.jsx';
 import { PipelinePanel, DecisionMakersPanel } from './AcceptedPanels.jsx';
+import { FirstApproachPanel } from './ApproachPanel.jsx';
 import { usePolling } from './MandatesPage.jsx';
 import { REJECT_REASONS, EXAMPLE_LABELS, CUSTOMER_TYPES } from '../../../../shared/enums.js';
 
@@ -211,6 +212,7 @@ export function CardPage() {
       {(card) => {
         const canDecide = DECIDABLE.includes(card.status) && (card.owner_id === user.id || user.role === 'admin');
         const canAssign = user.role === 'admin' && ['draft', 'needs_review', 'manual_assignment'].includes(card.status);
+        const canAct = card.owner_id === user.id || user.role === 'admin';
         const label = (field, value) => {
           if (FACT_LABEL_PREFIX[field]) return t(`${FACT_LABEL_PREFIX[field]}.${value}`);
           if (field === 'customer_types') {
@@ -273,6 +275,7 @@ export function CardPage() {
                     </div>
                   )}
                 </Card>
+                {card.outreach && canAct && <FirstApproachPanel card={card} onChanged={result.reload} />}
                 <CompanyCard company={card.company} />
                 <Card title={t('research.factsTitle')} padded>
                   <Table caption={t('research.factsTitle')} columns={factColumns} rows={card.facts} empty={t('research.noFacts')} />
@@ -305,13 +308,13 @@ export function CardPage() {
                     ]} />
                   </Card>
                 )}
-                {card.status === 'accepted' && (card.owner_id === user.id || user.role === 'admin') && (
+                {card.status === 'accepted' && canAct && (
                   <>
                     <PipelinePanel card={card} onChanged={result.reload} />
                     <DecisionMakersPanel card={card} onChanged={result.reload} />
                   </>
                 )}
-                {card.mandate_id !== null && (card.owner_id === user.id || user.role === 'admin') && <ExamplePanel card={card} onSaved={result.reload} />}
+                {card.mandate_id !== null && canAct && <ExamplePanel card={card} onSaved={result.reload} />}
               </div>
             </div>
           </>
