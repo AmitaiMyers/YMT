@@ -11,6 +11,7 @@ import { Button, ButtonLink, Card, Loaded, PageHeader, Skeleton, Badge, useConfi
 import { TaskList } from '../../components/TaskList.jsx';
 import { ScheduleMeetingDialog } from '../../components/ScheduleMeetingDialog.jsx';
 import { MeetingDetailsDialog } from '../../components/MeetingDetailsDialog.jsx';
+import { useGoogleReturn } from '../../hooks/useGoogleReturn.js';
 import {
   VIEWS, visibleDays, rangeFor, shiftAnchor, toDateKey, fromDateKey, sameDay, startOfDay, toCalendarItems, itemsOnDay,
   layoutOverlaps, meetingState,
@@ -262,7 +263,6 @@ function rangeTitle(view, anchor, locale) {
 
 export function CalendarPage() {
   const { t, language } = useI18n();
-  const toast = useToast();
   const locale = language === 'he' ? 'he-IL' : 'en-GB';
   const [params, setParams] = useSearchParams();
   const defaultView = window.matchMedia(NARROW_QUERY).matches ? 'day' : 'week';
@@ -283,21 +283,7 @@ export function CalendarPage() {
     googleStatus.reload();
   };
 
-  // Result of the Google sign-in round trip (?google=connected|denied|error&reason=…), shown once.
-  useEffect(() => {
-    const outcome = params.get('google');
-    if (!outcome) return;
-    const messages = {
-      connected: { title: t('google.connected') },
-      denied: { tone: 'info', title: t('google.denied') },
-      error: { tone: 'error', title: t('google.connectFailed'), body: params.get('reason') ?? undefined },
-    };
-    toast(messages[outcome] ?? messages.error);
-    const next = new URLSearchParams(params);
-    next.delete('google');
-    next.delete('reason');
-    setParams(next, { replace: true });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useGoogleReturn();
 
   // "Schedule meeting" links from elsewhere (#schedule) open the dialog directly.
   useEffect(() => {

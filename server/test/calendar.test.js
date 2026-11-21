@@ -19,7 +19,7 @@ function createFakeGoogle() {
     if (parsed.hostname === 'oauth2.googleapis.com' && parsed.pathname === '/token') {
       const form = new URLSearchParams(options.body);
       if (form.get('grant_type') === 'authorization_code') {
-        return json(200, { access_token: 'access-1', refresh_token: 'refresh-1', expires_in: fake.accessTokenTtl, id_token: idToken });
+        return json(200, { access_token: 'access-1', refresh_token: 'refresh-1', expires_in: fake.accessTokenTtl, id_token: idToken, scope: 'openid email https://www.googleapis.com/auth/calendar.events' });
       }
       return json(200, { access_token: 'access-2', expires_in: 3600 });
     }
@@ -155,7 +155,7 @@ test('a meeting without a company can be summarised; its follow-up waits for app
 
 test('Google options are refused when Google is not set up', async () => {
   const status = await plain.call('GET', '/google/status');
-  assert.deepEqual(status.data, { configured: false, connected: false, email: null });
+  assert.deepEqual(status.data, { configured: false, connected: false, email: null, gmail_read: false, gmail_checked_at: null, gmail_error: null });
   const response = await plain.call('POST', '/meetings', { title: 'G', scheduled_at: SLOT, new_contact: { full_name: 'X' }, add_to_google: true });
   assert.equal(response.status, 400);
 });
@@ -188,7 +188,7 @@ test('Google Calendar: connect, sync, invite only on request, reschedule, cancel
   assert.equal(callback.headers.get('location'), '/calendar?google=connected');
   const replay = await call('GET', `/google/callback?state=${state}&code=abc`, undefined, { redirect: 'manual', auth: false });
   assert.match(replay.headers.get('location'), /google=error/, 'state is single-use');
-  assert.deepEqual((await call('GET', '/google/status')).data, { configured: true, connected: true, email: 'founder@ymt.example' });
+  assert.deepEqual((await call('GET', '/google/status')).data, { configured: true, connected: true, email: 'founder@ymt.example', gmail_read: false, gmail_checked_at: null, gmail_error: null });
   const stored = db.prepare('SELECT refresh_token_enc, access_token_enc FROM google_accounts').get();
   assert.ok(!stored.refresh_token_enc.includes('refresh-1') && !stored.access_token_enc.includes('access-1'), 'tokens are encrypted at rest');
 

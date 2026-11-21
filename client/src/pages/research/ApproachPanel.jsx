@@ -109,6 +109,7 @@ function Approach({ item, onChanged }) {
         <Badge tone="neutral">{t(`channel.${item.channel}`)}</Badge>
         <span className="font-medium"><bdi>{item.contact_name}</bdi></span>
         {item.review_note && <span className="text-subtle">· <bdi>{item.review_note}</bdi></span>}
+        {item.status === 'sent' && <Link className="ms-auto text-link underline" to={`/conversations/${item.contact_id}`}>{t('outreach.openConversation')}</Link>}
       </div>
       <ApprovalEditor item={item} onDone={onChanged} />
     </li>

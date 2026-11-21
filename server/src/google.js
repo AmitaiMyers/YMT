@@ -1,4 +1,4 @@
-// Google OAuth + Calendar API client (no SDK: plain HTTPS calls, so every request is visible here).
+// Google OAuth + Calendar API + Gmail (read-only, opt-in) client (no SDK: plain HTTPS calls, so every request is visible here).
 // Enabled only when GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, PUBLIC_URL and TOKEN_ENCRYPTION_KEY are all set.
 
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
@@ -9,6 +9,10 @@ const REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
 const EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 // Least privilege: read/write events only (no calendar settings, no other Google data) + the account e-mail.
 const SCOPES = ['openid', 'email', 'https://www.googleapis.com/auth/calendar.events'];
+// Release 4, opt-in per person: read-only Gmail, used only to find replies from people YMT approached.
+export const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
+const GMAIL_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/messages';
+const GMAIL_PAGE = 20;
 const MIN_KEY_LENGTH = 32;
 const ENV_NAMES = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'PUBLIC_URL', 'TOKEN_ENCRYPTION_KEY'];
 
@@ -89,6 +93,10 @@ export function createGoogleClient(config, fetchImpl = fetch) {
     }, action);
   }
 
+  function gmailRequest(accessToken, path, query) {
+    return request(`${GMAIL_URL}${path}?${new URLSearchParams(query).toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } }, 'Gmail read');
+  }
+
   function calendarRequest(accessToken, method, path, { query, body } = {}) {
     const url = `${EVENTS_URL}${path}${query ? `?${new URLSearchParams(query).toString()}` : ''}`;
     return request(url, {
@@ -103,12 +111,13 @@ export function createGoogleClient(config, fetchImpl = fetch) {
     publicUrl: config.publicUrl,
     redirectUri,
 
-    authorizationUrl(state) {
+    /** `gmail: true` also asks for read-only Gmail; Google adds it to the scopes already granted. */
+    authorizationUrl(state, { gmail = false } = {}) {
       const params = new URLSearchParams({
         client_id: config.clientId,
         redirect_uri: redirectUri,
         response_type: 'code',
-        scope: SCOPES.join(' '),
+        scope: [...SCOPES, ...(gmail ? [GMAIL_SCOPE] : [])].join(' '),
         access_type: 'offline', // we need a refresh token to keep working after the first hour
         prompt: 'consent',      // always returns a refresh token, also on reconnect
         include_granted_scopes: 'true',
@@ -123,6 +132,7 @@ export function createGoogleClient(config, fetchImpl = fetch) {
       if (!tokens.refresh_token) throw new GoogleError(400, 'Google did not return a refresh token; please try connecting again');
       return {
         email: decodeJwtPayload(tokens.id_token).email,
+        scopes: tokens.scope.split(' '),
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
@@ -136,6 +146,16 @@ export function createGoogleClient(config, fetchImpl = fetch) {
 
     revoke(token) {
       return request(`${REVOKE_URL}?${new URLSearchParams({ token }).toString()}`, { method: 'POST' }, 'revoke');
+    },
+
+    /** Ids of messages matching a Gmail search (Gmail leaves out `messages` when nothing matches). */
+    async searchMessages(accessToken, query) {
+      const result = await gmailRequest(accessToken, '', { q: query, maxResults: String(GMAIL_PAGE) });
+      return 'messages' in result ? result.messages.map((message) => message.id) : [];
+    },
+
+    getMessage(accessToken, id) {
+      return gmailRequest(accessToken, `/${encodeURIComponent(id)}`, { format: 'full' });
     },
 
     listEvents(accessToken, timeMin, timeMax) {

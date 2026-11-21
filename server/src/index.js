@@ -10,6 +10,7 @@ import { createAiService } from './ai/service.js';
 import { createClaudeProvider } from './ai/claude.js';
 import { createOpenAiProvider } from './ai/openai.js';
 import { startResearchWorker } from './research/worker.js';
+import { syncAllGmail } from './gmailReplies.js';
 
 const port = Number(requireEnv('PORT', '3001'));
 if (!Number.isInteger(port)) throw new Error('PORT must be an integer');
@@ -30,19 +31,32 @@ if (process.env.OPENAI_API_KEY) aiProviders.openai = createOpenAiProvider({ apiK
 const ai = createAiService(db, aiProviders);
 startResearchWorker(db, ai);
 
+const google = googleConfig ? createGoogleClient(googleConfig) : null;
+
+// Release 4: check the Gmail of everyone who allowed it for replies, every 15 minutes (one run at a time).
+const GMAIL_CHECK_MS = 15 * 60_000;
+if (google) {
+  let checking = false;
+  setInterval(() => {
+    if (checking) return;
+    checking = true;
+    syncAllGmail(db, google, ai).finally(() => { checking = false; });
+  }, GMAIL_CHECK_MS);
+}
+
 const app = createApp(db, {
   dbPath,
   hostingLocation: requireEnv('HOSTING_LOCATION', 'Not specified – set HOSTING_LOCATION in .env'),
   clientDist: path.join(repoRoot, 'client/dist'),
   trustProxy: parseTrustProxy(requireEnv('TRUST_PROXY', 'loopback')),
-  google: googleConfig ? createGoogleClient(googleConfig) : null,
+  google,
   ai,
 });
 
 app.listen(port, () => {
   console.log(`YMT server listening on http://localhost:${port}`);
   console.log(`Database: ${dbPath}`);
-  console.log(`Google Calendar: ${googleConfig ? `enabled (redirect ${googleConfig.publicUrl}/api/google/callback)` : 'not configured'}`);
+  console.log(`Google Calendar and Gmail replies: ${googleConfig ? `enabled (redirect ${googleConfig.publicUrl}/api/google/callback)` : 'not configured'}`);
   console.log(`AI providers: ${Object.keys(aiProviders).join(', ') || 'none (set ANTHROPIC_API_KEY to run research)'}`);
   if (count(db, 'users') === 0) {
     console.log('No users yet. Create the first admin with:');

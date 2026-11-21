@@ -16,16 +16,33 @@ function assertNoOtherApproach(db, contactId) {
     WHERE contact_id = ? AND kind = 'first_approach' AND status IN ('pending', 'approved', 'sent') ORDER BY id DESC LIMIT 1`).get(contactId);
   if (!existing) return;
   throw conflict(existing.status === 'sent'
-    ? 'A first approach to this person was already sent. Follow-ups are handled from the deal.'
+    ? 'A first approach to this person was already sent. Follow-ups and replies are handled in the conversation.'
     : 'A first approach to this person is already waiting in the approval queue');
 }
 
-function loadAcceptedCard(db, opportunityId) {
+/** An accepted research card with its evidence source: what every outreach message is written from. */
+export function loadAcceptedCard(db, opportunityId) {
   const card = db.prepare(`SELECT o.*, s.url AS evidence_url, s.title AS evidence_title
     FROM opportunities o JOIN sources s ON s.id = o.evidence_source_id WHERE o.id = ?`).get(opportunityId);
   if (!card) throw notFound(`Card #${opportunityId} does not exist`);
-  if (card.status !== 'accepted') throw conflict('First approaches are drafted from accepted cards');
+  if (card.status !== 'accepted') throw conflict('Outreach messages are drafted from accepted cards');
   return card;
+}
+
+/** The service the card's mandate offers (current version), or null for a card without a mandate. */
+export function proposedServiceFor(db, card) {
+  if (!card.mandate_id) return null;
+  return findVersion(db, findById(db, 'mandates', card.mandate_id).current_version_id).proposed_service;
+}
+
+/** Put one message to a contact into the approval queue, linked to the card (and its deal) it came from. */
+export function queueMessage(db, user, { kind, channel, card, contact, subject, content, replyId = null }) {
+  const deal = db.prepare('SELECT id FROM deals WHERE opportunity_id = ?').get(card.id);
+  const recipient = { email: contact.email, linkedin: contact.linkedin_url, whatsapp: contact.phone }[channel];
+  return enqueueApproval(db, user.id, {
+    kind, channel, opportunity_id: card.id, company_id: card.company_id, deal_id: deal ? deal.id : null, reply_id: replyId,
+    contact_id: contact.id, language: contact.preferred_language, subject, content, [RECIPIENT_FIELDS[channel]]: recipient,
+  });
 }
 
 function assertSendable(db, contactId, channel) {
@@ -46,13 +63,12 @@ export async function draftFirstApproach(db, ai, user, { opportunityId, contactI
 
   let draft = { subject: channel === 'email' ? '' : null, body: '' };
   if (mode === 'ai') {
-    const mandate = card.mandate_id ? findById(db, 'mandates', card.mandate_id) : null;
     const request = outreachRequest({
       card, contact, channel,
       company: findById(db, 'companies', card.company_id),
       language: contact.preferred_language,
       senderName: user.display_name,
-      proposedService: mandate ? findVersion(db, mandate.current_version_id).proposed_service : null,
+      proposedService: proposedServiceFor(db, card),
     });
     const result = await ai.call('outreach', request);
     draft = parseDraft(result.input, channel);
@@ -60,13 +76,7 @@ export async function draftFirstApproach(db, ai, user, { opportunityId, contactI
   }
 
   const message = composeMessage(db, { contact, channel, language: contact.preferred_language, subject: draft.subject, body: draft.body });
-  const deal = db.prepare('SELECT id FROM deals WHERE opportunity_id = ?').get(opportunityId);
-  const recipient = { email: contact.email, linkedin: contact.linkedin_url, whatsapp: contact.phone }[channel];
-  return enqueueApproval(db, user.id, {
-    kind: 'first_approach', channel, opportunity_id: opportunityId, company_id: card.company_id, deal_id: deal ? deal.id : null,
-    contact_id: contactId, language: contact.preferred_language, subject: message.subject, content: message.content,
-    [RECIPIENT_FIELDS[channel]]: recipient,
-  });
+  return queueMessage(db, user, { kind: 'first_approach', channel, card, contact, subject: message.subject, content: message.content });
 }
 
 /** What the accepted card shows under "First approach": the company's people, per-channel availability, and approaches. */
@@ -89,18 +99,21 @@ export function outreachPanel(db, ai, card) {
  * message to them that is still waiting (pending or approved). Sent messages stay in the history.
  */
 export function optOutContact(db, user, contactId, reason) {
+  transaction(db, () => applyOptOut(db, user, contactId, reason));
+}
+
+/** The opt-out steps without their own transaction, for callers that already run one. */
+export function applyOptOut(db, user, contactId, reason) {
   const contact = findById(db, 'contacts', contactId);
   if (contact.opted_out_at) throw conflict('This person is already opted out');
   const keys = suppressionKeys({ email: contact.email, phone: contact.phone, linkedin: contact.linkedin_url })
     .filter(([kind]) => kind !== 'domain'); // one person opting out does not block their whole company
-  transaction(db, () => {
-    update(db, 'contacts', contactId, { opted_out_at: nowIso() });
-    const exists = db.prepare('SELECT 1 FROM suppressions WHERE kind = ? AND value = ?');
-    for (const [kind, value] of keys) {
-      if (!exists.get(kind, value)) insert(db, 'suppressions', { kind, value, reason, contact_id: contactId, created_by: user.id });
-    }
-    db.prepare(`UPDATE approvals SET status = 'rejected', reviewed_by = ?, reviewed_at = ?, review_note = 'Recipient opted out'
-      WHERE contact_id = ? AND status IN ('pending', 'approved') AND kind != 'company_brief'`).run(user.id, nowIso(), contactId);
-    audit(db, user.id, 'contact.opted_out', 'contacts', contactId, reason);
-  });
+  update(db, 'contacts', contactId, { opted_out_at: nowIso() });
+  const exists = db.prepare('SELECT 1 FROM suppressions WHERE kind = ? AND value = ?');
+  for (const [kind, value] of keys) {
+    if (!exists.get(kind, value)) insert(db, 'suppressions', { kind, value, reason, contact_id: contactId, created_by: user.id });
+  }
+  db.prepare(`UPDATE approvals SET status = 'rejected', reviewed_by = ?, reviewed_at = ?, review_note = 'Recipient opted out'
+    WHERE contact_id = ? AND status IN ('pending', 'approved') AND kind != 'company_brief'`).run(user.id, nowIso(), contactId);
+  audit(db, user.id, 'contact.opted_out', 'contacts', contactId, reason);
 }

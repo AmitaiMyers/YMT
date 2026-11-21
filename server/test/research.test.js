@@ -11,6 +11,10 @@ import { createOpenAiProvider } from '../src/ai/openai.js';
 import { employeeBand, revenueBand, normalizeDomain, normalizeName, normalizeUrl } from '../src/research/classification.js';
 import { assignOpportunity, isStale } from '../src/research/assign.js';
 import { processNext, scheduleWeeklyRuns, isoWeekKey, israelWeekday, recoverInterrupted } from '../src/research/worker.js';
+import { createGoogleClient, GMAIL_SCOPE } from '../src/google.js';
+import { saveGoogleAccount } from '../src/calendarSync.js';
+import { syncGmailReplies, parseGmailMessage, stripQuoted } from '../src/gmailReplies.js';
+import { hasOptOutWords } from '../src/conversations.js';
 
 const TODAY = new Date();
 const daysAgo = (n) => new Date(TODAY.getTime() - n * 86400000).toISOString().slice(0, 10);
@@ -196,6 +200,23 @@ function fakeScript() {
           ] },
           sources: [{ url: SEARCH.team, title: 'Team' }, { url: SEARCH.linkedin, title: 'Dana Levi | LinkedIn' }],
           usage: { input: 3000, output: 300, cacheRead: 0, cacheWrite: 0, searches: 2 },
+        };
+      }
+      if (tool.name === 'submit_reply_analysis') {
+        const reply = prompt.split('New reply')[1];
+        if (reply.includes('garbage')) return { input: { classification: 'maybe' }, sources: [], usage: { input: 900, output: 50, cacheRead: 0, cacheWrite: 0, searches: 0 } };
+        const price = reply.includes('price');
+        const remove = /remove|הסר/.test(reply);
+        return {
+          input: {
+            classification: remove ? 'opt_out' : price ? 'question' : 'interested',
+            summary: remove ? 'Asks to be removed.' : price ? 'Asks for the price of a partner shortlist.' : 'Wants a call.',
+            opt_out: remove, missing: price ? ['Fee for a partner shortlist'] : [],
+            draft_subject: 'Re: Japanese integration partners',
+            draft_body: remove ? '' : 'Thank you, Dana. I will check the fee and come back to you this week.\nShir, YMT Group',
+          },
+          sources: [],
+          usage: { input: 2500, output: 300, cacheRead: 0, cacheWrite: 0, searches: 0 },
         };
       }
       if (tool.name === 'submit_draft') {
@@ -609,4 +630,107 @@ test('Release 3: first approach drafted from the card, legal gate, manual channe
   assert.equal((await call('shir', 'POST', `/approvals/${whatsapp}/mark-sent`)).status, 200);
   const whatsappSent = { ...db.prepare('SELECT channel, summary FROM interactions WHERE contact_id = ? ORDER BY id DESC').get(noa) };
   assert.deepEqual(whatsappSent, { channel: 'whatsapp', summary: 'שלום נועה' });
+});
+
+test('Release 4: follow-ups after N days, replies analysed from approved answers, opt-out decided by the owner', async () => {
+  const contactIdOf = (name) => db.prepare('SELECT id FROM contacts WHERE full_name = ?').get(name).id;
+  const dana = contactIdOf('Dana Levi');
+  const noa = contactIdOf('Noa Bar');
+  const all = (await call('shir', 'GET', '/conversations?view=all')).data;
+  assert.deepEqual(all.map((row) => row.full_name).sort(), ['Dana Levi', 'Noa Bar']);
+  assert.deepEqual((await call('omer', 'GET', '/conversations?view=all')).data, []);
+  assert.equal((await call('omer', 'GET', `/conversations/${dana}`)).status, 403);
+
+  // Follow-up: not before followup_after_days; same channel, legal gate, one in the queue at a time, capped.
+  assert.match((await call('shir', 'POST', `/conversations/${dana}/followup`, { mode: 'ai' })).data.error, /due from/);
+  const eightDaysAgo = new Date(Date.now() - 8 * 86400000).toISOString();
+  db.prepare("UPDATE approvals SET sent_at = ? WHERE contact_id = ? AND status = 'sent'").run(eightDaysAgo, dana);
+  assert.deepEqual((await call('shir', 'GET', '/conversations/counts')).data, { needs_answer: 0, followup_due: 1 });
+  const followup = await call('shir', 'POST', `/conversations/${dana}/followup`, { mode: 'ai' });
+  assert.equal(followup.status, 201, followup.data.error);
+  assert.ok(prompts.at(-1).includes('follow-up number 1') && prompts.at(-1).includes('Dear Dana'));
+  const followupItem = (await call('shir', 'GET', `/approvals/${followup.data.id}`)).data;
+  const rules = (await call('shir', 'GET', '/outreach/rules')).data;
+  assert.deepEqual([followupItem.kind, followupItem.channel, followupItem.subject], ['approach_followup', 'email', 'פרסומת: Re: Japanese integration partners']);
+  assert.ok(followupItem.content.endsWith(rules.opt_out.en));
+  assert.match((await call('shir', 'POST', `/conversations/${dana}/followup`, { mode: 'blank' })).data.error, /already waiting/);
+  await call('shir', 'POST', `/approvals/${followup.data.id}/approve`, {});
+  await call('shir', 'POST', `/approvals/${followup.data.id}/mark-sent`);
+  assert.equal((await call('tom', 'PATCH', '/settings', { max_followups: 1 })).status, 200);
+  db.prepare("UPDATE approvals SET sent_at = ? WHERE contact_id = ? AND status = 'sent'").run(eightDaysAgo, dana);
+  assert.match((await call('shir', 'POST', `/conversations/${dana}/followup`, { mode: 'blank' })).data.error, /limit \(1\)/);
+  await call('tom', 'PATCH', '/settings', { max_followups: 3 });
+
+  // Approved answers: admin-only edits; the AI sees them.
+  assert.equal((await call('shir', 'POST', '/approved-answers', { language: 'en', title: 'How YMT works', body: 'We shortlist partners in 4 weeks.' })).status, 403);
+  assert.equal((await call('tom', 'POST', '/approved-answers', { language: 'en', title: 'How YMT works', body: 'We shortlist partners in 4 weeks.' })).status, 201);
+
+  // A pasted reply with a question nobody approved an answer for: task + answer draft that promises to come back.
+  const received = new Date(Date.now() - 3600000).toISOString();
+  const pasted = await call('shir', 'POST', `/conversations/${dana}/replies`, { channel: 'email', body: 'Thanks. What is your price for a partner shortlist?', received_at: received });
+  assert.equal(pasted.status, 201, pasted.data.error);
+  assert.deepEqual([pasted.data.classification, pasted.data.opt_out_state, JSON.parse(pasted.data.missing)], ['question', 'none', ['Fee for a partner shortlist']]);
+  assert.ok(prompts.at(-1).includes('### How YMT works') && prompts.at(-1).includes('Dear Dana'));
+  assert.ok(db.prepare("SELECT 1 FROM tasks WHERE description LIKE 'Reply from Dana Levi – find out: Fee for a partner shortlist'").get());
+  const view = (await call('shir', 'GET', `/conversations/${dana}`)).data;
+  const answer = view.messages.find((message) => message.kind === 'reply');
+  assert.deepEqual([answer.status, answer.reply_id, answer.subject, answer.recipient_email], ['pending', pasted.data.id, 'Re: Japanese integration partners', 'dana@acmesoftware.example']);
+  assert.equal(view.followup.blocker, 'replied');
+  assert.deepEqual((await call('shir', 'GET', '/conversations/counts')).data, { needs_answer: 1, followup_due: 0 });
+  assert.equal((await call('shir', 'POST', `/approvals/${answer.id}/approve`, {})).status, 200, 'answers are not cold messages: no opt-out sentence needed');
+  await call('shir', 'POST', `/approvals/${answer.id}/mark-sent`);
+  assert.equal(db.prepare('SELECT status FROM replies WHERE id = ?').get(pasted.data.id).status, 'handled');
+
+  // An unusable AI answer never loses the reply; it can be analysed again.
+  const garbage = (await call('shir', 'POST', `/conversations/${dana}/replies`, { channel: 'email', body: 'garbage', received_at: received })).data;
+  assert.match(garbage.analysis_error, /classification must be one of/);
+  assert.equal(garbage.classification, null);
+
+  // Opt-out words: pending at once, nothing can be approved to the person until the owner decides.
+  const removeMe = (await call('shir', 'POST', `/conversations/${noa}/replies`, { channel: 'whatsapp', body: 'Please remove me from your list', received_at: received })).data;
+  assert.equal(removeMe.opt_out_state, 'pending');
+  const noaView = (await call('shir', 'GET', `/conversations/${noa}`)).data;
+  assert.deepEqual([noaView.opt_out_pending, noaView.contact.channel_problem, noaView.messages.filter((m) => m.kind === 'reply').length], [true, 'opt_out_pending', 0]);
+  assert.match((await call('shir', 'POST', `/replies/${removeMe.id}/handled`)).data.error, /opt-out first/);
+  assert.equal((await call('shir', 'POST', `/replies/${removeMe.id}/opt-out`, { decision: 'dismiss' })).status, 200);
+  assert.equal((await call('shir', 'GET', `/conversations/${noa}`)).data.contact.channel_problem, null);
+  const hebrew = (await call('shir', 'POST', `/conversations/${noa}/replies`, { channel: 'whatsapp', body: 'הסר', received_at: received })).data;
+  assert.equal((await call('shir', 'POST', `/replies/${hebrew.id}/opt-out`, { decision: 'confirm' })).status, 200);
+  const noaContact = db.prepare('SELECT opted_out_at FROM contacts WHERE id = ?').get(noa);
+  assert.ok(noaContact.opted_out_at);
+  assert.ok(db.prepare("SELECT 1 FROM suppressions WHERE kind = 'phone' AND value = '972501234567'").get());
+  assert.deepEqual(db.prepare('SELECT DISTINCT status FROM replies WHERE contact_id = ?').all(noa).map((row) => row.status), ['handled']);
+  assert.equal(hasOptOutWords('We stopped the project'), false);
+  assert.equal(hasOptOutWords('Please unsubscribe me'), true);
+});
+
+test('Release 4: Gmail replies are read only from addresses we emailed, without quoted text, once', async () => {
+  assert.equal(stripQuoted('Sounds good, call me.\n\nOn Mon, 1 Dec 2026 Shir wrote:\n> Dear Dana'), 'Sounds good, call me.');
+  assert.equal(stripQuoted('נשמע טוב\n\nבתאריך יום ב׳, שיר כתבה:\nשלום'), 'נשמע טוב');
+  const encode = (text) => Buffer.from(text).toString('base64url');
+  const messages = {
+    m1: { id: 'm1', internalDate: String(Date.now() - 60000), payload: { mimeType: 'multipart/alternative', headers: [
+      { name: 'From', value: 'Dana Levi <Dana@AcmeSoftware.example>' }, { name: 'Subject', value: 'Re: Japanese integration partners' }],
+    parts: [{ mimeType: 'text/plain', body: { data: encode('Yes, let us talk on Tuesday.\n\nOn Mon Shir wrote:\n> hello') } }, { mimeType: 'text/html', body: { data: encode('<p>x</p>') } }] } },
+    m2: { id: 'm2', internalDate: String(Date.now() - 60000), payload: { mimeType: 'text/plain', headers: [{ name: 'From', value: 'spoof@evil.example' }], body: { data: encode('hi') } } },
+  };
+  assert.equal(parseGmailMessage(messages.m1).from, 'dana@acmesoftware.example');
+  const searches = [];
+  const json = (body) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  const google = createGoogleClient({ clientId: 'id', clientSecret: 'secret', publicUrl: 'https://ymt.example', encryptionKey: 'k'.repeat(32) }, async (url) => {
+    const parsed = new URL(url);
+    if (parsed.pathname.endsWith('/messages')) {
+      searches.push(parsed.searchParams.get('q'));
+      return json(parsed.searchParams.get('q').startsWith('from:dana@acmesoftware.example') ? { messages: [{ id: 'm1' }, { id: 'm2' }] } : { resultSizeEstimate: 0 });
+    }
+    return json(messages[parsed.pathname.split('/').at(-1)]);
+  });
+  saveGoogleAccount(db, google, ids.shir, { email: 'shir@ymt.example', scopes: ['openid', GMAIL_SCOPE], accessToken: 'a', refreshToken: 'r', expiresAt: new Date(Date.now() + 3600000).toISOString() });
+  const result = await syncGmailReplies(db, google, ai, ids.shir);
+  assert.deepEqual(searches, ['from:dana@acmesoftware.example after:' + Math.floor(Date.parse(db.prepare("SELECT MIN(sent_at) AS t FROM approvals WHERE recipient_email = 'dana@acmesoftware.example' AND status = 'sent'").get().t) / 1000)]);
+  assert.deepEqual(result, { checked: 1, added: 1 });
+  const reply = db.prepare("SELECT * FROM replies WHERE source = 'gmail'").get();
+  assert.deepEqual([reply.body, reply.gmail_message_id, reply.classification], ['Yes, let us talk on Tuesday.', 'm1', 'interested']);
+  assert.deepEqual(await syncGmailReplies(db, google, ai, ids.shir), { checked: 1, added: 0 });
+  assert.ok(db.prepare('SELECT gmail_checked_at FROM google_accounts WHERE user_id = ?').get(ids.shir).gmail_checked_at);
 });

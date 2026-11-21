@@ -13,6 +13,7 @@ import { TemplatesSettings } from './TemplatesSettings.jsx';
 import { UsersSettings } from './UsersSettings.jsx';
 import { PrivacySettings, AuditLog } from './PrivacySettings.jsx';
 import { OutreachSettings } from './OutreachSettings.jsx';
+import { ApprovedAnswersSettings } from './ApprovedAnswersSettings.jsx';
 import { MAX_FOLLOWUPS_HARD_LIMIT } from '../../../../shared/enums.js';
 import { InstallButton } from '../../app/InstallButton.jsx';
 import { useInstallPrompt } from '../../app/pwa.js';
@@ -73,6 +74,7 @@ function GeneralSettings() {
     { name: 'stale_days', label: t('settings.staleDays'), type: 'number', min: 1, required: true, help: t('settings.staleDaysHelp') },
     { name: 'max_followups', label: t('settings.maxFollowups'), type: 'number', min: 1, required: true, help: t('settings.maxFollowupsHelp', { max: MAX_FOLLOWUPS_HARD_LIMIT }) },
     { name: 'share_link_days', label: t('settings.shareLinkDays'), type: 'number', min: 1, required: true },
+    { name: 'followup_after_days', label: t('settings.followupAfterDays'), type: 'number', min: 1, required: true, help: t('settings.followupAfterDaysHelp') },
     { name: 'target_new_leads_monthly', label: t('settings.targetLeads'), type: 'number', required: true },
     { name: 'target_meetings_monthly', label: t('settings.targetMeetings'), type: 'number', required: true },
     { name: 'target_revenue_yearly_usd', label: t('settings.targetRevenue'), type: 'number', required: true },
@@ -109,6 +111,7 @@ export function SettingsPage() {
     { key: 'workflows', label: t('settings.workflows'), Component: WorkflowsSettings },
     { key: 'templates', label: t('settings.templates'), Component: TemplatesSettings },
     { key: 'outreach', label: t('settings.outreach'), Component: OutreachSettings },
+    { key: 'answers', label: t('settings.answers'), Component: ApprovedAnswersSettings },
     ...(isAdmin ? [{ key: 'users', label: t('settings.users'), Component: UsersSettings }] : []),
     { key: 'privacy', label: t('settings.privacy'), Component: PrivacySettings },
     ...(isAdmin ? [{ key: 'audit', label: t('settings.audit'), Component: AuditLog }] : []),

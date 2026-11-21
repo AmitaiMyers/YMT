@@ -112,7 +112,8 @@ CREATE TABLE IF NOT EXISTS contacts (
 -- Human approval queue: every generated text lands here before any use.
 CREATE TABLE IF NOT EXISTS approvals (
   id INTEGER PRIMARY KEY,
-  kind TEXT NOT NULL CHECK (kind IN ('company_brief', 'outreach_email', 'followup_email', 'meeting_followup_email', 'first_approach')),
+  kind TEXT NOT NULL CHECK (kind IN ('company_brief', 'outreach_email', 'followup_email', 'meeting_followup_email', 'first_approach', 'approach_followup', 'reply')),
+  reply_id INTEGER REFERENCES replies(id) ON DELETE SET NULL, -- the reply this message answers (kind 'reply')
   channel TEXT NOT NULL DEFAULT 'email' CHECK (channel IN ('email', 'linkedin', 'whatsapp')),
   opportunity_id INTEGER REFERENCES opportunities(id) ON DELETE SET NULL, -- the research card a first approach came from
   company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE, -- optional: people and meetings can exist before a company is known
@@ -290,6 +291,9 @@ CREATE TABLE IF NOT EXISTS google_accounts (
   refresh_token_enc TEXT NOT NULL,
   access_token_enc TEXT,
   access_expires_at TEXT,
+  gmail_read INTEGER NOT NULL DEFAULT 0, -- Release 4: the person also allowed read-only Gmail access (replies only)
+  gmail_checked_at TEXT,
+  gmail_error TEXT,
   connected_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
@@ -297,6 +301,7 @@ CREATE TABLE IF NOT EXISTS google_accounts (
 CREATE TABLE IF NOT EXISTS oauth_states (
   state TEXT PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purpose TEXT NOT NULL DEFAULT 'calendar' CHECK (purpose IN ('calendar', 'gmail')), -- where to return after Google
   expires_at TEXT NOT NULL
 );
 
@@ -525,7 +530,7 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   tenant_id INTEGER NOT NULL DEFAULT 1,
   run_id INTEGER REFERENCES research_runs(id) ON DELETE SET NULL,
   calibration_id INTEGER REFERENCES calibrations(id) ON DELETE SET NULL,
-  task TEXT NOT NULL CHECK (task IN ('discover', 'classify', 'judge', 'contacts', 'outreach')),
+  task TEXT NOT NULL CHECK (task IN ('discover', 'classify', 'judge', 'contacts', 'outreach', 'reply')),
   contact_search_id INTEGER REFERENCES contact_searches(id) ON DELETE SET NULL,
   provider TEXT NOT NULL,
   model TEXT NOT NULL,
@@ -548,6 +553,44 @@ CREATE TABLE IF NOT EXISTS suppressions (
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   UNIQUE (kind, value)
+);
+
+-- Release 4: a reply from a person we approached (pasted by the owner, or read from the owner's Gmail).
+CREATE TABLE IF NOT EXISTS replies (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE,
+  in_reply_to INTEGER REFERENCES approvals(id) ON DELETE SET NULL, -- the last message we sent before it
+  channel TEXT NOT NULL CHECK (channel IN ('email', 'linkedin', 'whatsapp')),
+  source TEXT NOT NULL CHECK (source IN ('pasted', 'gmail')),
+  gmail_message_id TEXT UNIQUE,
+  subject TEXT,
+  body TEXT NOT NULL,
+  received_at TEXT NOT NULL,
+  classification TEXT CHECK (classification IN ('interested', 'question', 'not_now', 'not_interested', 'opt_out', 'referral', 'out_of_office', 'other')),
+  summary TEXT,
+  missing TEXT NOT NULL DEFAULT '[]',  -- JSON array: questions the card and the approved answers cannot answer (each became a task)
+  analysis_error TEXT,
+  opt_out_state TEXT NOT NULL DEFAULT 'none' CHECK (opt_out_state IN ('none', 'pending', 'confirmed', 'dismissed')),
+  status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'handled')),
+  created_by INTEGER REFERENCES users(id),
+  handled_by INTEGER REFERENCES users(id),
+  handled_at TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_replies_contact ON replies(contact_id, received_at);
+
+-- Release 4: approved texts the AI may use when answering a reply (what YMT offers, how it works, fees policy...).
+CREATE TABLE IF NOT EXISTS approved_answers (
+  id INTEGER PRIMARY KEY,
+  tenant_id INTEGER NOT NULL DEFAULT 1,
+  language TEXT NOT NULL CHECK (language IN ('he', 'en')),
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  updated_by INTEGER REFERENCES users(id),
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_deals_company ON deals(company_id);

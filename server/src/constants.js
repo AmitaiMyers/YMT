@@ -21,7 +21,10 @@ export const DEFAULT_SETTINGS = {
     judge: { provider: 'claude', model: 'claude-sonnet-5-5' },
     contacts: { provider: 'claude', model: 'claude-sonnet-5-5' },
     outreach: { provider: 'claude', model: 'claude-sonnet-5-5' },
+    reply: { provider: 'claude', model: 'claude-sonnet-5-5' },
   }),
+  // Release 4: a first approach with no reply after this many days shows "Follow up".
+  followup_after_days: '7',
   // Release 3 legal gate. Countries are names as used on companies ("Israel"). Israel is cleared by default because
   // the gate implements its Communications Law rules (opt-out sentence + "פרסומת" marking); YMT's lawyer confirms.
   outreach_cleared_countries: JSON.stringify(['Israel']),

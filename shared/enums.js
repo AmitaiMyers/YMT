@@ -17,9 +17,12 @@ export const TEMPLATE_KINDS = [...DOCUMENT_KINDS, ...EMAIL_KINDS, 'company_brief
 // Release 3: a first message to a decision maker, drafted from an accepted research card, on one channel.
 export const OUTREACH_CHANNELS = ['email', 'linkedin', 'whatsapp'];
 // Every approval kind that is a message to an outside person (everything except the internal brief).
-export const MESSAGE_KINDS = [...EMAIL_KINDS, 'first_approach'];
-// Unsolicited first contacts: the legal gate (cleared countries, opt-out sentence, "פרסומת" marking) applies to these.
-export const COLD_KINDS = ['outreach_email', 'first_approach'];
+// Release 4 adds a follow-up to a first approach that got no reply, and an answer to a reply.
+export const MESSAGE_KINDS = [...EMAIL_KINDS, 'first_approach', 'approach_followup', 'reply'];
+// Unsolicited contacts: the legal gate (cleared countries, opt-out sentence, "פרסומת" marking) applies to these.
+export const COLD_KINDS = ['outreach_email', 'first_approach', 'approach_followup'];
+// Messages of a conversation with one person (Release 4), shown as one thread.
+export const CONVERSATION_KINDS = ['first_approach', 'approach_followup', 'reply'];
 export const APPROVAL_KINDS = ['company_brief', ...MESSAGE_KINDS];
 // Do-not-contact list entries; a domain blocks everyone at that company.
 export const SUPPRESSION_KINDS = ['email', 'phone', 'linkedin', 'domain'];
@@ -63,7 +66,14 @@ export const EXAMPLE_LABELS = ['good', 'false_positive'];
 export const CONTACT_PROPOSAL_STATUSES = ['proposed', 'confirmed', 'dismissed'];
 export const JOB_STATUSES = ['queued', 'running', 'done', 'failed', 'waiting_budget'];
 export const AI_PROVIDERS = ['claude', 'openai', 'fake'];
-export const AI_TASKS = ['discover', 'classify', 'judge', 'contacts', 'outreach'];
+export const AI_TASKS = ['discover', 'classify', 'judge', 'contacts', 'outreach', 'reply'];
+// Release 4: replies from people we approached.
+export const REPLY_SOURCES = ['pasted', 'gmail'];
+export const REPLY_CLASSES = ['interested', 'question', 'not_now', 'not_interested', 'opt_out', 'referral', 'out_of_office', 'other'];
+export const REPLY_STATUSES = ['new', 'handled'];
+// An opt-out found in a reply waits for the owner: pending blocks every message to the person until confirmed or dismissed.
+export const OPT_OUT_STATES = ['none', 'pending', 'confirmed', 'dismissed'];
+export const CONVERSATION_VIEWS = ['needs_answer', 'followup_due', 'all'];
 export const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]; // 0 = Sunday (Israeli work week starts on Sunday)
 
 // Size bands by headcount and by annual revenue in USD (YMT's internal bands). `max` is inclusive for

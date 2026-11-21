@@ -29,6 +29,8 @@ const MandatesPage = lazy(() => import('./pages/research/MandatesPage.jsx').then
 const MandatePage = lazy(() => import('./pages/research/MandatePage.jsx').then((module) => ({ default: module.MandatePage })));
 const WatchListsPage = lazy(() => import('./pages/research/WatchListsPage.jsx').then((module) => ({ default: module.WatchListsPage })));
 const WatchListPage = lazy(() => import('./pages/research/WatchListsPage.jsx').then((module) => ({ default: module.WatchListPage })));
+const ConversationsPage = lazy(() => import('./pages/conversations/ConversationsPage.jsx').then((module) => ({ default: module.ConversationsPage })));
+const ConversationPage = lazy(() => import('./pages/conversations/ConversationPage.jsx').then((module) => ({ default: module.ConversationPage })));
 const MetricsPage = lazy(() => import('./pages/research/MetricsPage.jsx').then((module) => ({ default: module.MetricsPage })));
 const PublicSignPage = lazy(() => import('./pages/public/PublicSignPage.jsx').then((module) => ({ default: module.PublicSignPage })));
 const PublicSharePage = lazy(() => import('./pages/public/PublicSharePage.jsx').then((module) => ({ default: module.PublicSharePage })));
@@ -57,6 +59,8 @@ function StaffApp() {
           <Route path="research/metrics" element={<MetricsPage />} />
           <Route path="research/watch-lists" element={<WatchListsPage />} />
           <Route path="research/watch-lists/:id" element={<WatchListPage />} />
+          <Route path="conversations" element={<ConversationsPage />} />
+          <Route path="conversations/:contactId" element={<ConversationPage />} />
           <Route path="leads" element={<LeadsPage />} />
           <Route path="pipeline" element={<PipelinePage />} />
           <Route path="deals/:id" element={<DealPage />} />

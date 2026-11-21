@@ -4,7 +4,7 @@
 
 import { insert, update, findById, nowIso, audit } from './db.js';
 import { badRequest } from './http.js';
-import { GoogleError } from './google.js';
+import { GoogleError, GMAIL_SCOPE } from './google.js';
 
 const REFRESH_MARGIN_MS = 60_000;
 
@@ -12,11 +12,12 @@ export function googleAccount(db, userId) {
   return db.prepare('SELECT * FROM google_accounts WHERE user_id = ?').get(userId);
 }
 
-export function saveGoogleAccount(db, google, userId, { email, accessToken, refreshToken, expiresAt }) {
+export function saveGoogleAccount(db, google, userId, { email, scopes, accessToken, refreshToken, expiresAt }) {
   db.prepare('DELETE FROM google_accounts WHERE user_id = ?').run(userId);
   insert(db, 'google_accounts', {
     user_id: userId,
     google_email: email,
+    gmail_read: scopes.includes(GMAIL_SCOPE) ? 1 : 0,
     refresh_token_enc: google.cipher.encrypt(refreshToken),
     access_token_enc: google.cipher.encrypt(accessToken),
     access_expires_at: expiresAt,

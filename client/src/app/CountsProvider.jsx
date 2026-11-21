@@ -8,11 +8,12 @@ const CountsContext = createContext(null);
 
 export function CountsProvider({ children }) {
   const location = useLocation();
-  const [counts, setCounts] = useState({ inbox: 0, approvals: 0, research: 0 });
+  const [counts, setCounts] = useState({ inbox: 0, approvals: 0, research: 0, conversations: 0 });
   const refresh = useCallback(() => {
     // Counters are decoration: a failed refresh keeps the previous numbers; the page itself reports errors.
     get('/inbox/counts').then((inbox) => setCounts((previous) => ({ ...previous, ...inbox })), () => undefined);
     get('/research/counts').then((research) => setCounts((previous) => ({ ...previous, research: research.queue + research.manual })), () => undefined);
+    get('/conversations/counts').then((conversations) => setCounts((previous) => ({ ...previous, conversations: conversations.needs_answer + conversations.followup_due })), () => undefined);
   }, []);
 
   useEffect(() => {

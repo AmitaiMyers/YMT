@@ -20,6 +20,7 @@ const MIN_LISTED_PHONE_DIGITS = 7;          // any number, local or internationa
 
 const PROBLEM_TEXT = {
   opted_out: 'This person asked not to be contacted',
+  opt_out_pending: 'A reply from this person may be an opt-out. Confirm or dismiss it in the conversation first.',
   suppressed: 'This recipient is on the do-not-contact list',
   no_country: "Set the person's country first (the company has no HQ country)",
   country_not_cleared: 'Outreach to this country is not cleared. An admin can clear it under Settings → Outreach rules.',
@@ -99,6 +100,11 @@ function isSuppressed(db, details) {
 
 // ------------------------------------------------------------------ who may be contacted
 
+/** A reply that looks like an opt-out blocks every message to the person until the owner confirms or dismisses it. */
+export function hasPendingOptOut(db, contactId) {
+  return db.prepare("SELECT 1 FROM replies WHERE contact_id = ? AND opt_out_state = 'pending'").get(contactId) !== undefined;
+}
+
 const UNKNOWN_COUNTRY = 'unknown'; // what research stores in companies.country when no source states the HQ country
 
 /**
@@ -129,6 +135,7 @@ function channelDetailProblem(channel, { email, phone, linkedin, whatsappConsent
 
 function recipientProblem(db, contact, channel, details, { cold }) {
   if (contact && contact.opted_out_at) return 'opted_out';
+  if (contact && hasPendingOptOut(db, contact.id)) return 'opt_out_pending';
   const contactDetails = contact ? { email: contact.email, phone: contact.phone, linkedin: contact.linkedin_url } : {};
   if (isSuppressed(db, details) || isSuppressed(db, contactDetails)) return 'suppressed';
   if (cold) {

@@ -17,18 +17,19 @@ const SETTINGS_SPEC = {
   target_meetings_monthly: { type: 'int', min: 0 },
   target_revenue_yearly_usd: { type: 'int', min: 0 },
   share_link_days: { type: 'int', min: 1, max: 90 },
+  followup_after_days: { type: 'int', min: 1, max: 60 },
 };
 
 const COUNTED_TABLES = ['users', 'companies', 'contacts', 'triggers', 'deals', 'interactions', 'approvals',
-  'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'suppressions', 'audit_log'];
+  'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'suppressions', 'replies', 'approved_answers', 'audit_log'];
 
 function fileSize(filePath) {
   return filePath === ':memory:' ? 0 : statSync(filePath).size;
 }
 
 const AI_PROVIDER_NOTES = {
-  claude: 'Anthropic Claude API – research and first-message drafts: public company information, search queries, the mandate text, and the recipient\'s name and job title',
-  openai: 'OpenAI API – research and first-message drafts: public company information, search queries, the mandate text, and the recipient\'s name and job title',
+  claude: 'Anthropic Claude API – research and outreach drafts: public company information, search queries, the mandate text, the recipient\'s name and job title, the messages exchanged with them and YMT\'s approved answers',
+  openai: 'OpenAI API – research and outreach drafts: public company information, search queries, the mandate text, the recipient\'s name and job title, the messages exchanged with them and YMT\'s approved answers',
 };
 
 export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled, aiProviders }) {
@@ -56,7 +57,8 @@ export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled, aiP
       database_size_bytes: fileSize(dbPath),
       // Honest list of every outside service that can receive company data.
       external_services: [
-        ...(googleEnabled ? ['Google Calendar – only for staff who connect it: meeting title, time, place, organisation and person name'] : []),
+        ...(googleEnabled ? ['Google Calendar – only for staff who connect it: meeting title, time, place, organisation and person name',
+          'Gmail (read-only) – only for staff who allow it: YMT reads replies from people it approached; nothing is sent or changed'] : []),
         ...aiProviders.map((provider) => AI_PROVIDER_NOTES[provider]),
       ],
       row_counts: Object.fromEntries(COUNTED_TABLES.map((table) => [table, count(db, table)])),

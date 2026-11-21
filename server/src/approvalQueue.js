@@ -99,6 +99,9 @@ export function markSent(db, userId, id) {
       occurred_at: sentAt,
       user_id: userId,
     });
+    if (approval.reply_id) {
+      update(db, 'replies', approval.reply_id, { status: 'handled', handled_by: userId, handled_at: sentAt });
+    }
     if (approval.kind === 'followup_email') {
       const deal = findById(db, 'deals', approval.deal_id);
       if (deal.followups_sent >= getNumericSetting(db, 'max_followups')) {
