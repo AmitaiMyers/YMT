@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="color-scheme" content="light dark" />
-<title>Requirements Checklist · YMT Group</title>
+<title>Pilot Questions · YMT Group</title>
 <style>
   /* Same palette as the YMT app (docs/DESIGN_SYSTEM.md). Self-contained: no external fonts, scripts or images.
      Bilingual: static text exists twice (data-l="en" / data-l="he"); controls are relabelled by the script. */
@@ -140,10 +140,10 @@
       </div>
       <button type="button" class="lang-btn" id="lang-btn" aria-label="Switch language / החלפת שפה"><span data-l="en">עברית</span><span data-l="he">English</span></button>
     </div>
-    <h1><span data-l="en">Requirements checklist for the growth platform</span><span data-l="he">רשימת דרישות לפלטפורמת הצמיחה</span></h1>
+    <h1><span data-l="en">Open questions for the research pilot</span><span data-l="he">שאלות פתוחות לפיילוט המחקר</span></h1>
     <p class="lede">
-      <span data-l="en">Everything the developer needs from the YMT team before building: goals, lead criteria, templates, channels, services, pricing rules, legal points, accounts and decisions. Go through it together, tick what is answered, and write the answer in the notes.</span>
-      <span data-l="he">כל מה שהמפתח צריך מצוות YMT לפני הבנייה: מטרות, קריטריוני לידים, תבניות, ערוצים, שירותים, כללי תמחור, נקודות משפטיות, חשבונות והחלטות. עוברים עליה יחד, מסמנים מה נענה, וכותבים את התשובה בהערות.</span>
+      <span data-l="en">What the developer needs from Tom and the YMT team to build Release 1 (the research pilot) and prepare the next releases. Go through it together, tick what is answered, and write the answer in the notes.</span>
+      <span data-l="he">מה שהמפתח צריך מתום ומצוות YMT כדי לבנות את שחרור 1 (פיילוט המחקר) ולהכין את השחרורים הבאים. עוברים עליה יחד, מסמנים מה נענה, וכותבים את התשובה בהערות.</span>
     </p>
   </div>
 </header>
@@ -206,8 +206,8 @@
 
 <footer>
   <div class="wrap">
-    <span data-l="en">Companion file: <a href="system-design.html">system design</a> (options, costs and architecture behind each question). Version 1 · 20 November 2026.</span>
-    <span data-l="he">קובץ נלווה: <a href="system-design.html">תכנון המערכת</a> (האפשרויות, העלויות והארכיטקטורה שמאחורי כל שאלה). גרסה 1 · 20 בנובמבר 2026.</span>
+    <span data-l="en">Companion file: <a href="system-design.html">system design</a> (mandates, card, releases and architecture behind each question). Version 2 · 21 November 2026.</span>
+    <span data-l="he">קובץ נלווה: <a href="system-design.html">תכנון המערכת</a> (המנדטים, הכרטיס, השחרורים והארכיטקטורה שמאחורי כל שאלה). גרסה 2 · 21 בנובמבר 2026.</span>
   </div>
 </footer>
 
@@ -218,169 +218,79 @@ const T = (en, he) => ({ en, he });
 const PRIORITIES = ["must", "should", "later"];
 
 const CATEGORIES = [
-  { id: "goals", title: T("Goals and scope", "מטרות והיקף"),
-    intro: T("Why the platform exists and how YMT will judge it.", "למה הפלטפורמה קיימת ואיך YMT תמדוד אותה."),
+  { id: "pilot", title: T("Pilot goals and success", "מטרות הפיילוט והצלחה"),
+    intro: T("How YMT will decide after the research pilot: repeat calibration or move to Release 2.", "איך YMT תחליט אחרי פיילוט המחקר: לחזור על הכיול או לעבור לשחרור 2."),
     items: [
-      ["g1", "must", T("Main business goal for the first 6 months (e.g. number of new clients, meetings per month).", "המטרה העסקית המרכזית ל-6 החודשים הראשונים (למשל מספר לקוחות חדשים, פגישות בחודש).")],
-      ["g2", "must", T("Success measures and monthly targets (meetings, reply rate, quotes sent, revenue).", "מדדי הצלחה ויעדים חודשיים (פגישות, אחוז תשובות, הצעות שנשלחו, הכנסות).")],
-      ["g3", "must", T("Who at YMT will use the platform: names and roles.", "מי ב-YMT ישתמש בפלטפורמה: שמות ותפקידים.")],
-      ["g4", "must", T("Starting budget tier per month: A (≤ $50), B ($50–200) or C ($200–500), and who approves spending.", "רמת התקציב החודשית להתחלה: A (עד $50), B ($50–200) או C ($200–500), ומי מאשר הוצאות."), T("See 'Budget tiers' in the system design.", "ראו 'רמות תקציב' בתכנון המערכת.")],
-      ["g5", "must", T("Monthly AI cost cap in USD, and who is alerted at 80%.", "תקרת עלות AI חודשית בדולרים, ומי מקבל התראה ב-80%.")],
-      ["g6", "should", T("Pilot scope (one country, industry or service first?) and target go-live date.", "היקף הפיילוט (מדינה, ענף או שירות אחד קודם?) ותאריך עלייה לאוויר.")],
-      ["g7", "later", T("Will YMT sell or offer this platform to other companies later, and when?", "האם YMT תמכור או תציע את הפלטפורמה לחברות אחרות בהמשך, ומתי?"), T("Decides how early multi-company features are built.", "קובע כמה מוקדם בונים יכולות רב-חברתיות.")]
+      ["p1", "must", T("What result makes the pilot a success (e.g. acceptance rate, accepted opportunities per owner, minutes per card)?", "איזו תוצאה הופכת את הפיילוט להצלחה (למשל שיעור קבלה, הזדמנויות שהתקבלו לכל בעלים, דקות לכרטיס)?")],
+      ["p2", "must", T("Acceptable review effort: minutes per card and minutes per owner per week.", "מאמץ סקירה סביר: דקות לכרטיס ודקות לבעלים בשבוע.")],
+      ["p3", "must", T("Dates and participants for the Define, Train and Review sessions.", "תאריכים ומשתתפים למפגשי ההגדרה, ההדרכה והסקירה.")],
+      ["p4", "should", T("Decision rule after the pilot: when to repeat calibration and when to start Release 2.", "כלל ההחלטה אחרי הפיילוט: מתי חוזרים על הכיול ומתי מתחילים את שחרור 2.")]
     ] },
-  { id: "workers", title: T("Workers and territories", "עובדים וטריטוריות"),
-    intro: T("Each worker sets the companies they want to find; those companies go only to that worker.", "כל עובד מגדיר את החברות שהוא רוצה למצוא; החברות האלה מגיעות רק אליו."),
+  { id: "mandates", title: T("Mandates and owners", "מנדטים ובעלים"),
+    intro: T("The six mandates come from YMT's referral guide; GE1 is a draft.", "ששת המנדטים מגיעים ממדריך ההפניות של YMT; GE1 הוא טיוטה."),
     items: [
-      ["w1", "must", T("List of workers and each one's territory (e.g. Shir: India, medium companies; Eden: Israel, large companies, defense and security).", "רשימת העובדים והטריטוריה של כל אחד (למשל שיר: הודו, חברות בינוניות; עדן: ישראל, חברות גדולות, ביטחון ואבטחה).")],
-      ["w2", "must", T("What 'small', 'medium' and 'large' mean (employees and/or revenue), the same for every worker.", "מה פירוש 'קטנה', 'בינונית' ו'גדולה' (עובדים ו/או הכנסות), אותו דבר לכל העובדים.")],
-      ["w3", "must", T("When a company fits two workers' territories: exclusive territories (admin resolves), first found keeps it, or manager decides each case.", "כשחברה מתאימה לטריטוריות של שני עובדים: טריטוריות בלעדיות (מנהל מכריע), מי שמצא ראשון, או מנהל מחליט בכל מקרה."), T("See 'When two territories overlap' in the system design.", "ראו 'כששתי טריטוריות חופפות' בתכנון המערכת.")],
-      ["w4", "must", T("Can workers see colleagues' leads and companies (read only), or only their own? Who sees everything?", "האם עובדים רואים לידים וחברות של עמיתים (קריאה בלבד), או רק את שלהם? מי רואה הכל?")],
-      ["w5", "must", T("When a worker leaves: who receives their companies, open deals, tasks and sequences (one colleague, split by territory, or an unassigned pool)?", "כשעובד עוזב: מי מקבל את החברות, העסקאות הפתוחות, המשימות והרצפים שלו (עמית אחד, חלוקה לפי טריטוריה, או מאגר לא משויך)?")],
-      ["w6", "should", T("May a worker change their own search profile alone, or does a manager approve changes?", "האם עובד רשאי לשנות את פרופיל החיפוש שלו לבד, או שמנהל מאשר שינויים?")],
-      ["w7", "should", T("Weekly lead volume per worker, and whether each worker gets a share of the AI budget or all share one cap.", "נפח לידים שבועי לכל עובד, והאם לכל עובד יש חלק מתקציב ה-AI או שכולם חולקים תקרה אחת.")],
-      ["w8", "should", T("Can a worker hand a company to a colleague (e.g. it belongs to another territory)? Does the colleague need to accept?", "האם עובד יכול להעביר חברה לעמית (למשל כשהיא שייכת לטריטוריה אחרת)? האם העמית צריך לאשר?")],
-      ["w9", "later", T("Are there team leads who should see only their own team?", "האם יש ראשי צוותים שצריכים לראות רק את הצוות שלהם?")]
+      ["m1", "must", T("Confirm SH1–SH3 and OM1–OM3 as written in the design (acceptance rule, preferred size, first offer, false positives).", "אישור SH1–SH3 ו-OM1–OM3 כפי שהם כתובים בתכנון (כלל קבלה, גודל מועדף, הצעה ראשונה, התאמות שגויות)."), T("See 'Mandates and owners' in the system design.", "ראו 'מנדטים ובעלים' בתכנון המערכת.")],
+      ["m2", "must", T("GE1 (Tomer, Growth & Exit): acceptance rule, preferred size, false positives and first offer.", "GE1 (תומר, צמיחה ואקזיט): כלל קבלה, גודל מועדף, התאמות שגויות והצעה ראשונה.")],
+      ["m3", "must", T("Freshness: maximum age of the evidence for each mandate (suggested: 6 months).", "עדכניות: הגיל המקסימלי של הראיה לכל מנדט (הצעה: 6 חודשים).")],
+      ["m4", "must", T("Target-country rules: SH1–SH3 cover India and Japan only? What goes to Tom's manual queue?", "כללי מדינות יעד: SH1–SH3 מכסים רק את הודו ויפן? מה עובר לתור הידני של תום?")],
+      ["m5", "should", T("Weekly schedule: which mandates run weekly, on which day, and the default number of cards.", "תזמון שבועי: אילו מנדטים רצים כל שבוע, באיזה יום, ומה מספר הכרטיסים כברירת מחדל.")],
+      ["m6", "should", T("Who may change a mandate: the owner alone, or with Tom and Amitai's approval for shared rules?", "מי רשאי לשנות מנדט: הבעלים לבד, או באישור תום ועמיתי לכללים משותפים?")],
+      ["m7", "should", T("OM3: how Elad joins an executive-search opportunity (notification, second participant).", "OM3: איך אלעד מצטרף להזדמנות של גיוס בכירים (התראה, משתתף שני).")],
+      ["m8", "later", T("Future mandates and owners (Vietnam and Thailand, China sourcing).", "מנדטים ובעלים עתידיים (וייטנאם ותאילנד, רכש בסין).")]
     ] },
-  { id: "market", title: T("Target market and lead criteria", "שוק יעד וקריטריוני לידים"),
-    intro: T("Who is a good potential client for YMT overall. Each worker's territory (above) narrows this down.", "מי לקוח פוטנציאלי טוב עבור YMT באופן כללי. הטריטוריה של כל עובד (למעלה) מצמצמת את זה."),
+  { id: "card", title: T("Company card and classification", "כרטיס חברה וסיווג"),
+    intro: T("Fields follow the classification dictionary.", "השדות לפי מילון הסיווג."),
     items: [
-      ["t1", "must", T("Target countries or regions, in priority order.", "מדינות או אזורי יעד, לפי סדר עדיפות.")],
-      ["t2", "must", T("Industries / company types to target, and those to exclude.", "ענפים / סוגי חברות לפנות אליהם, ואלה שיש להחריג.")],
-      ["t3", "must", T("Company size ranges (employees and/or yearly revenue).", "טווחי גודל חברה (עובדים ו/או הכנסה שנתית).")],
-      ["t4", "must", T("Decision makers to reach: job titles, seniority, department.", "מקבלי ההחלטות שאליהם פונים: תפקידים, דרג, מחלקה.")],
-      ["t5", "should", T("Buying signals that make a company a good lead right now (funding, hiring, expansion, new branch, tender, new regulation).", "סימנים שהופכים חברה לליד טוב עכשיו (השקעה, גיוס עובדים, התרחבות, סניף חדש, מכרז, רגולציה חדשה).")],
-      ["t6", "must", T("Disqualifiers: existing clients, competitors, partners, sanctioned countries, too small or too large.", "פוסלים: לקוחות קיימים, מתחרים, שותפים, מדינות תחת סנקציות, קטנות או גדולות מדי.")],
-      ["t7", "should", T("Lead score rules: what adds or removes points, which score is 'hot', and may hot leads be accepted automatically?", "כללי ציון ליד: מה מוסיף או מוריד נקודות, איזה ציון נחשב 'חם', והאם לידים חמים מתקבלים אוטומטית?")],
-      ["t8", "must", T("Outreach language per country (Hebrew, English, other).", "שפת הפנייה לכל מדינה (עברית, אנגלית, אחרת).")],
-      ["t9", "must", T("Volume: new leads and AI reports needed per week.", "נפח: כמה לידים חדשים ודוחות AI נדרשים בשבוע.")],
-      ["t10", "must", T("Existing lists to import (clients, past leads, Excel/CSV) and the 'do not contact' list.", "רשימות קיימות לייבוא (לקוחות, לידים מהעבר, Excel/CSV) ורשימת 'לא לפנות'.")]
+      ["c1", "must", T("Which card fields are required before an owner may Accept (e.g. Israeli connection, evidence, size)?", "אילו שדות בכרטיס חובה לפני שבעלים רשאי לקבל (למשל קשר לישראל, ראיה, גודל)?")],
+      ["c2", "must", T("List of proposed YMT services for the 'proposed service' field.", "רשימת שירותי YMT המוצעים לשדה 'שירות מוצע'.")],
+      ["c3", "should", T("Customer types and customer markets: a fixed list or free text?", "סוגי לקוחות ושווקי לקוחות: רשימה סגורה או טקסט חופשי?")],
+      ["c4", "should", T("Meaning of the specialist tags S1–S4 and D1–D3, to keep them as search tags.", "המשמעות של התגיות המקצועיות S1–S4 ו-D1–D3, כדי לשמור אותן כתגיות חיפוש.")],
+      ["c5", "should", T("Exchange-rate source and date for converting revenue to USD.", "מקור שער החליפין והתאריך להמרת הכנסות לדולר.")]
     ] },
-  { id: "sources", title: T("Lead sources and data", "מקורות לידים ונתונים"),
-    intro: T("Where leads come from and how long data is kept.", "מאיפה מגיעים הלידים וכמה זמן שומרים את המידע."),
+  { id: "sources", title: T("Sources and exclusions", "מקורות והחרגות"),
+    intro: T("Where the agents look, and who must never be contacted.", "איפה הסוכנים מחפשים, ולמי אסור לפנות לעולם."),
     items: [
-      ["s1", "must", T("Sources to switch on: Google Maps/Places, CSV upload, LinkedIn (manual), public sources (websites, company registries), paid B2B database.", "מקורות להפעלה: Google Maps/Places, העלאת CSV, LinkedIn (ידני), מקורות ציבוריים (אתרים, רשמי חברות), מאגר B2B בתשלום.")],
-      ["s2", "should", T("Paid B2B database: yes or no, which vendor, how many seats, who owns and pays for the account.", "מאגר B2B בתשלום: כן או לא, איזה ספק, כמה משתמשים, מי הבעלים ומי משלם.")],
-      ["s3", "should", T("Google Cloud billing for the Places API (the Calendar project can be reused) and a budget alert amount.", "חיוב Google Cloud עבור Places API (אפשר להשתמש בפרויקט של היומן) וסכום להתראת תקציב.")],
-      ["s4", "should", T("E-mail verification: yes or no, provider, expected monthly volume.", "אימות מיילים: כן או לא, ספק, נפח חודשי צפוי.")],
-      ["s5", "should", T("Confirm the duplicate rule: same website domain = same company; otherwise same name + country.", "אישור כלל הכפילויות: אותו דומיין אתר = אותה חברה; אחרת אותו שם + מדינה.")],
-      ["s6", "must", T("Leads from shared sources (CSV uploads, website forms) that match no worker's territory: who gets them?", "לידים ממקורות משותפים (העלאות CSV, טפסים באתר) שלא מתאימים לטריטוריה של אף עובד: מי מקבל אותם?")],
-      ["s7", "must", T("How long to keep leads who never replied (e.g. 12 months) before automatic deletion.", "כמה זמן שומרים לידים שלא ענו (למשל 12 חודשים) לפני מחיקה אוטומטית.")]
+      ["s1", "must", T("News and announcement sites to prefer, and sites never to use.", "אתרי חדשות והודעות מועדפים, ואתרים שאסור להשתמש בהם.")],
+      ["s2", "must", T("Israeli public lists to import first (e.g. Companies Registrar open data, exporter and exhibitor lists) and who provides the files.", "רשימות ציבוריות בישראל לייבוא ראשון (למשל המידע הפתוח של רשם החברות, רשימות יצואנים ומציגים) ומי מספק את הקבצים.")],
+      ["s3", "must", T("Job boards and career sites allowed for OM3.", "לוחות משרות ואתרי קריירה מותרים ל-OM3.")],
+      ["s4", "must", T("Exclusion list: existing clients, open proposals, partners' existing contacts (e.g. SHEPHA), competitors.", "רשימת החרגה: לקוחות קיימים, הצעות פתוחות, אנשי קשר קיימים של שותפים (למשל SHEPHA), מתחרים.")],
+      ["s5", "should", T("Existing YMT records to import (Excel or CSV) and their columns.", "רשומות קיימות של YMT לייבוא (Excel או CSV) והעמודות שלהן.")]
     ] },
-  { id: "linkedin", title: T("LinkedIn approach", "גישה ל-LinkedIn"),
-    intro: T("Options range from low risk (manual) to high risk (automation against LinkedIn terms).", "האפשרויות נעות מסיכון נמוך (ידני) ועד סיכון גבוה (אוטומציה בניגוד לתנאי LinkedIn)."),
+  { id: "review", title: T("Review and calibration", "סקירה וכיול"),
+    intro: T("How owners decide and tune.", "איך הבעלים מחליטים ומכיילים."),
     items: [
-      ["l1", "must", T("Chosen LinkedIn approach and accepted risk: manual assist (low), Sales Navigator (low), automation tools or unofficial API (high).", "גישת ה-LinkedIn שנבחרה והסיכון המקובל: סיוע ידני (נמוך), Sales Navigator (נמוך), כלי אוטומציה או API לא רשמי (גבוה)."), T("See 'LinkedIn options and risk levels' in the system design.", "ראו 'אפשרויות LinkedIn ורמות סיכון' בתכנון המערכת.")],
-      ["l2", "must", T("Which staff LinkedIn accounts are used, and has each person agreed to any risk?", "באילו חשבונות LinkedIn של עובדים משתמשים, והאם כל אחד הסכים לסיכון, אם יש?")],
-      ["l3", "should", T("Number of Sales Navigator seats; monthly or yearly billing.", "מספר משתמשי Sales Navigator; חיוב חודשי או שנתי.")],
-      ["l4", "should", T("LinkedIn message templates (connection note, first message, follow-up) and a daily limit per person.", "תבניות הודעה ל-LinkedIn (הערת חיבור, הודעה ראשונה, מעקב) ומגבלה יומית לאדם.")]
+      ["r1", "must", T("Reject reasons list (duplicate, wrong buyer, wrong market, no current initiative, no Israeli connection, other).", "רשימת סיבות פסילה (כפילות, קונה שגוי, שוק שגוי, אין יוזמה עדכנית, אין קשר לישראל, אחר).")],
+      ["r2", "must", T("Two labelled examples per mandate, one good match and one false positive, with source links.", "שתי דוגמאות מתויגות לכל מנדט, התאמה טובה אחת והתאמה שגויה אחת, עם קישורי מקור.")],
+      ["r3", "should", T("What 'Verify' creates: a task with a due date? Who verifies?", "מה 'אימות' יוצר: משימה עם תאריך יעד? מי מאמת?")],
+      ["r4", "should", T("Deferred cards: re-check after how many weeks?", "כרטיסים שנדחו לזמן מאוחר: לבדוק שוב אחרי כמה שבועות?")]
     ] },
-  { id: "reports", title: T("AI research and report templates", "מחקר AI ותבניות דוח"),
-    intro: T("What a good research report looks like for YMT.", "איך נראה דוח מחקר טוב בעיני YMT."),
+  { id: "ai", title: T("AI and budget", "AI ותקציב"),
+    intro: T("Claude by default; OpenAI optional for comparison.", "Claude כברירת מחדל; OpenAI אופציונלי להשוואה."),
     items: [
-      ["r1", "must", T("Who reads the report: internal preparation only, or also sent to the prospect?", "מי קורא את הדוח: הכנה פנימית בלבד, או שהוא נשלח גם ללקוח הפוטנציאלי?")],
-      ["r2", "must", T("Report sections, in order (e.g. company snapshot, market, likely needs, opportunities, suggested services, sources).", "מקטעי הדוח, לפי הסדר (למשל תמונת מצב של החברה, שוק, צרכים אפשריים, הזדמנויות, שירותים מוצעים, מקורות).")],
-      ["r3", "must", T("Brand assets: logo (SVG/PNG), colours, fonts, footer text, contact details.", "נכסי מיתוג: לוגו (SVG/PNG), צבעים, גופנים, טקסט כותרת תחתונה, פרטי קשר.")],
-      ["r4", "must", T("Report languages and tone of voice for each language.", "שפות הדוח וטון הדיבור בכל שפה.")],
-      ["r5", "should", T("2–3 sample reports or documents that YMT considers excellent.", "2–3 דוחות או מסמכים לדוגמה ש-YMT רואה כמצוינים.")],
-      ["r6", "must", T("Forbidden content (e.g. no prices, no criticism of competitors, no personal details about individuals).", "תוכן אסור (למשל בלי מחירים, בלי ביקורת על מתחרים, בלי פרטים אישיים על אנשים).")],
-      ["r7", "must", T("Who approves reports, and may an approved report be sent to the prospect?", "מי מאשר דוחות, והאם מותר לשלוח דוח מאושר ללקוח הפוטנציאלי?")],
-      ["r8", "should", T("Sources to prefer and sources never to use.", "מקורות מועדפים ומקורות שאסור להשתמש בהם.")],
-      ["r9", "should", T("Delivery: PDF attachment or private web link; how many days the link stays valid.", "אופן המסירה: קובץ PDF מצורף או קישור אינטרנט פרטי; כמה ימים הקישור בתוקף.")],
-      ["r10", "should", T("Quality vs cost for reports: economy, standard or premium AI model.", "איכות מול עלות בדוחות: מודל AI חסכוני, רגיל או פרימיום.")],
-      ["r11", "should", T("Which industries need their own report template?", "לאילו ענפים נדרשת תבנית דוח משלהם?")]
+      ["a1", "must", T("Anthropic Console account owned by YMT, API key added on Render, and a spend limit set in the Console.", "חשבון Anthropic Console בבעלות YMT, מפתח API שהוזן ב-Render, ומגבלת הוצאה שהוגדרה ב-Console.")],
+      ["a2", "should", T("OpenAI account and key, only if YMT wants to compare providers.", "חשבון ומפתח OpenAI, רק אם YMT רוצה להשוות ספקים.")],
+      ["a3", "should", T("Confirm the $20 monthly cap and who receives the 80% alert.", "אישור התקרה החודשית של $20 ומי מקבל את ההתראה ב-80%.")]
     ] },
-  { id: "outreach", title: T("Outreach channels and automation", "ערוצי פנייה ואוטומציה"),
-    intro: T("How YMT contacts potential clients, and how much the system may do by itself.", "איך YMT פונה ללקוחות פוטנציאליים, וכמה המערכת רשאית לעשות בעצמה."),
+  { id: "team", title: T("Team, roles and access", "צוות, תפקידים והרשאות"),
+    intro: T("Who uses the app and what each person sees.", "מי משתמש באפליקציה ומה כל אחד רואה."),
     items: [
-      ["o1", "must", T("Channels to switch on: e-mail, LinkedIn manual assist, WhatsApp Business, phone tasks.", "ערוצים להפעלה: מייל, סיוע ידני ל-LinkedIn, WhatsApp Business, משימות טלפון.")],
-      ["o2", "must", T("Default sending mode, and who may change it per potential client: 1 approve every message, 2 approve the first + automatic follow-ups, 3 fully automatic.", "מצב השליחה כברירת מחדל, ומי רשאי לשנות אותו לכל לקוח פוטנציאלי: 1 אישור כל הודעה, 2 אישור הראשונה + מעקבים אוטומטיים, 3 אוטומטי לחלוטין.")],
-      ["o3", "must", T("Mode 3 rules: allowed segments and countries, daily maximum, and YMT's written approval that the system may send by itself.", "כללי מצב 3: פלחים ומדינות מותרים, מקסימום יומי, ואישור בכתב של YMT שהמערכת רשאית לשלוח בעצמה."), T("Mode 3 changes the current 'never sends by itself' rule.", "מצב 3 משנה את הכלל הנוכחי 'אף פעם לא שולח בעצמו'.")],
-      ["o4", "must", T("E-mail: Google Workspace or Microsoft 365, which mailboxes send, sending domain; are SPF, DKIM and DMARC set up?", "מייל: Google Workspace או Microsoft 365, מאילו תיבות שולחים, דומיין שליחה; האם SPF,‏ DKIM ו-DMARC מוגדרים?")],
-      ["o5", "should", T("Daily send limit per mailbox, sending hours, time zones and holidays.", "מגבלת שליחה יומית לתיבה, שעות שליחה, אזורי זמן וחגים.")],
-      ["o6", "must", T("Follow-up plan: number of follow-ups (max 3), days between them, channel for each step.", "תוכנית מעקב: מספר מעקבים (עד 3), ימים ביניהם, ערוץ לכל שלב.")],
-      ["o7", "must", T("Message templates per language and segment (first message, follow-ups, closing message).", "תבניות הודעה לפי שפה ופלח (הודעה ראשונה, מעקבים, הודעת סיום).")],
-      ["o8", "must", T("E-mail signature, company postal address, unsubscribe wording in each language, and 'advertisement' marking where the law requires it.", "חתימת מייל, כתובת דואר של החברה, נוסח הסרה בכל שפה, וסימון 'פרסומת' היכן שהחוק דורש.")],
-      ["o9", "should", T("WhatsApp: verified Meta Business account, dedicated phone number, display name, templates to submit, how consent is collected.", "WhatsApp: חשבון Meta Business מאומת, מספר טלפון ייעודי, שם תצוגה, תבניות להגשה, איך נאספת הסכמה.")],
-      ["o10", "should", T("Phone: who calls, call script, outcome codes, calling hours.", "טלפון: מי מתקשר, תסריט שיחה, קודי תוצאה, שעות התקשרות.")],
-      ["o11", "should", T("Meeting booking link (Google appointment page, Calendly or other).", "קישור לקביעת פגישה (דף תורים של Google, ‏Calendly או אחר).")]
+      ["t1", "must", T("Accounts and roles: Tom and Amitai (admins), Shir, Omer and Tomer (owners); does Elad need an account now?", "חשבונות ותפקידים: תום ועמיתי (מנהלי מערכת), שיר, עומר ותומר (בעלים); האם אלעד צריך חשבון עכשיו?")],
+      ["t2", "should", T("May owners see each other's cards (read only)?", "האם בעלים רשאים לראות כרטיסים של אחרים (קריאה בלבד)?")],
+      ["t3", "should", T("Notification when a run finishes: in the app only, or also by e-mail?", "התראה כשהרצה מסתיימת: רק באפליקציה, או גם במייל?")]
     ] },
-  { id: "inbound", title: T("Inbound responses", "תשובות נכנסות"),
-    intro: T("What happens when someone answers.", "מה קורה כשמישהו עונה."),
+  { id: "compliance", title: T("Compliance", "ציות"),
+    intro: T("Checklist for Tom and a lawyer; not legal advice.", "רשימה לתום ולעורך דין; לא ייעוץ משפטי."),
     items: [
-      ["i1", "must", T("Reply labels: interested, wants a meeting, not now, not interested, wrong person / referral, out of office, unsubscribe, bounce. Add or remove?", "תוויות תשובה: מעוניין, רוצה פגישה, לא עכשיו, לא מעוניין, אדם לא נכון / הפניה, מחוץ למשרד, הסרה, החזרה. להוסיף או להסיר?")],
-      ["i2", "must", T("Next step for each label (stop the sequence, create a task, remind in N days, move the pipeline stage).", "הצעד הבא לכל תווית (עצירת הרצף, יצירת משימה, תזכורת בעוד N ימים, העברת שלב בצנרת).")],
-      ["i3", "must", T("Who is alerted about a reply, and the response-time target (default: 1 business day).", "מי מקבל התראה על תשובה, ויעד זמן התגובה (ברירת מחדל: יום עסקים אחד).")],
-      ["i4", "should", T("Notifications: in the app, daily e-mail digest, anything else?", "התראות: באפליקציה, סיכום יומי במייל, משהו נוסף?")],
-      ["i5", "must", T("Confirm unsubscribe handling: automatic, immediate, permanent, across all channels.", "אישור הטיפול בהסרה: אוטומטית, מיידית, קבועה, בכל הערוצים.")]
+      ["l1", "must", T("Retention: how long to keep cards that were never accepted (suggested: 12 months), and who handles requests to see or delete data.", "שמירה: כמה זמן לשמור כרטיסים שלא התקבלו (הצעה: 12 חודשים), ומי מטפל בבקשות לעיון או למחיקת מידע.")],
+      ["l2", "should", T("AI providers' data processing terms accepted; data stays in the EU (Render Frankfurt).", "תנאי עיבוד המידע של ספקי ה-AI אושרו; המידע נשאר באירופה (Render פרנקפורט).")],
+      ["l3", "should", T("Defence and dual-use: information that must never be recorded.", "ביטחון ודו-שימושי: מידע שאסור לרשום לעולם.")]
     ] },
-  { id: "services", title: T("Service catalog", "קטלוג שירותים"),
-    intro: T("The catalog lets the system suggest the right services for each company.", "הקטלוג מאפשר למערכת להציע את השירותים המתאימים לכל חברה."),
+  { id: "later", title: T("Releases 2–4 (prepare, not needed now)", "שחרורים 2–4 (להכנה, לא נדרש עכשיו)"),
+    intro: T("Collect these before the next development round.", "לאסוף לפני סבב הפיתוח הבא."),
     items: [
-      ["v1", "must", T("List of YMT services with a short description in Hebrew and English.", "רשימת שירותי YMT עם תיאור קצר בעברית ובאנגלית.")],
-      ["v2", "must", T("For each service: needs or pains it solves, ideal client industry and size, typical result.", "לכל שירות: הצרכים או הכאבים שהוא פותר, ענף וגודל הלקוח האידיאלי, תוצאה אופיינית.")],
-      ["v3", "must", T("Price model and price range for each service.", "מודל מחיר וטווח מחיר לכל שירות.")],
-      ["v4", "should", T("When a service must not be offered (rules, exclusions, dependencies).", "מתי אסור להציע שירות (כללים, החרגות, תלויות).")],
-      ["v5", "should", T("Case studies and testimonials YMT is allowed to mention.", "סיפורי הצלחה והמלצות ש-YMT רשאית להזכיר.")],
-      ["v6", "later", T("Partners or suppliers each service depends on (links to the Suppliers & experts directory).", "שותפים או ספקים שכל שירות תלוי בהם (קישור לספריית הספקים והמומחים).")]
-    ] },
-  { id: "pricing", title: T("Pricing and quote rules", "תמחור וכללי הצעת מחיר"),
-    intro: T("How YMT charges its client companies. Prices always come from these rules, never from AI.", "איך YMT גובה מהחברות הלקוחות. המחירים תמיד מגיעים מהכללים האלה, אף פעם לא מה-AI."),
-    items: [
-      ["p1", "must", T("Price models YMT uses: fixed project fee + retainer, success fee / commission, hourly or daily rate, packages / tiers, or a mix.", "מודלי המחיר ש-YMT משתמשת בהם: תשלום קבוע לפרויקט + ריטיינר, דמי הצלחה / עמלה, תעריף שעתי או יומי, חבילות / רמות, או שילוב."), T("See 'How YMT can charge its client companies' in the system design.", "ראו 'איך YMT יכולה לגבות מהחברות הלקוחות' בתכנון המערכת.")],
-      ["p2", "must", T("For each model: rates, minimums, currency (ILS / USD / EUR) and VAT treatment.", "לכל מודל: תעריפים, מינימום, מטבע (ש\"ח / דולר / אירו) וטיפול במע\"מ.")],
-      ["p3", "must", T("Discount rules, and who must approve above which percentage or amount.", "כללי הנחה, ומי חייב לאשר מעל איזה אחוז או סכום.")],
-      ["p4", "must", T("Payment terms (advance %, milestones, days to pay).", "תנאי תשלום (מקדמה %, אבני דרך, ימים לתשלום).")],
-      ["p5", "must", T("Quote validity, legal terms, cancellation and liability wording (checked by a lawyer).", "תוקף ההצעה, תנאים משפטיים, נוסח ביטול ואחריות (נבדק על ידי עו\"ד).")],
-      ["p6", "should", T("Quote layout and branding; is the built-in simple e-signature enough, or is a certified signature needed?", "עיצוב ומיתוג ההצעה; האם החתימה הפשוטה המובנית מספיקה, או שנדרשת חתימה מאושרת?")],
-      ["p7", "should", T("Accounting / invoicing system used today (version 1 exports CSV).", "מערכת הנהלת החשבונות / החשבוניות שבשימוש היום (גרסה 1 מייצאת CSV).")],
-      ["p8", "later", T("If the platform is sold later: preferred pricing (per user, tiers with quotas, setup fee + monthly, usage credits).", "אם הפלטפורמה תימכר בהמשך: תמחור מועדף (לפי משתמש, חבילות עם מכסות, דמי הקמה + חודשי, קרדיטים לפי שימוש).")]
-    ] },
-  { id: "dashboard", title: T("Dashboard and reporting", "לוח בקרה ודיווח"),
-    intro: T("What managers and staff need to see every day.", "מה מנהלים ועובדים צריכים לראות כל יום."),
-    items: [
-      ["d1", "must", T("KPIs to show (funnel by stage, reply rate, meetings, quotes, revenue, cost per lead, AI spend, time to quote).", "מדדים להצגה (משפך לפי שלב, אחוז תשובות, פגישות, הצעות, הכנסות, עלות לליד, הוצאות AI, זמן עד הצעה).")],
-      ["d2", "should", T("Who sees what: staff see their own numbers, managers see the team?", "מי רואה מה: עובדים רואים את המספרים שלהם, מנהלים רואים את הצוות?")],
-      ["d3", "should", T("Monthly targets per person and per team.", "יעדים חודשיים לכל עובד ולכל צוות.")],
-      ["d4", "later", T("Recipients and timing of weekly or monthly management reports.", "נמענים ותזמון של דוחות הנהלה שבועיים או חודשיים.")]
-    ] },
-  { id: "compliance", title: T("Compliance and legal", "ציות ומשפט"),
-    intro: T("Checklist for the lawyer and YMT management. This is not legal advice.", "רשימה לעורך הדין ולהנהלת YMT. זה לא ייעוץ משפטי."),
-    items: [
-      ["c1", "must", T("Laws for each target country confirmed: Israel (Communications Law §30A anti-spam; Privacy Protection Law + Amendment 13), EU/UK (GDPR, ePrivacy/PECR), USA (CAN-SPAM), Canada (CASL), others.", "החוקים לכל מדינת יעד אושרו: ישראל (חוק התקשורת סעיף 30א – ספאם; חוק הגנת הפרטיות + תיקון 13), אירופה/בריטניה (GDPR,‏ ePrivacy/PECR), ארה\"ב (CAN-SPAM), קנדה (CASL), אחרות.")],
-      ["c2", "must", T("Lawyer's written opinion on B2B cold outreach per country and channel (e-mail, WhatsApp, LinkedIn, phone).", "חוות דעת בכתב של עו\"ד על פנייה קרה לעסקים לכל מדינה וערוץ (מייל, WhatsApp,‏ LinkedIn, טלפון).")],
-      ["c3", "must", T("Privacy notice text: what data YMT collects, from which sources, why, and how to object (also used for the GDPR Art. 14 notice).", "נוסח הודעת פרטיות: איזה מידע YMT אוספת, מאילו מקורות, למה, ואיך מתנגדים (משמש גם להודעה לפי סעיף 14 ב-GDPR).")],
-      ["c4", "should", T("Does YMT need to register a database or appoint a privacy protection officer under Israeli law?", "האם YMT צריכה לרשום מאגר מידע או למנות ממונה הגנת פרטיות לפי החוק הישראלי?")],
-      ["c5", "must", T("Data processing agreements with vendors (Anthropic, Google, Meta, Render, data providers).", "הסכמי עיבוד מידע עם הספקים (Anthropic,‏ Google,‏ Meta,‏ Render, ספקי מידע).")],
-      ["c6", "should", T("Data location preference (default: EU, Frankfurt).", "העדפת מיקום המידע (ברירת מחדל: אירופה, פרנקפורט).")],
-      ["c7", "must", T("Retention and deletion policy, and who handles requests from people to see or delete their data.", "מדיניות שמירה ומחיקה, ומי מטפל בבקשות של אנשים לעיין במידע שלהם או למחוק אותו.")],
-      ["c8", "should", T("WhatsApp: how consent is recorded; Meta messaging policy accepted.", "WhatsApp: איך נרשמת הסכמה; מדיניות ההודעות של Meta אושרה.")],
-      ["c9", "must", T("If any LinkedIn automation is chosen: written acceptance of the risk under LinkedIn's terms.", "אם נבחרה אוטומציה כלשהי ב-LinkedIn: קבלה בכתב של הסיכון לפי תנאי LinkedIn.")],
-      ["c10", "should", T("Rules for recording phone calls, if calls are recorded, and the consent wording.", "כללים להקלטת שיחות טלפון, אם מקליטים, ונוסח ההסכמה.")]
-    ] },
-  { id: "accounts", title: T("Accounts, credentials and assets", "חשבונות, פרטי גישה ונכסים"),
-    intro: T("Who provides each account. Never write the secret itself here.", "מי מספק כל חשבון. לעולם לא כותבים כאן את הסוד עצמו."),
-    items: [
-      ["a1", "must", T("Render account: owner, billing, access for the developer.", "חשבון Render: בעלים, חיוב, גישה למפתח.")],
-      ["a2", "must", T("Domain and DNS access (for SPF, DKIM, DMARC and an optional sending subdomain).", "גישה לדומיין ול-DNS (עבור SPF,‏ DKIM,‏ DMARC ותת-דומיין שליחה אופציונלי).")],
-      ["a3", "must", T("Google: Workspace admin or Gmail accounts; Google Cloud project (exists for Calendar) to enable the Gmail API and Places API.", "Google: מנהל Workspace או חשבונות Gmail; פרויקט Google Cloud (קיים עבור היומן) להפעלת Gmail API ו-Places API.")],
-      ["a4", "should", T("Microsoft 365 admin (only if Outlook is used) to approve the app.", "מנהל Microsoft 365 (רק אם משתמשים ב-Outlook) לאישור האפליקציה.")],
-      ["a5", "must", T("Anthropic Console account (owned by YMT), API key added on Render, monthly spend limit set in the Console.", "חשבון Anthropic Console (בבעלות YMT), מפתח API שהוזן ב-Render, מגבלת הוצאה חודשית שהוגדרה ב-Console.")],
-      ["a6", "should", T("Meta Business Manager, WhatsApp Business Account and phone number.", "Meta Business Manager, חשבון WhatsApp Business ומספר טלפון.")],
-      ["a7", "should", T("E-mail verification provider account and API key.", "חשבון ספק אימות מיילים ומפתח API.")],
-      ["a8", "later", T("Paid B2B database account and API key.", "חשבון מאגר B2B בתשלום ומפתח API.")],
-      ["a9", "later", T("LinkedIn Sales Navigator seats, or an unofficial API provider account (only if chosen).", "משתמשי LinkedIn Sales Navigator, או חשבון אצל ספק API לא רשמי (רק אם נבחר).")],
-      ["a10", "must", T("Brand files: logo, colours, fonts, letterhead, e-mail signature.", "קבצי מיתוג: לוגו, צבעים, גופנים, נייר מכתבים, חתימת מייל.")]
-    ] },
-  { id: "team", title: T("Team, roles and process", "צוות, תפקידים ותהליך"),
-    intro: T("Who decides what, and how the team works with the developer.", "מי מחליט על מה, ואיך הצוות עובד עם המפתח."),
-    items: [
-      ["m1", "must", T("Role for each person: admin, member, approver, viewer.", "תפקיד לכל אדם: מנהל מערכת, חבר צוות, מאשר, צופה.")],
-      ["m2", "must", T("Who approves what: reports, outreach messages, Mode 3 segments, quotes (by amount).", "מי מאשר מה: דוחות, הודעות פנייה, פלחים במצב 3, הצעות מחיר (לפי סכום).")],
-      ["m3", "should", T("Working days, hours and holidays (Israel and target countries) for sending windows.", "ימי עבודה, שעות וחגים (ישראל ומדינות היעד) לחלונות השליחה.")],
-      ["m4", "should", T("YMT contact person for questions during development, and a weekly review time.", "איש קשר ב-YMT לשאלות במהלך הפיתוח, וזמן קבוע לסקירה שבועית.")],
-      ["m5", "should", T("Who is trained first, and who helps colleagues afterwards.", "מי עובר הדרכה ראשון, ומי עוזר לעמיתים אחר כך.")],
-      ["m6", "should", T("Who to contact when something breaks, and how urgent each type of problem is.", "למי פונים כשמשהו מתקלקל, ומה רמת הדחיפות של כל סוג תקלה.")]
+      ["x1", "later", T("Release 2: which card fields go into a deal, and the default deal model per service.", "שחרור 2: אילו שדות מהכרטיס עוברים לעסקה, ומודל העסקה כברירת מחדל לכל שירות.")],
+      ["x2", "later", T("Release 3: outreach templates per mandate and language, sender mailboxes (Google Workspace or Microsoft 365), and a lawyer's review of outreach rules.", "שחרור 3: תבניות פנייה לכל מנדט ושפה, תיבות שולחים (Google Workspace או Microsoft 365), ובדיקת עורך דין לכללי הפנייה.")],
+      ["x3", "later", T("Release 4: approved service texts for assisted replies, and opt-out wording.", "שחרור 4: נוסחי שירות מאושרים לתשובות בסיוע, ונוסח הסרה.")]
     ] }
 ];
 
@@ -392,7 +302,7 @@ const UI = {
   notesLabel: T("Answer / notes", "תשובה / הערות"),
   notesPlaceholder: T("Answer, decision or open question…", "תשובה, החלטה או שאלה פתוחה…"),
   search: T("Search questions and notes", "חיפוש בשאלות ובהערות"),
-  owners: [T("YMT management", "הנהלת YMT"), T("YMT sales team", "צוות המכירות של YMT"), T("Developer", "המפתח"), T("Lawyer", "עורך דין"), T("Finance", "כספים"), T("Marketing", "שיווק")],
+  owners: [T("Tom", "תום"), T("Amitai", "עמיתי"), T("Shir", "שיר"), T("Omer", "עומר"), T("Tomer", "תומר"), T("Elad", "אלעד"), T("Lawyer", "עורך דין")],
   done: T("answered", "נענו"),
   mustDone: T("Must answered", "חובה שנענו"),
   exported: T("Exported. Keep the file in a safe folder.", "יוצא. שמרו את הקובץ בתיקייה מאובטחת."),
@@ -411,9 +321,9 @@ const UI = {
 };
 
 /* ---------- state ---------- */
-const STORAGE_KEY = "ymt-requirements-checklist-v1";
+const STORAGE_KEY = "ymt-requirements-checklist-v2";
 const SCHEMA = "ymt-requirements-checklist";
-const VERSION = 1;
+const VERSION = 2;
 const ALL_ITEMS = CATEGORIES.flatMap((cat) => cat.items.map(([id, priority, question, hint]) => ({ id, priority, question, hint, cat })));
 const ITEM_BY_ID = new Map(ALL_ITEMS.map((it) => [it.id, it]));
 if (ITEM_BY_ID.size !== ALL_ITEMS.length) throw new Error("Duplicate item id in CATEGORIES");
@@ -659,7 +569,7 @@ function applyFilter() {
 
 function applyLangToControls() {
   const t = (o) => o[lang];
-  document.title = lang === "he" ? "רשימת דרישות · YMT Group" : "Requirements Checklist · YMT Group";
+  document.title = lang === "he" ? "שאלות לפיילוט · YMT Group" : "Pilot Questions · YMT Group";
   for (const select of document.querySelectorAll('select[data-field="priority"]')) {
     select.setAttribute("aria-label", t(UI.priorityLabel));
     for (const option of select.options) option.textContent = t(UI.priority[option.value]);
