@@ -64,5 +64,59 @@ export function loadDemoData(db, ownerId) {
       type: 'expert', name: 'Ravi Sharma (demo)', country: 'India', city: 'Mumbai', industries: 'Irrigation equipment, Agritech',
       capabilities: 'Distribution networks in Maharashtra', nda_signed: 0, rating: 5,
     });
+
+    loadDemoResearch(db, ownerId, daysAgo);
   });
+}
+
+/**
+ * Fictional research cards based on YMT's training cases, so the review flow can be tried before an AI key is set.
+ * SH2 and OM3 are assigned to `ownerId` and activated; one Vietnam initiative waits in the manual queue.
+ */
+function loadDemoResearch(db, ownerId, daysAgo) {
+  const mandate = (code) => db.prepare('SELECT id, current_version_id FROM mandates WHERE code = ?').get(code);
+  const sh2 = mandate('SH2');
+  const om3 = mandate('OM3');
+  for (const m of [sh2, om3]) db.prepare("UPDATE mandates SET owner_id = ?, status = 'active' WHERE id = ?").run(ownerId, m.id);
+
+  const cards = [
+    { company: 'Kesher Workflow Ltd. (demo)', site: 'kesher', employees: 95, sector: 'tech_comms', subsector: 'Industrial workflow software', model: 'software_ip',
+      mandate: sh2, country: 'Japan', need: 'implementation_partner', verdict: 'match', status: 'draft', days: 6,
+      quote: 'Kesher Workflow is inviting Japanese systems integrators to apply as implementation partners for its 2027 launch.',
+      reason: 'A dated, Japan-specific call for implementation partners from a proven B2B vendor.' },
+    { company: 'Ori Apparel (demo)', site: 'ori', employees: 95, sector: 'consumer_trade', subsector: 'Apparel', model: 'product_owner',
+      mandate: sh2, country: 'Japan', need: 'market_entry_distribution', verdict: 'match', status: 'draft', days: 11,
+      quote: 'Ori Apparel has published a request for distributors in Japan.', reason: 'A brand owner with a published distributor request for Japan.' },
+    { company: 'Galil Precision (demo)', site: 'galil', employees: 140, sector: 'industry_manufacturing', subsector: 'Precision components', model: 'product_owner',
+      mandate: om3, country: 'Israel', need: 'executive_search', verdict: 'weak', status: 'draft', days: 4,
+      quote: 'Galil Precision is hiring a VP Operations for its plant in Karmiel.',
+      reason: 'A current VP vacancy in Israel; openness to external search support is not yet confirmed.' },
+    { company: 'Negev Robotics (demo)', site: 'negev', employees: 60, sector: 'industry_manufacturing', subsector: 'Robotics', model: 'product_owner',
+      mandate: null, country: 'Vietnam', need: 'technology_scouting', verdict: 'match', status: 'manual_assignment', days: 9,
+      quote: 'Negev Robotics is looking for vision-technology providers in Vietnam.', reason: 'A dated technology-scouting initiative in Vietnam (no mandate covers it yet).' },
+  ];
+  for (const card of cards) {
+    const url = `https://example.com/demo/${card.site}`;
+    const companyId = insert(db, 'companies', {
+      name: card.company, industry: card.subsector, country: 'Israel', website: `https://example.com/${card.site}`, origin: 'research',
+      israel_connection: 'hq_israel', hq_country: 'Israel', incorporation_country: 'Israel', model_primary: card.model, sector: card.sector,
+      subsector: card.subsector, customer_types: '["business"]', employees_min: card.employees, employees_max: card.employees,
+      employees_as_of: '2026', employee_count: card.employees, notes: 'Fictional demo company.',
+    });
+    const sourceId = insert(db, 'sources', { url, title: `${card.company}: announcement`, published_on: daysAgo(card.days).slice(0, 10), kind: 'web' });
+    for (const [field, value, quote] of [
+      ['israel_connection', 'hq_israel', 'headquartered in Israel'],
+      ['employees', String(card.employees), `${card.employees} employees`],
+      ['sector', card.sector, card.subsector],
+    ]) {
+      insert(db, 'facts', { company_id: companyId, field, value, source_id: sourceId, quote, entity_covered: card.company });
+    }
+    insert(db, 'opportunities', {
+      company_id: companyId, mandate_id: card.mandate ? card.mandate.id : null, mandate_version_id: card.mandate ? card.mandate.current_version_id : null,
+      owner_id: card.mandate ? ownerId : null, relationship_role: 'client', target_country: card.country, need_type: card.need,
+      business_need: card.quote, evidence_source_id: sourceId, evidence_date: daysAgo(card.days).slice(0, 10), evidence_quote: card.quote,
+      verdict: card.verdict, verdict_reason: card.reason, reason_to_act: 'Published within the last two weeks.',
+      unknowns: JSON.stringify(['revenue']), flags: JSON.stringify(card.verdict === 'weak' ? ['weak_evidence'] : []), status: card.status,
+    });
+  }
 }

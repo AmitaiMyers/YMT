@@ -42,6 +42,29 @@ The repository includes a `Dockerfile` that builds one container serving both th
 
 A step-by-step founder checklist is in [`docs/FOUNDER_TASKS.md`](docs/FOUNDER_TASKS.md).
 
+## Research pilot (Release 1)
+
+Research agents find **Israeli companies with a dated business initiative** that fits one of YMT's mandates (SH1–SH3 for Shir, OM1–OM3 for Omer, GE1 for Tomer as a draft), build a company card from YMT's classification dictionary, and put it in the owner's **Research review** queue. **Draft only: nothing is sent to anyone.** The design is in [`docs/system-design.html`](docs/system-design.html); open questions for Tom are in [`docs/client-requirements-checklist.html`](docs/client-requirements-checklist.html).
+
+**Switch it on (once):**
+
+1. Create an account in the [Anthropic Console](https://console.anthropic.com/) owned by YMT, create an API key, and set a monthly spend limit there as a second guard.
+2. On the host add `ANTHROPIC_API_KEY`. Without it, everything works except **Run**, which says what is missing. (`OPENAI_API_KEY` is optional, for comparing providers; the OpenAI adapter has not yet been tried with a real key.)
+3. **Research → Mandates** (admin): open each mandate, choose its **owner** and set it **Active**. Mandates start paused and without an owner.
+4. **AI settings** (same screen, admins): the monthly cap (default **$20**), and the provider and model per task (default Claude Sonnet 5.5). Prices per model are listed there; add a price before using a new model.
+
+**Daily use:**
+
+- **Run** a mandate and choose how many cards (1–20), or set it to run weekly on a chosen day. A run takes a few minutes; each card costs roughly $0.08–0.13.
+- **Research review:** open a card, check the quoted evidence and the source of every fact, then **Accept / Verify / Defer / Reject** (keys A, V, D, R select; a click confirms). Reject needs a reason; Verify and Defer need a note, and Verify creates a task. The next card opens automatically.
+- Initiatives no mandate covers (e.g. Vietnam, China sourcing) wait in **Manual assignment** for an admin.
+- **Calibration:** save a good match and a false positive as examples, change one criterion (each change is a new version), and **Compare** the two versions on the same examples.
+- **Research metrics:** acceptance rate, duplicates, wrong-market matches, minutes per card and cost per accepted card, per mandate.
+
+**Rules built in:** a candidate is kept only if its source URL came from the search itself and has a publication date within the mandate's freshness window (default 6 months); every company value needs a cited source or it is dropped and listed as missing; size bands are computed in code from YMT's dictionary; companies created by research appear in the regular company lists only after a card is accepted; the monthly cap is checked before every AI call and runs wait (not fail) when it is reached.
+
+**What leaves YMT:** the mandate text, search queries and public company information go to the AI provider. No client notes, contacts or deals are sent. Settings → Data & privacy lists the provider when a key is set.
+
 ## Google Calendar (optional)
 
 The Calendar page shows day, week and month views of YMT meetings and, for each staff member who connects their own Google account, their Google events. Meetings scheduled in YMT are added to the organizer's Google Calendar. **Google sends an invitation e-mail to an outside person only if the staff member ticks "Send a Google invitation" and confirms a dialog that names the recipient.** Without these settings the calendar works normally; only the Google features are hidden.
@@ -89,7 +112,7 @@ shared/   enums.js – the single list of stages, statuses, channels… used by 
 
 - **Data location:** everything lives in one SQLite file (`DATA_DIR/ymt.db`, default `./data`). No cloud services, no AI/LLM provider, no analytics. Settings → *Data & privacy* shows the file path, size, hosting description (`HOSTING_LOCATION`) and record counts; admins can create a backup (`VACUUM INTO`, written to `DATA_DIR/backups/`).
 - **Security:** scrypt password hashes; HttpOnly + SameSite=strict session cookie (Secure when `NODE_ENV=production`), 12h sessions; login rate limit; Helmet headers; every API response is `Cache-Control: no-store` and the service worker caches **only the app shell**, never API data; audit log for logins, approvals, sends, shares, signatures, template and user changes.
-- **Generation** is deterministic and template-based (`server/src/generators.js`) – no LLM, per decision.
+- **Generation** of briefs, emails and documents is deterministic and template-based (`server/src/generators.js`). Only the research pilot uses an AI provider (`server/src/ai/`), and only when an API key is set.
 - **Validation** is declarative per route (`server/src/validate.js`): unknown fields, wrong types and missing required fields fail fast with a 400 and a precise message.
 - **i18n:** `client/src/i18n/strings.js`. `npm run check:i18n` (runs automatically before every build) fails if any key used in the code is missing in Hebrew or English.
 

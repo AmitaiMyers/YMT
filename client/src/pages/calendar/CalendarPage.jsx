@@ -79,7 +79,7 @@ function TimedItem({ item, onOpen, label }) {
 }
 
 function TimeGrid({ days, items, onOpen, onSlot }) {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const label = useItemLabel();
   const scrollRef = useRef(null);
   const [now, setNow] = useState(new Date());
@@ -129,7 +129,8 @@ function TimeGrid({ days, items, onOpen, onSlot }) {
           </div>
         )}
         {/* Scrollable hours */}
-        <div ref={scrollRef} className="max-h-[62dvh] overflow-y-auto">
+        {/* Focusable region so the hours can be scrolled with the keyboard even when no meeting is visible. */}
+        <div ref={scrollRef} className="max-h-[62dvh] overflow-y-auto" role="region" aria-label={t('calendar.hours')} tabIndex={0}>
           <div className="relative grid" style={{ gridTemplateColumns: columns, height: 24 * HOUR_PX }}>
             <div className="relative">
               {Array.from({ length: 24 }, (_, hour) => (

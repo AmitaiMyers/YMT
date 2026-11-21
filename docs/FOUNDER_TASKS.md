@@ -23,6 +23,10 @@ Estimated total: half a day spread over 1–2 weeks.
 
 6b. **Connect Google Calendar** (about 30 minutes, once). Follow README → "Google Calendar": create a Google Cloud project, enable the Calendar API, set up the consent screen (Workspace → *Internal*; Gmail → *External* and *publish*), create a Web OAuth client with redirect `https://<your-app>/api/google/callback`, then add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `PUBLIC_URL` and `TOKEN_ENCRYPTION_KEY` on Render. After that, each person clicks **Calendar → Connect Google Calendar**.
 
+## Research pilot
+
+6c. **Switch on the research agents** (about 20 minutes). Create an Anthropic Console account owned by YMT, create an API key and set a monthly spend limit there. Add `ANTHROPIC_API_KEY` on Render. Then in the app: **Research → Mandates** → open each mandate, choose its owner (Shir, Omer, Tomer) and set it Active; check the $20 monthly cap under AI settings. Go through the open questions with Tom in `docs/client-requirements-checklist.html`.
+
 ## Week 1 – Set it up for the team
 
 7. **Settings → Users:** create an account for each team member. Hand over passwords in person or by phone, never by email.

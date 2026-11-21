@@ -763,6 +763,7 @@ const he = {
   'weekday.4': "חמישי",
   'weekday.5': "שישי",
   'weekday.6': "שבת",
+  'calendar.hours': "שעות היום",
 };
 
 const en = {
@@ -1526,6 +1527,7 @@ const en = {
   'weekday.4': "Thursday",
   'weekday.5': "Friday",
   'weekday.6': "Saturday",
+  'calendar.hours': "Hours of the day",
 };
 
 export const STRINGS = { he, en };
