@@ -5,7 +5,7 @@ bilingual (Hebrew RTL / English LTR), with a strict **human-in-the-loop** policy
 
 ## Quick start
 
-Requirements: **Node.js 22.13+** (uses the built-in `node:sqlite`, so there is no native database driver to compile).
+Requirements: **Node.js 22.13+** (uses the built-in `node:sqlite`, so there is no native database driver to compile). Check with `node -v`; on an older version `npm install` stops with an `EBADENGINE` error (Windows: install the `-x64.msi` from https://nodejs.org/dist/latest-v22.x/, then open a new terminal).
 
 ```bash
 npm install
