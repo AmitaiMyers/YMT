@@ -62,7 +62,7 @@
   section.phase { margin-bottom: 28px; }
   .phase-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
   h2 { font-size: 18px; margin: 0; }
-  .phase-count { font-size: 13px; color: var(--subtle); font-variant-numeric: tabular-nums; }
+  .phase-count { font-size: 13px; color: var(--subtle); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .note { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
 
   ol.tasks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
@@ -71,9 +71,25 @@
     transition: border-color 160ms, background-color 160ms;
   }
   li.task.checked { background: var(--success-soft); border-color: color-mix(in srgb, var(--success-fg) 35%, transparent); }
-  li.task > label { display: grid; grid-template-columns: 28px 1fr; gap: 12px; padding: 14px 16px; cursor: pointer; }
+  .task-head { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: flex-start; padding: 14px 16px 6px; }
+  .task-head label { cursor: pointer; flex: 1 1 240px; }
+  .task-head .tag { margin: 2px 0 0; }
   li.task input[type=checkbox] { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--success); cursor: pointer; }
-  .num { display: inline-block; min-width: 22px; color: var(--subtle); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .time { font-size: 12px; color: var(--subtle); white-space: nowrap; padding-top: 3px; }
+  .why { margin: 0 16px 0 56px; color: var(--muted); font-size: 14px; }
+  details.how { margin: 6px 16px 14px 56px; }
+  details.how > summary { cursor: pointer; color: var(--link); font-weight: 600; font-size: 14px; min-height: 32px; display: inline-flex; align-items: center; }
+  ol.steps { margin: 8px 0 0; padding-inline-start: 22px; font-size: 14px; }
+  ol.steps > li { margin: 6px 0; padding-inline-start: 4px; }
+  ol.steps ul { margin: 4px 0; padding-inline-start: 18px; }
+  b.ui { color: var(--fg); }
+  .he { color: var(--subtle); font-weight: 400; }
+  .ext { font-size: 12px; color: var(--subtle); }
+  .tip { margin: 8px 0 0; padding: 8px 10px; border-radius: 6px; background: var(--info-soft); border: 1px solid var(--info-line); font-size: 13px; color: var(--fg); }
+  .warn { margin: 8px 0 0; padding: 8px 10px; border-radius: 6px; background: var(--signal-soft); font-size: 13px; color: var(--fg); }
+  .legend { margin: 0 0 18px; padding: 12px 16px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); font-size: 14px; color: var(--muted); }
+  .legend p { margin: 4px 0; }
+  .num { display: inline-block; min-width: 22px; margin-inline-end: 6px; color: var(--subtle); font-weight: 600; font-variant-numeric: tabular-nums; }
   .title { font-weight: 600; }
   li.task.checked .title { text-decoration: line-through; text-decoration-color: var(--success-fg); }
   .detail { margin-top: 4px; color: var(--muted); font-size: 14px; }
@@ -97,7 +113,9 @@
 
   @media (max-width: 520px) {
     h1 { font-size: 23px; }
-    li.task > label { padding: 12px; gap: 10px; }
+    .task-head { padding: 12px 12px 4px; gap: 4px 10px; }
+    .task-head .tag, .time { margin-inline-start: 32px; }
+    .why, details.how { margin-inline: 12px; }
     .cmd { flex-direction: column; align-items: stretch; }
     .copy { min-height: 40px; }
   }
@@ -108,6 +126,7 @@
     header.hero { background: #fff; color: #000; border-bottom: 2px solid #000; }
     .lede { color: #333; }
     li.task { box-shadow: none; break-inside: avoid; }
+    details.how > ol.steps { display: block; }
   }
 </style>
 </head>
@@ -118,173 +137,329 @@
       <svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="96" fill="#0F2A4A" stroke="#ffffff33" stroke-width="16"/><path d="M96 352 L208 224 L288 296 L416 160" fill="none" stroke="#F59E0B" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/></svg>
       YMT GROUP
     </div>
-    <h1>Founder checklist: from code to a live app</h1>
-    <p class="lede">The steps that need you: accounts, decisions, and things only someone in the company can do. About half a day, spread over one to two weeks. Tick each step as you go; your progress is saved in this browser.</p>
+    <h1>Founder checklist: from code to a live app, click by click</h1>
+    <p class="lede">Everything that needs you: accounts, decisions and settings only someone in the company can do. About a day of work, spread over one to two weeks. Open a task's steps, follow them, then tick the task; your progress is saved in this browser.</p>
   </div>
 </header>
 
 <div class="progress-card" role="region" aria-label="Progress">
   <div class="wrap progress-row">
-    <span class="progress-label" id="progress-label">0 of 21 done</span>
-    <div class="bar" id="bar" role="progressbar" aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="21" aria-valuenow="0"><span></span></div>
+    <span class="progress-label" id="progress-label">0 of 22 done</span>
+    <div class="bar" id="bar" role="progressbar" aria-labelledby="progress-label" aria-valuemin="0" aria-valuemax="22" aria-valuenow="0"><span></span></div>
     <button type="button" class="reset" id="reset">Reset</button>
   </div>
 </div>
 
 <main class="wrap">
+  <div class="legend">
+    <p><b class="ui">Bold</b> = what to click or fill in. In the YMT app the Hebrew label follows in brackets, e.g. <b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span>, because the app may be in Hebrew or English.</p>
+    <p>Steps on other websites (Render, Anthropic, Google) use their current button names. These sites change their screens from time to time: if a button looks slightly different, choose the one with the closest meaning.</p>
+  </div>
 
   <section class="phase" aria-labelledby="p1">
     <div class="phase-head"><h2 id="p1">Week 1: Go live</h2><span class="phase-count" data-count="golive"></span></div>
     <ol class="tasks" data-phase="golive">
-      <li class="task"><label><input type="checkbox" data-id="t1" /><div>
-        <span class="num">1.</span><span class="title">Decide where the data lives</span>
-        <div class="detail">This is your confidentiality answer for NDA partners.
-          <ul>
-            <li><strong>Simplest:</strong> a container host with an EU region and a persistent disk, such as Render (Frankfurt) or Fly.io (Amsterdam/Frankfurt).</li>
-            <li><strong>Most control:</strong> a small server (VPS) in Israel or the EU running Docker.</li>
-            <li>Write the answer down: it becomes <code>HOSTING_LOCATION</code> and is shown on the Data &amp; Privacy page.</li>
-          </ul>
-        </div>
-      </div></label></li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t1" data-id="t1" /><label for="cb-t1"><span class="num">1.</span><span class="title">Decide where the data lives</span></label><span class="time">5 min</span></div>
+        <p class="why">Your confidentiality answer for NDA partners. Recommended: Render, Frankfurt (EU).</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li>Choose <strong>Render, Frankfurt (EU)</strong> (simplest, used in the steps below), or a VPS in Israel/EU if you want full control.</li>
+          <li>Write down the sentence you will show staff and partners, e.g. <code>Render, Frankfurt EU</code>. You type it in task 3 as <code>HOSTING_LOCATION</code>; the app shows it under <b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">Data &amp; privacy</b> <span class="he" lang="he" dir="rtl">(נתונים ופרטיות)</span>.</li>
+        </ol></details>
+      </li>
 
-      <li class="task"><label><input type="checkbox" data-id="t2" /><div>
-        <span class="num">2.</span><span class="title">Open the hosting account</span>
-        <div class="detail">Use a company email (not a personal one) and turn on two-factor login.</div>
-      </div></label></li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t2" data-id="t2" /><label for="cb-t2"><span class="num">2.</span><span class="title">Open the Render account</span></label><span class="time">10 min</span></div>
+        <p class="why">With a company email, two-factor login, and a payment card (the data disk needs a paid service, about $7–8 a month).</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li>Go to <a href="https://render.com" target="_blank" rel="noopener">render.com</a> → <b class="ui">Get Started</b>.</li>
+          <li>Click <b class="ui">GitHub</b> and sign in with the GitHub account that owns <code>amitaimyers/ymt</code> (this lets Render see the code). Use the company email when Render asks for one.</li>
+          <li>Top-right avatar → <b class="ui">Account Settings</b> → <b class="ui">Security</b> → turn on <b class="ui">Two-factor authentication</b> and scan the code with an authenticator app.</li>
+          <li>Top-right workspace menu → <b class="ui">Settings</b> → <b class="ui">Billing</b> → <b class="ui">Add payment method</b> → enter the company card → <b class="ui">Save</b>.</li>
+        </ol></details>
+      </li>
 
-      <li class="task"><label><input type="checkbox" data-id="t3" /><div>
-        <span class="num">3.</span><span class="title">Deploy the app</span><span class="tag must">Persistent disk required</span>
-        <div class="detail">From GitHub <code>amitaimyers/ymt</code>, branch <code>claude/ymt-group-pwa-mvp-45memd</code> (or <code>main</code> once you merge it). The repository's <code>Dockerfile</code> builds everything.
-          <ul>
-            <li>Attach a <strong>persistent disk at <code>/data</code></strong> (1 GB is plenty). Without it, all data is lost on every restart.</li>
-            <li>Set the environment variable <code>HOSTING_LOCATION</code>, e.g. "Render, Frankfurt EU".</li>
-            <li>Make sure the address starts with <strong>https://</strong>. Secure login and installing the app both need it.</li>
-          </ul>
-        </div>
-      </div></label></li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t3" data-id="t3" /><label for="cb-t3"><span class="num">3.</span><span class="title">Deploy the app</span></label><span class="tag must">Persistent disk required</span><span class="time">15 min</span></div>
+        <p class="why">One web service, built from the repository's Dockerfile, with a 1 GB disk for the database.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li>Render dashboard → <b class="ui">+ New</b> (top right) → <b class="ui">Web Service</b>.</li>
+          <li>Under <b class="ui">Git Provider</b>, pick <code>amitaimyers/ymt</code>. Not in the list? Click <b class="ui">Configure account</b> / <b class="ui">Connect GitHub</b>, allow access to the <code>ymt</code> repository, come back and pick it.</li>
+          <li>Fill in the form:
+            <ul>
+              <li><b class="ui">Name</b>: <code>ymt-app</code> (this becomes the address <code>ymt-app.onrender.com</code>)</li>
+              <li><b class="ui">Language</b>: <b class="ui">Docker</b> (Render detects it from the Dockerfile)</li>
+              <li><b class="ui">Branch</b>: <code>claude/ymt-group-pwa-mvp-45memd</code></li>
+              <li><b class="ui">Region</b>: <b class="ui">Frankfurt (EU Central)</b></li>
+              <li><b class="ui">Instance Type</b>: <b class="ui">Starter</b> (not Free: Free has no disk and no shell)</li>
+            </ul></li>
+          <li><b class="ui">Environment Variables</b> → <b class="ui">Add Environment Variable</b> → Key <code>HOSTING_LOCATION</code>, Value <code>Render, Frankfurt EU</code>.</li>
+          <li>Open <b class="ui">Advanced</b> → <b class="ui">Add Disk</b> → Name <code>ymt-data</code>, <b class="ui">Mount Path</b> <code>/data</code>, Size <code>1</code> GB.</li>
+          <li>Still under <b class="ui">Advanced</b>: <b class="ui">Health Check Path</b> <code>/api/health</code>; <b class="ui">Auto-Deploy</b> <strong>On</strong> (every new version of the code goes live by itself).</li>
+          <li>Click <b class="ui">Deploy Web Service</b>. Wait 3–6 minutes until the status at the top says <b class="ui">Live</b> (the <b class="ui">Logs</b> end with <code>YMT server listening</code>).</li>
+        </ol>
+        <p class="warn">Without the disk at <code>/data</code>, every restart deletes all data.</p></details>
+      </li>
 
-      <li class="task"><label><input type="checkbox" data-id="t4" /><div>
-        <span class="num">4.</span><span class="title">Choose the web address</span><span class="tag url">This is your PWA URL</span>
-        <div class="detail">Keep the host's address (e.g. <code>ymt-app.onrender.com</code>) or point a subdomain you own (e.g. <code>app.ymt-group.com</code>) at it in your domain provider's DNS settings.</div>
-      </div></label></li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t4" data-id="t4" /><label for="cb-t4"><span class="num">4.</span><span class="title">Get the web address (and optionally your own domain)</span></label><span class="tag url">This is your app URL</span><span class="time">5–20 min</span></div>
+        <p class="why">The address everyone opens and installs.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li>Render → your service <code>ymt-app</code>. The address is shown at the top under the name, e.g. <code>https://ymt-app.onrender.com</code>. Click the copy icon next to it and save it in a note.</li>
+          <li>Open it: you should see the YMT sign-in page.</li>
+          <li><em>Optional, own domain:</em> service → <b class="ui">Settings</b> → <b class="ui">Custom Domains</b> → <b class="ui">+ Add Custom Domain</b> → type e.g. <code>app.ymt-group.com</code> → <b class="ui">Save</b>. Render shows a <b class="ui">CNAME</b> record.</li>
+          <li>At your domain provider (e.g. GoDaddy, Cloudflare, Box): DNS settings → add record → Type <code>CNAME</code>, Name <code>app</code>, Value <code>ymt-app.onrender.com</code> → save.</li>
+          <li>Back in Render → <b class="ui">Verify</b>. When it shows <b class="ui">Certificate Issued</b>, <code>https://app.ymt-group.com</code> works.</li>
+        </ol></details>
+      </li>
 
-      <li class="task"><label><input type="checkbox" data-id="t5" /><div>
-        <span class="num">5.</span><span class="title">Create your admin login</span>
-        <div class="detail">In the host's command console (shell), run:
-          <div class="cmd"><code>node server/scripts/create-user.js --username &lt;you&gt; --name "&lt;your name&gt;" --password "&lt;10+ characters&gt;" --admin</code><button type="button" class="copy">Copy</button></div>
-        </div>
-      </div></label></li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t5" data-id="t5" /><label for="cb-t5"><span class="num">5.</span><span class="title">Create your admin login</span></label><span class="time">5 min</span></div>
+        <p class="why">The first account is created once, from Render's shell. Everyone else is added in the app (task 7).</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li>Render → service <code>ymt-app</code> → left menu <b class="ui">Shell</b>. Wait for the prompt.</li>
+          <li>Copy this command, paste it in the shell, replace the three values in &lt;…&gt; (password: at least 10 characters), press Enter:
+            <div class="cmd"><code>node server/scripts/create-user.js --username &lt;you&gt; --name "&lt;your name&gt;" --password "&lt;10+ characters&gt;" --admin</code><button type="button" class="copy">Copy</button></div></li>
+          <li>It answers that the user was created. Open your app address and sign in with that username and password.</li>
+        </ol></details>
+      </li>
 
-      <li class="task"><label><input type="checkbox" data-id="t6" /><div>
-        <span class="num">6.</span><span class="title">Install it on your phone and computer</span>
-        <div class="detail">Open the URL and tap <strong>Install app</strong> (sidebar footer or Settings). On iPhone/iPad: Share → <em>Add to Home Screen</em>.</div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t6b" /><div>
-        <span class="num">6b.</span><span class="title">Optional: connect Google Calendar</span>
-        <div class="detail">About 30 minutes, once. Follow README → "Google Calendar":
-          <ul>
-            <li>In Google Cloud: create a project, enable <strong>Google Calendar API</strong>, and set up the consent screen (Workspace → <em>Internal</em>; Gmail → <em>External</em> and <em>publish</em>; otherwise connections expire after 7 days).</li>
-            <li>Create a <strong>Web</strong> OAuth client with redirect URI <code>https://&lt;your-app&gt;/api/google/callback</code>.</li>
-            <li>On Render add <code>GOOGLE_CLIENT_ID</code>, <code>GOOGLE_CLIENT_SECRET</code>, <code>PUBLIC_URL</code> and <code>TOKEN_ENCRYPTION_KEY</code> (use Render's Generate button).</li>
-            <li>Each person then clicks <strong>Calendar → Connect Google Calendar</strong>. Invitations to outside people are sent only after a confirmation.</li>
-          </ul>
-        </div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t6c" /><div>
-        <span class="num">6c.</span><span class="title">Switch on the research agents</span>
-        <div class="detail">About 20 minutes, once. See README → "Research pilot":
-          <ul>
-            <li>Create an <strong>Anthropic Console</strong> account owned by YMT, create an API key, and set a monthly spend limit there.</li>
-            <li>On Render add <code>ANTHROPIC_API_KEY</code>.</li>
-            <li>In the app: <strong>Research → Mandates</strong> → open each mandate, choose its owner and set it <em>Active</em>; check the $20 cap under <em>AI settings</em>.</li>
-            <li>Go through the open questions with Tom in <code>docs/client-requirements-checklist.html</code>.</li>
-          </ul>
-        </div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t6d" /><div>
-        <span class="num">6d.</span><span class="title">Have a lawyer confirm the outreach rules</span>
-        <div class="detail">Before the first real approach. In the app: <strong>Settings → Outreach rules</strong>:
-          <ul>
-            <li>Show the lawyer the opt-out sentences (Hebrew and English), the "פרסומת" marking for recipients in Israel (email subject and WhatsApp), and the list of cleared countries (default: Israel only).</li>
-            <li>Ask whether LinkedIn messages need the marking too, and what is needed before adding countries (EU: GDPR, US: CAN-SPAM).</li>
-            <li>An admin updates the sentences and countries; anyone on the team can add a "do not contact" entry.</li>
-          </ul>
-        </div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t6e" /><div>
-        <span class="num">6e.</span><span class="title">Write the approved answers and decide on Gmail reading</span>
-        <div class="detail">About 45 minutes:
-          <ul>
-            <li>In <strong>Settings → Approved answers</strong> add short Hebrew and English texts the AI may use when answering replies: how YMT works, the next step (a 20-minute call), what an engagement includes, and the fee policy (or "we quote per project"). Anything not written there becomes a task instead of an answer.</li>
-            <li>With Google Workspace: enable the <strong>Gmail API</strong> and the <code>gmail.readonly</code> scope (README → Google, step 7); each owner clicks <strong>Conversations → Connect Gmail</strong>. With personal Gmail accounts Google requires a security review first, so start by pasting replies.</li>
-          </ul>
-        </div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t6f" /><div>
-        <span class="num">6f.</span><span class="title">Check the discovery questions</span>
-        <div class="detail">About 15 minutes. In <strong>Settings → Discovery form</strong> reword the 9 standard questions (Hebrew and English) in YMT's voice, mark the required ones, add or deactivate questions. Then send yourself a link from any company file (tab <strong>Discovery</strong>) and fill it in on your phone to see what clients see.</div>
-      </div></label></li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t6" data-id="t6" /><label for="cb-t6"><span class="num">6.</span><span class="title">Install it on your phone and computer</span></label><span class="time">5 min</span></div>
+        <p class="why">Opens like an app from the home screen or dock.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><strong>Computer (Chrome or Edge):</strong> open the address → sign in → <b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">General</b> <span class="he" lang="he" dir="rtl">(כללי)</span> → in the <b class="ui">Appearance</b> <span class="he" lang="he" dir="rtl">(תצוגה)</span> card, section <b class="ui">App</b> <span class="he" lang="he" dir="rtl">(אפליקציה)</span> → <b class="ui">Install app</b> <span class="he" lang="he" dir="rtl">(התקנת האפליקציה)</span> → <b class="ui">Install</b>.</li>
+          <li><strong>Android (Chrome):</strong> same steps; the app icon appears on the home screen.</li>
+          <li><strong>iPhone / iPad (Safari):</strong> open the address in Safari → the <b class="ui">Share</b> icon (square with an arrow) → <b class="ui">Add to Home Screen</b> → <b class="ui">Add</b>.</li>
+        </ol></details>
+      </li>
     </ol>
   </section>
 
   <section class="phase" aria-labelledby="p2">
-    <div class="phase-head"><h2 id="p2">Week 1: Set it up for the team</h2><span class="phase-count" data-count="setup"></span></div>
-    <ol class="tasks" data-phase="setup">
-      <li class="task"><label><input type="checkbox" data-id="t7" /><div>
-        <span class="num">7.</span><span class="title">Create team accounts</span>
-        <div class="detail">Settings → Users. Hand passwords over in person or by phone, never by email.</div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t8" /><div>
-        <span class="num">8.</span><span class="title">Set targets and rules</span>
-        <div class="detail">Settings → General: monthly targets, the number of days before a lead counts as stale, and the company name used on documents.</div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t9" /><div>
-        <span class="num">9.</span><span class="title">Rewrite the templates in your voice</span><span class="tag must">Lawyer review</span>
-        <div class="detail">Settings → Templates: outreach, follow-up, quote and agreement, in Hebrew and English. <strong>Have a lawyer review the agreement template.</strong></div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t10" /><div>
-        <span class="num">10.</span><span class="title">Check the service workflows</span>
-        <div class="detail">Settings → Workflows: confirm that the two default service types match how you sell. Rename them or add one.</div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t11" /><div>
-        <span class="num">11.</span><span class="title">Fill the Network</span>
-        <div class="detail">Enter your 10–20 most-used manufacturers, suppliers and experts. Tick "NDA signed" where it applies.</div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t12" /><div>
-        <span class="num">12.</span><span class="title">Move clients and leads in from Excel</span>
-        <div class="detail">Clients: one company at a time, adding its contacts and a deal for each.</div>
-      </div></label></li>
+    <div class="phase-head"><h2 id="p2">Before real use: AI and outreach rules</h2><span class="phase-count" data-count="ai"></span></div>
+    <ol class="tasks" data-phase="ai">
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t6c" data-id="t6c" /><label for="cb-t6c"><span class="num">6c.</span><span class="title">Switch on the AI (research, drafts, summaries)</span></label><span class="time">20 min</span></div>
+        <p class="why">An Anthropic account owned by YMT, a spend limit, and the key on Render. Then give each research mandate its owner.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li>Go to <a href="https://platform.claude.com" target="_blank" rel="noopener">platform.claude.com</a> → <b class="ui">Sign up</b> with the company email → organization name <code>YMT Group</code>.</li>
+          <li><b class="ui">Settings</b> → <b class="ui">Billing</b> → <b class="ui">Buy credits</b> → e.g. $25 → pay with the company card.</li>
+          <li><b class="ui">Settings</b> → <b class="ui">Spend limits</b> (<a href="https://platform.claude.com/settings/spend-limits" target="_blank" rel="noopener">direct link</a>) → next to <b class="ui">Monthly spend limit</b> click <b class="ui">Set limit</b> (or <b class="ui">Adjust limit</b>) → <code>25</code> → save.</li>
+          <li><b class="ui">Settings</b> → <b class="ui">API keys</b> (<a href="https://platform.claude.com/settings/keys" target="_blank" rel="noopener">direct link</a>) → <b class="ui">Create Key</b> → name <code>ymt-render</code> → <b class="ui">Add</b>/<b class="ui">Create</b> → <strong>copy the key now</strong> (it is shown only once).</li>
+          <li>Render → service <code>ymt-app</code> → left menu <b class="ui">Environment</b> → <b class="ui">+ Add Environment Variable</b> → Key <code>ANTHROPIC_API_KEY</code>, Value: paste the key → <b class="ui">Save, rebuild, and deploy</b>. Wait for <b class="ui">Live</b>.</li>
+          <li>In the app: <b class="ui">Mandates</b> <span class="he" lang="he" dir="rtl">(מנדטים)</span> → card <b class="ui">AI settings</b> <span class="he" lang="he" dir="rtl">(הגדרות AI)</span> → <b class="ui">Monthly AI cap (USD)</b> <span class="he" lang="he" dir="rtl">(תקרת AI חודשית (USD))</span> = <code>20</code> → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>For each mandate (SH1, SH2, SH3, OM1, OM2, OM3, GE1): click its code → card <b class="ui">Mandate settings</b> <span class="he" lang="he" dir="rtl">(הגדרות המנדט)</span> → <b class="ui">Owner</b> <span class="he" lang="he" dir="rtl">(בעלים)</span>: choose the person → <b class="ui">Status</b> <span class="he" lang="he" dir="rtl">(סטטוס)</span>: <b class="ui">Active</b> <span class="he" lang="he" dir="rtl">(פעיל)</span> → optionally <b class="ui">Schedule</b> <span class="he" lang="he" dir="rtl">(תזמון)</span>: <b class="ui">Weekly</b> <span class="he" lang="he" dir="rtl">(שבועי)</span> and a weekday → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>Test it: <b class="ui">Mandates</b> <span class="he" lang="he" dir="rtl">(מנדטים)</span> → <b class="ui">Run</b> <span class="he" lang="he" dir="rtl">(הרצה)</span> on one mandate → <b class="ui">How many cards</b> <span class="he" lang="he" dir="rtl">(כמה כרטיסים)</span> <code>2</code> → <b class="ui">Run now</b> <span class="he" lang="he" dir="rtl">(הרצה עכשיו)</span>. After a few minutes the cards appear in <b class="ui">Research review</b> <span class="he" lang="he" dir="rtl">(סקירת מחקר)</span>.</li>
+          <li>Go through the open questions with Tom in <code>docs/client-requirements-checklist.html</code>.</li>
+        </ol>
+        <p class="tip">The app also stops at its own monthly cap (step 6), so you have two safety limits.</p></details>
+      </li>
+
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t6d" data-id="t6d" /><label for="cb-t6d"><span class="num">6d.</span><span class="title">Have a lawyer confirm the outreach rules</span></label><span class="tag must">Before the first real approach</span><span class="time">30 min + lawyer</span></div>
+        <p class="why">Opt-out sentences, the "פרסומת" marking for Israel, and which countries may be approached.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">Outreach rules</b> <span class="he" lang="he" dir="rtl">(כללי פנייה)</span>.</li>
+          <li>Show the lawyer the card <b class="ui">First-approach rules</b> <span class="he" lang="he" dir="rtl">(כללי פנייה ראשונה)</span>: the opt-out sentences in Hebrew and English, and <b class="ui">Countries cleared for outreach</b> <span class="he" lang="he" dir="rtl">(מדינות שאושרו לפניות)</span> (default: Israel only). Explain: emails and WhatsApp messages to people in Israel start with "פרסומת"; LinkedIn messages do not today.</li>
+          <li>Ask: does LinkedIn need the marking too? What is needed before adding EU (GDPR) or US (CAN-SPAM) countries?</li>
+          <li>Change the sentences or countries (one country per line, as written on company files, e.g. <code>Israel</code>) → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>The <b class="ui">Do-not-contact list</b> <span class="he" lang="he" dir="rtl">(רשימת "לא לפנות")</span> below: anyone can add with <b class="ui">Type</b> <span class="he" lang="he" dir="rtl">(סוג)</span>, <b class="ui">Value</b> <span class="he" lang="he" dir="rtl">(ערך)</span>, <b class="ui">Reason</b> <span class="he" lang="he" dir="rtl">(סיבה)</span> → <b class="ui">Add to the list</b> <span class="he" lang="he" dir="rtl">(הוספה לרשימה)</span>; only an admin can remove.</li>
+        </ol></details>
+      </li>
+
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t6e" data-id="t6e" /><label for="cb-t6e"><span class="num">6e.</span><span class="title">Write the approved answers</span></label><span class="time">45 min</span></div>
+        <p class="why">The only YMT facts the AI may use when answering replies. Anything not written here becomes a task instead of an answer.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">Approved answers</b> <span class="he" lang="he" dir="rtl">(תשובות מאושרות)</span>.</li>
+          <li>In <b class="ui">Add an approved answer</b> <span class="he" lang="he" dir="rtl">(הוספת תשובה מאושרת)</span>: <b class="ui">Topic</b> <span class="he" lang="he" dir="rtl">(נושא)</span> e.g. <code>How YMT works</code>, <b class="ui">Language</b> <span class="he" lang="he" dir="rtl">(שפה)</span> <code>English</code>, <b class="ui">Approved text</b> <span class="he" lang="he" dir="rtl">(הטקסט המאושר)</span>: 3–6 sentences → keep <b class="ui">Active (the AI uses it)</b> <span class="he" lang="he" dir="rtl">(פעיל (ה-AI משתמש בו))</span> ticked → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>Repeat for: the next step (a 20-minute call), what an engagement includes, your fee policy (or "we quote per project"), typical timeline.</li>
+          <li>Write each topic in Hebrew too (<b class="ui">Language</b> <span class="he" lang="he" dir="rtl">(שפה)</span> = Hebrew).</li>
+          <li>To change one later: the pencil <b class="ui">Edit</b> <span class="he" lang="he" dir="rtl">(עריכה)</span> next to it → change → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+        </ol></details>
+      </li>
+
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t6f" data-id="t6f" /><label for="cb-t6f"><span class="num">6f.</span><span class="title">Check the discovery questions</span></label><span class="time">15 min</span></div>
+        <p class="why">The form clients fill in from a personal link. Reword the 9 standard questions in YMT's voice.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">Discovery form</b> <span class="he" lang="he" dir="rtl">(שאלון היכרות)</span>.</li>
+          <li>To reword: the pencil <b class="ui">Edit</b> <span class="he" lang="he" dir="rtl">(עריכה)</span> next to a question → change <b class="ui">Question in Hebrew</b> <span class="he" lang="he" dir="rtl">(השאלה בעברית)</span> and <b class="ui">Question in English</b> <span class="he" lang="he" dir="rtl">(השאלה באנגלית)</span> → tick or untick <b class="ui">Required</b> <span class="he" lang="he" dir="rtl">(חובה)</span> → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>To reorder: the arrows <b class="ui">Move up</b> <span class="he" lang="he" dir="rtl">(הזזה למעלה)</span> / <b class="ui">Move down</b> <span class="he" lang="he" dir="rtl">(הזזה למטה)</span>.</li>
+          <li>To hide a question: <b class="ui">Edit</b> <span class="he" lang="he" dir="rtl">(עריכה)</span> → untick <b class="ui">Active</b> <span class="he" lang="he" dir="rtl">(פעילה)</span> → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>. To add one: fill <b class="ui">Add a question</b> <span class="he" lang="he" dir="rtl">(הוספת שאלה)</span> at the bottom → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>Try it yourself: <b class="ui">Clients</b> <span class="he" lang="he" dir="rtl">(לקוחות)</span> → open any company → tab <b class="ui">Discovery</b> <span class="he" lang="he" dir="rtl">(שאלון היכרות)</span> → <b class="ui">For</b> <span class="he" lang="he" dir="rtl">(עבור)</span>, <b class="ui">Form language</b> <span class="he" lang="he" dir="rtl">(שפת השאלון)</span> → <b class="ui">Create link</b> <span class="he" lang="he" dir="rtl">(יצירת קישור)</span> → <b class="ui">Copy link</b> <span class="he" lang="he" dir="rtl">(העתקת קישור)</span> → send it to yourself on WhatsApp and fill it in on your phone.</li>
+        </ol></details>
+      </li>
     </ol>
   </section>
 
   <section class="phase" aria-labelledby="p3">
-    <div class="phase-head"><h2 id="p3">Week 2 onward: Make it a habit</h2><span class="phase-count" data-count="habit"></span></div>
-    <ol class="tasks" data-phase="habit">
-      <li class="task"><label><input type="checkbox" data-id="t13" /><div>
-        <span class="num">13.</span><span class="title">Daily: start in the Inbox</span>
-        <div class="detail">Approve or edit drafts, tick off tasks, and draft follow-ups for stale leads.</div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t14" /><div>
-        <span class="num">14.</span><span class="title">After every meeting: summarize</span>
-        <div class="detail">Calendar → <em>Summarize</em>, and complete the 3-step form while it's fresh.</div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t15" /><div>
-        <span class="num">15.</span><span class="title">Weekly: review the Dashboard with the team</span>
-        <div class="detail">Pipeline by stage, targets against actual results, and revenue by deal model.</div>
-      </div></label></li>
-      <li class="task"><label><input type="checkbox" data-id="t16" /><div>
-        <span class="num">16.</span><span class="title">Monthly: back up</span>
-        <div class="detail">Settings → Data &amp; Privacy → <em>Download backup</em>, and keep the file in an encrypted folder (not in email).</div>
-      </div></label></li>
+    <div class="phase-head"><h2 id="p3">Optional: Google Calendar and Gmail replies</h2><span class="phase-count" data-count="google"></span></div>
+    <p class="note">Skip this section if you don't need meetings in Google Calendar or automatic reading of email replies. Replies can always be pasted into a conversation.</p>
+    <ol class="tasks" data-phase="google">
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t6b" data-id="t6b" /><label for="cb-t6b"><span class="num">6b.</span><span class="title">Connect Google Calendar</span></label><span class="time">30 min</span></div>
+        <p class="why">A Google Cloud project with the Calendar API, a sign-in client for YMT, and four values on Render.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li>Go to <a href="https://console.cloud.google.com" target="_blank" rel="noopener">console.cloud.google.com</a> with the company Google account → project picker at the top → <b class="ui">New Project</b> → name <code>YMT App</code> → <b class="ui">Create</b> → select the new project.</li>
+          <li>Menu ☰ → <b class="ui">APIs &amp; Services</b> → <b class="ui">Library</b> → search <code>Google Calendar API</code> → <b class="ui">Enable</b>.</li>
+          <li>Menu ☰ → <b class="ui">Google Auth Platform</b> (older screens: <b class="ui">OAuth consent screen</b>) → <b class="ui">Get started</b>:
+            <ul>
+              <li><b class="ui">App name</b> <code>YMT Group</code>, <b class="ui">User support email</b>: yours → <b class="ui">Next</b></li>
+              <li><b class="ui">Audience</b>: <b class="ui">Internal</b> if YMT uses Google Workspace; otherwise <b class="ui">External</b> → <b class="ui">Next</b></li>
+              <li><b class="ui">Contact information</b>: your email → <b class="ui">Next</b> → tick the agreement → <b class="ui">Create</b></li>
+            </ul></li>
+          <li><b class="ui">External</b> only: <b class="ui">Audience</b> → <b class="ui">Publish app</b> → <b class="ui">Confirm</b> (otherwise connections stop after 7 days).</li>
+          <li><b class="ui">Clients</b> → <b class="ui">Create client</b> → <b class="ui">Application type</b>: <b class="ui">Web application</b> → name <code>YMT Render</code> → <b class="ui">Authorized redirect URIs</b> → <b class="ui">+ Add URI</b> → <code>https://&lt;your app address&gt;/api/google/callback</code> (from task 4) → <b class="ui">Create</b>.</li>
+          <li>A window shows the <b class="ui">Client ID</b> and <b class="ui">Client secret</b>: copy both into a note (or <b class="ui">Download JSON</b>).</li>
+          <li>Render → service → <b class="ui">Environment</b> → add four variables:
+            <ul>
+              <li><code>GOOGLE_CLIENT_ID</code> = the Client ID</li>
+              <li><code>GOOGLE_CLIENT_SECRET</code> = the Client secret</li>
+              <li><code>PUBLIC_URL</code> = your app address, e.g. <code>https://ymt-app.onrender.com</code> (no / at the end)</li>
+              <li><code>TOKEN_ENCRYPTION_KEY</code> = click <b class="ui">Generate</b> next to the value field. Never change it later (it would disconnect everyone).</li>
+            </ul>
+            → <b class="ui">Save, rebuild, and deploy</b>.</li>
+          <li>In the app, each person: <b class="ui">Calendar</b> <span class="he" lang="he" dir="rtl">(יומן)</span> → <b class="ui">Connect Google Calendar</b> <span class="he" lang="he" dir="rtl">(חיבור Google Calendar)</span> → choose the Google account → <b class="ui">Allow</b>.</li>
+        </ol></details>
+      </li>
+
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t6g" data-id="t6g" /><label for="cb-t6g"><span class="num">6g.</span><span class="title">Let the app read email replies from Gmail</span></label><span class="time">15 min</span></div>
+        <p class="why">Read-only: only messages from people YMT wrote to. Needs task 6b first.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li>Google Cloud (same project) → ☰ → <b class="ui">APIs &amp; Services</b> → <b class="ui">Library</b> → search <code>Gmail API</code> → <b class="ui">Enable</b>.</li>
+          <li>☰ → <b class="ui">Google Auth Platform</b> → <b class="ui">Data Access</b> → <b class="ui">Add or remove scopes</b> → filter <code>gmail.readonly</code> → tick it → <b class="ui">Update</b> → <b class="ui">Save</b>.</li>
+          <li>Audience <b class="ui">Internal</b> (Google Workspace): done. Audience <b class="ui">External</b> (personal Gmail): Google requires a security review for this permission before people outside the test users can connect; until then add each owner under <b class="ui">Audience</b> → <b class="ui">Test users</b> → <b class="ui">+ Add users</b>, or simply paste replies.</li>
+          <li>In the app, each owner: <b class="ui">Conversations</b> <span class="he" lang="he" dir="rtl">(שיחות)</span> → <b class="ui">Connect Gmail to read replies</b> <span class="he" lang="he" dir="rtl">(חיבור Gmail לקריאת תשובות)</span> → choose the account → <b class="ui">Allow</b>. The app checks every 15 minutes; <b class="ui">Check now</b> <span class="he" lang="he" dir="rtl">(בדיקה עכשיו)</span> runs it at once.</li>
+        </ol></details>
+      </li>
     </ol>
   </section>
 
-  <section class="decisions" aria-labelledby="p4">
-    <h2 id="p4">Decisions to make (no rush)</h2>
+  <section class="phase" aria-labelledby="p4">
+    <div class="phase-head"><h2 id="p4">Week 1: Set it up for the team</h2><span class="phase-count" data-count="setup"></span></div>
+    <ol class="tasks" data-phase="setup">
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t7" data-id="t7" /><label for="cb-t7"><span class="num">7.</span><span class="title">Create team accounts</span></label><span class="time">10 min</span></div>
+        <p class="why">One login per person. Hand passwords over in person or by phone, never by email.</p>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">Users</b> <span class="he" lang="he" dir="rtl">(משתמשים)</span>.</li>
+          <li>In <b class="ui">New user</b> <span class="he" lang="he" dir="rtl">(משתמש חדש)</span>: <b class="ui">Username</b> <span class="he" lang="he" dir="rtl">(שם משתמש)</span> (e.g. <code>shir</code>), <b class="ui">Display name</b> <span class="he" lang="he" dir="rtl">(שם לתצוגה)</span> (shown as card owner and task owner, e.g. <code>Shir Roditi</code>), <b class="ui">Password</b> <span class="he" lang="he" dir="rtl">(סיסמה)</span> (10+ characters), <b class="ui">Role</b> <span class="he" lang="he" dir="rtl">(הרשאה)</span>: <b class="ui">Team member</b> <span class="he" lang="he" dir="rtl">(צוות)</span> or <b class="ui">Administrator</b> <span class="he" lang="he" dir="rtl">(מנהל מערכת)</span> → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>Repeat for each person. Forgotten password later: <b class="ui">Reset password</b> <span class="he" lang="he" dir="rtl">(איפוס סיסמה)</span> next to the person. Someone leaves: <b class="ui">Deactivate</b> <span class="he" lang="he" dir="rtl">(השבתה)</span>.</li>
+        </ol></details>
+      </li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t8" data-id="t8" /><label for="cb-t8"><span class="num">8.</span><span class="title">Set targets and rules</span></label><span class="time">5 min</span></div>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">General</b> <span class="he" lang="he" dir="rtl">(כללי)</span> → card <b class="ui">Business settings</b> <span class="he" lang="he" dir="rtl">(הגדרות עסקיות)</span>.</li>
+          <li>Fill in <b class="ui">Company name (in signatures and documents)</b> <span class="he" lang="he" dir="rtl">(שם החברה (בחתימות ובמסמכים))</span>, the monthly targets, <b class="ui">Days until a lead counts as stagnant</b> <span class="he" lang="he" dir="rtl">(ימים עד שליד נחשב תקוע)</span>, <b class="ui">Max follow-ups per lead</b> <span class="he" lang="he" dir="rtl">(מקסימום פניות מעקב לליד)</span> and <b class="ui">Follow up after (days)</b> <span class="he" lang="he" dir="rtl">(פנייה חוזרת אחרי (ימים))</span> → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+        </ol></details>
+      </li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t9" data-id="t9" /><label for="cb-t9"><span class="num">9.</span><span class="title">Rewrite the templates in your voice</span></label><span class="tag must">Lawyer review</span><span class="time">1–2 hours</span></div>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">Templates</b> <span class="he" lang="he" dir="rtl">(תבניות)</span>. The list shows 10 templates (5 kinds × Hebrew and English).</li>
+          <li>Click a template (e.g. "Initial outreach · EN") → edit <b class="ui">Subject (emails)</b> <span class="he" lang="he" dir="rtl">(נושא (למיילים))</span> and <b class="ui">Body</b> <span class="he" lang="he" dir="rtl">(תוכן)</span>. Words in <code>&#123;&#123;double braces&#125;&#125;</code> are filled in by the app: keep them → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>Repeat for all 10. Send the two agreement templates ("Engagement agreement" and "הסכם התקשרות") to the lawyer and paste the approved wording back.</li>
+        </ol></details>
+      </li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t10" data-id="t10" /><label for="cb-t10"><span class="num">10.</span><span class="title">Check the service workflows</span></label><span class="time">10 min</span></div>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">Workflows</b> <span class="he" lang="he" dir="rtl">(תהליכי עבודה)</span>.</li>
+          <li>For each workflow: adjust <b class="ui">Hebrew name</b> <span class="he" lang="he" dir="rtl">(שם בעברית)</span> / <b class="ui">English name</b> <span class="he" lang="he" dir="rtl">(שם באנגלית)</span>, tick the stages it uses → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>Need another service type? Fill in <b class="ui">New workflow</b> <span class="he" lang="he" dir="rtl">(תהליך חדש)</span> at the bottom → <b class="ui">Create</b> <span class="he" lang="he" dir="rtl">(יצירה)</span>.</li>
+        </ol></details>
+      </li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t11" data-id="t11" /><label for="cb-t11"><span class="num">11.</span><span class="title">Fill the Network</span></label><span class="time">30–60 min</span></div>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Network</b> <span class="he" lang="he" dir="rtl">(ספקים ומומחים)</span> → <b class="ui">Add record</b> <span class="he" lang="he" dir="rtl">(הוספת רשומה)</span>.</li>
+          <li><b class="ui">Type</b> <span class="he" lang="he" dir="rtl">(סוג)</span>, <b class="ui">Name</b> <span class="he" lang="he" dir="rtl">(שם)</span>, <b class="ui">Country</b> <span class="he" lang="he" dir="rtl">(מדינה)</span>, <b class="ui">Industries</b> <span class="he" lang="he" dir="rtl">(תחומים)</span>, and what you know: capabilities, certifications, contact person, rating → tick <b class="ui">NDA signed</b> <span class="he" lang="he" dir="rtl">(NDA חתום)</span> where it applies → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>Repeat for your 10–20 most-used manufacturers, suppliers and experts.</li>
+        </ol></details>
+      </li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t12" data-id="t12" /><label for="cb-t12"><span class="num">12.</span><span class="title">Move clients and leads in from Excel</span></label><span class="time">5 min per company</span></div>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Clients</b> <span class="he" lang="he" dir="rtl">(לקוחות)</span> → <b class="ui">Add company</b> <span class="he" lang="he" dir="rtl">(הוספת חברה)</span> → <b class="ui">Company</b> <span class="he" lang="he" dir="rtl">(חברה)</span>, <b class="ui">Industry</b> <span class="he" lang="he" dir="rtl">(תחום)</span>, <b class="ui">Country</b> <span class="he" lang="he" dir="rtl">(מדינה)</span>, <b class="ui">India activity</b> <span class="he" lang="he" dir="rtl">(פעילות בהודו)</span>, tick <b class="ui">Active client</b> <span class="he" lang="he" dir="rtl">(לקוח פעיל)</span> for current clients → <b class="ui">Create</b> <span class="he" lang="he" dir="rtl">(יצירה)</span>.</li>
+          <li>Open the company from <b class="ui">Clients</b> <span class="he" lang="he" dir="rtl">(לקוחות)</span> → tab <b class="ui">Contacts</b> <span class="he" lang="he" dir="rtl">(אנשי קשר)</span> → form <b class="ui">Add contact</b> <span class="he" lang="he" dir="rtl">(הוספת איש קשר)</span>: <b class="ui">Full name</b> <span class="he" lang="he" dir="rtl">(שם מלא)</span>, <b class="ui">Department</b> <span class="he" lang="he" dir="rtl">(מחלקה)</span>, <b class="ui">Language</b> <span class="he" lang="he" dir="rtl">(שפה)</span>, email/phone → <b class="ui">Save</b> <span class="he" lang="he" dir="rtl">(שמירה)</span>.</li>
+          <li>Tab <b class="ui">Deals &amp; timeline</b> <span class="he" lang="he" dir="rtl">(עסקאות וציר זמן)</span> → form <b class="ui">New deal</b> <span class="he" lang="he" dir="rtl">(עסקה חדשה)</span>: <b class="ui">Deal name</b> <span class="he" lang="he" dir="rtl">(שם העסקה)</span>, <b class="ui">Workflow</b> <span class="he" lang="he" dir="rtl">(תהליך עבודה)</span>, <b class="ui">Deal model</b> <span class="he" lang="he" dir="rtl">(מודל עסקה)</span>, <b class="ui">Expected value (USD)</b> <span class="he" lang="he" dir="rtl">(שווי צפוי (USD))</span> → <b class="ui">Create deal</b> <span class="he" lang="he" dir="rtl">(יצירת עסקה)</span>.</li>
+          <li>Repeat per company from your Excel trackers.</li>
+        </ol></details>
+      </li>
+    </ol>
+  </section>
+
+  <section class="phase" aria-labelledby="p5">
+    <div class="phase-head"><h2 id="p5">Week 2 onward: Make it a habit</h2><span class="phase-count" data-count="habit"></span></div>
+    <ol class="tasks" data-phase="habit">
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t13" data-id="t13" /><label for="cb-t13"><span class="num">13.</span><span class="title">Daily: Inbox, research cards, conversations</span></label><span class="time">15–30 min a day</span></div>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Inbox</b> <span class="he" lang="he" dir="rtl">(תיבת עבודה)</span>: work through the list from the top (drafts, tasks, meetings, stale leads).</li>
+          <li><b class="ui">Research review</b> <span class="he" lang="he" dir="rtl">(סקירת מחקר)</span> → open each card → read the evidence → keys <kbd>A</kbd> accept, <kbd>V</kbd> verify, <kbd>D</kbd> defer, <kbd>R</kbd> reject, then click to confirm.</li>
+          <li><b class="ui">Conversations</b> <span class="he" lang="he" dir="rtl">(שיחות)</span> → tab <b class="ui">Needs an answer</b> <span class="he" lang="he" dir="rtl">(ממתין למענה)</span> → open each person → check the AI's answer → <b class="ui">Approve</b> <span class="he" lang="he" dir="rtl">(אישור)</span> → send it yourself → <b class="ui">I sent it – mark as sent</b> <span class="he" lang="he" dir="rtl">(שלחתי – סמן כנשלח)</span>. Then tab <b class="ui">Follow-up due</b> <span class="he" lang="he" dir="rtl">(פנייה חוזרת)</span>.</li>
+        </ol></details>
+      </li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t14" data-id="t14" /><label for="cb-t14"><span class="num">14.</span><span class="title">After every meeting: summarize</span></label><span class="time">5 min</span></div>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Calendar</b> <span class="he" lang="he" dir="rtl">(יומן)</span> → click the meeting → <b class="ui">Meeting summary</b> <span class="he" lang="he" dir="rtl">(סיכום פגישה)</span>.</li>
+          <li>Paste your notes or the transcript → <b class="ui">Draft with AI</b> <span class="he" lang="he" dir="rtl">(טיוטה עם AI)</span> → check the summary and decisions → <b class="ui">Next</b> <span class="he" lang="he" dir="rtl">(המשך)</span>.</li>
+          <li>Check the tasks (who, when, client commitment) → <b class="ui">Next</b> <span class="he" lang="he" dir="rtl">(המשך)</span> → check the recap email → <b class="ui">Save summary</b> <span class="he" lang="he" dir="rtl">(שמירת סיכום)</span>.</li>
+          <li><b class="ui">Approval queue</b> <span class="he" lang="he" dir="rtl">(תור אישורים)</span> → the recap → <b class="ui">Approve</b> <span class="he" lang="he" dir="rtl">(אישור)</span> → <b class="ui">Open in mail app</b> <span class="he" lang="he" dir="rtl">(פתיחה בתוכנת הדואר)</span> → send → <b class="ui">I sent it – mark as sent</b> <span class="he" lang="he" dir="rtl">(שלחתי – סמן כנשלח)</span>.</li>
+        </ol></details>
+      </li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t15" data-id="t15" /><label for="cb-t15"><span class="num">15.</span><span class="title">Weekly: review the Dashboard with the team</span></label><span class="time">20 min</span></div>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Dashboard</b> <span class="he" lang="he" dir="rtl">(לוח בקרה)</span>: pipeline by stage, targets against results, revenue by deal model.</li>
+          <li><b class="ui">Research metrics</b> <span class="he" lang="he" dir="rtl">(מדדי מחקר)</span>: acceptance rate and cost per accepted card, per mandate. Adjust mandates that bring weak cards.</li>
+        </ol></details>
+      </li>
+      <li class="task">
+        <div class="task-head"><input type="checkbox" id="cb-t16" data-id="t16" /><label for="cb-t16"><span class="num">16.</span><span class="title">Monthly: back up</span></label><span class="time">2 min</span></div>
+        <details class="how"><summary>Click by click</summary><ol class="steps">
+          <li><b class="ui">Settings</b> <span class="he" lang="he" dir="rtl">(הגדרות)</span> → <b class="ui">Data &amp; privacy</b> <span class="he" lang="he" dir="rtl">(נתונים ופרטיות)</span> → <b class="ui">Download backup</b> <span class="he" lang="he" dir="rtl">(הורדת גיבוי)</span>.</li>
+          <li>Move the downloaded file into an encrypted folder (e.g. a password-protected drive folder). Never send it by email.</li>
+        </ol></details>
+      </li>
+    </ol>
+  </section>
+
+
+  <section class="phase" aria-labelledby="p7">
+    <div class="phase-head"><h2 id="p7">Appendix: get the code on your own computer</h2></div>
+    <p class="note">Not needed to run the app (Render builds it from GitHub). Useful to look at the code, run it locally, or keep your own copy. Windows commands; on a Mac use Terminal and a folder such as <code>~/code/YMT</code>.</p>
+    <ol class="tasks">
+      <li class="task"><div class="task-head"><span></span><span class="title">First time</span></div>
+        <details class="how" open><summary>Click by click</summary><ol class="steps">
+          <li>Install <a href="https://git-scm.com/download/win" target="_blank" rel="noopener">Git for Windows</a> and <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js 22 (LTS)</a> with the default options.</li>
+          <li>Start menu → type <code>PowerShell</code> → open <strong>Windows PowerShell</strong>.</li>
+          <li>Copy the commands below, paste them into PowerShell, press Enter (the first one may open a GitHub sign-in window: sign in with the account that owns the repository):
+            <div class="cmd"><code>git clone https://github.com/amitaimyers/ymt.git C:\code\YMT; cd C:\code\YMT; git checkout claude/ymt-group-pwa-mvp-45memd</code><button type="button" class="copy">Copy</button></div></li>
+          <li>Run it locally with fictional demo data (opens on <code>http://localhost:5173</code>, sign in as <code>admin</code> / <code>change-me-123</code>):
+            <div class="cmd"><code>npm install; npm run user:create -- --username admin --name "Admin" --password "change-me-123" --admin; npm run seed:demo; npm run dev</code><button type="button" class="copy">Copy</button></div></li>
+          <li>Stop it with <kbd>Ctrl</kbd>+<kbd>C</kbd> in PowerShell.</li>
+        </ol></details></li>
+      <li class="task"><div class="task-head"><span></span><span class="title">Every time later (get the newest version)</span></div>
+        <details class="how" open><summary>Click by click</summary><ol class="steps">
+          <li>Open PowerShell and run:
+            <div class="cmd"><code>cd C:\code\YMT; git checkout claude/ymt-group-pwa-mvp-45memd; git pull; npm install</code><button type="button" class="copy">Copy</button></div></li>
+          <li>Then <code>npm run dev</code> as before. Your local demo data stays in <code>C:\code\YMT\data</code> and is separate from the live app.</li>
+        </ol></details></li>
+    </ol>
+  </section>
+
+  <section class="decisions" aria-labelledby="p6">
+    <h2 id="p6">Decisions to make (no rush)</h2>
     <ul>
       <li><strong>Signatures:</strong> the built-in e-signature is a simple electronic signature. If a contract needs a qualified signature under Israeli law, use a certified signing provider for that contract.</li>
-      <li><strong>Sending email:</strong> today you send each approved email from your own mailbox and click "mark as sent". Decide later whether you want a per-message <em>Send</em> button in the app (it would still require approval).</li>
-      <li><strong>Demo data:</strong> if you loaded the sample data, delete the "(demo)" companies and resources before going live, or start from an empty database.</li>
+      <li><strong>Sending email:</strong> today you send each approved message from your own mailbox, LinkedIn or WhatsApp and click "mark as sent". Decide later whether you want a per-message <em>Send</em> button in the app (it would still require approval).</li>
+      <li><strong>Updates:</strong> with Auto-Deploy on (task 3), every new version of the code goes live by itself after a few minutes. To deploy by hand: Render → service → <b class="ui">Manual Deploy</b> → <b class="ui">Deploy latest commit</b>.</li>
     </ul>
   </section>
 </main>
@@ -339,7 +514,6 @@
     });
     document.querySelectorAll('.copy').forEach(function (button) {
       button.addEventListener('click', function (event) {
-        event.preventDefault(); // inside a <label>: don't toggle the checkbox
         var text = button.previousElementSibling.textContent;
         navigator.clipboard.writeText(text).then(function () {
           button.textContent = 'Copied ✓';
@@ -348,6 +522,13 @@
           button.textContent = 'Select & copy manually';
         });
       });
+    });
+    // Printing shows every step, also the collapsed ones.
+    window.addEventListener('beforeprint', function () {
+      document.querySelectorAll('details.how').forEach(function (d) { d.dataset.wasOpen = d.open ? '1' : ''; d.open = true; });
+    });
+    window.addEventListener('afterprint', function () {
+      document.querySelectorAll('details.how').forEach(function (d) { d.open = d.dataset.wasOpen === '1'; });
     });
     render();
   })();
