@@ -1,0 +1,1146 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Amitai · Week 22.11.2026 · YMT</title>
+<style>
+  :root {
+    --canvas: #F7F8FA; --surface: #FFFFFF; --sunken: #F1F5F9; --line: #E2E8F0; --line-strong: #CBD5E1;
+    --fg: #1E293B; --muted: #475569; --subtle: #5B6B82;
+    --primary: #0F2A4A; --on-primary: #FFFFFF; --link: #1D4F8C; --focus: #1D4F8C;
+    --info-soft: #EEF4FB; --info-line: #C7D7EE;
+    --signal: #F59E0B; --signal-fg: #92400E; --signal-soft: #FFF7E6;
+    --success-fg: #047857; --success-soft: #ECFDF5;
+    --danger-fg: #B91C1C; --danger-soft: #FEF2F2;
+    --e1: 0 1px 2px rgb(15 42 74 / .06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: #0B1220; --surface: #111A2E; --sunken: #0E1628; --line: #1F2A44; --line-strong: #2C3A5A;
+      --fg: #E2E8F0; --muted: #94A3B8; --subtle: #8796AD;
+      --primary: #0A1426; --on-primary: #E2E8F0; --link: #7EB3F2; --focus: #7EB3F2;
+      --info-soft: #13233F; --info-line: #23395F;
+      --signal: #FBBF24; --signal-fg: #FBBF24; --signal-soft: #2A2110;
+      --success-fg: #34D399; --success-soft: #0F2A22;
+      --danger-fg: #F87171; --danger-soft: #2D1517;
+      --e1: 0 1px 2px rgb(0 0 0 / .3);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--canvas); color: var(--fg); font: 15px/1.65 "Heebo", system-ui, "Segoe UI", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  a { color: var(--link); }
+  html[lang="he"] [data-l="en"], html[lang="en"] [data-l="he"] { display: none !important; }
+
+  header.hero { background: var(--primary); color: var(--on-primary); padding: 28px 16px 24px; }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { font-weight: 700; letter-spacing: .04em; font-size: 13px; opacity: .85; }
+  .lang { border: 1px solid rgb(255 255 255 / .35); background: transparent; color: inherit; border-radius: 6px; min-height: 40px; padding: 0 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  h1 { margin: 12px 0 6px; font-size: 28px; line-height: 1.25; }
+  .lede { margin: 0; color: #C7D7EE; max-width: 70ch; }
+  @media (prefers-color-scheme: dark) { .lede { color: var(--muted); } }
+
+  nav.toc { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); box-shadow: var(--e1); }
+  nav.toc .wrap { display: flex; gap: 6px; overflow-x: auto; padding: 8px 16px; scrollbar-width: thin; }
+  nav.toc a { gap: 5px; white-space: nowrap; text-decoration: none; color: var(--muted); font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line); min-height: 32px; display: inline-flex; align-items: center; }
+  nav.toc a:hover { color: var(--fg); border-color: var(--line-strong); }
+
+  main { padding: 24px 16px 64px; }
+  section.block { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--e1); padding: 20px 22px; margin-bottom: 20px; scroll-margin-top: 64px; }
+  h2 { font-size: 20px; margin: 0 0 4px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  h2 .no { color: var(--subtle); font-variant-numeric: tabular-nums; }
+  h3 { font-size: 16px; margin: 22px 0 8px; }
+  .task-quote { margin: 0 0 14px; color: var(--muted); font-size: 14px; border-inline-start: 3px solid var(--line-strong); padding-inline-start: 10px; }
+  p { margin: 8px 0; }
+  ul, ol { padding-inline-start: 22px; margin: 8px 0; }
+  li { margin: 4px 0; }
+  code { font: 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--sunken); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; overflow-wrap: anywhere; }
+  pre { background: var(--sunken); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; direction: ltr; text-align: left; }
+  .chip { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 9px; border-radius: 999px; white-space: nowrap; vertical-align: 1px; }
+  .done { background: var(--success-soft); color: var(--success-fg); }
+  .wait { background: var(--signal-soft); color: var(--signal-fg); }
+  .need { background: var(--info-soft); color: var(--link); }
+  .gap { background: var(--danger-soft); color: var(--danger-fg); }
+  .scroll { overflow-x: auto; margin: 10px 0; border: 1px solid var(--line); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: start; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { background: var(--sunken); font-weight: 600; color: var(--muted); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td.n, th.n { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .note { background: var(--info-soft); border: 1px solid var(--info-line); border-radius: 8px; padding: 10px 12px; margin: 10px 0; font-size: 14px; }
+  .warn { background: var(--signal-soft); border-radius: 8px; padding: 10px 12px; margin: 10px 0; font-size: 14px; }
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--canvas); }
+  .card h4 { margin: 0 0 6px; font-size: 14px; }
+  .qs { counter-reset: q; list-style: none; padding: 0; }
+  .qs li { counter-increment: q; position: relative; padding-inline-start: 34px; margin: 8px 0; }
+  .qs li::before { content: counter(q); position: absolute; inset-inline-start: 0; top: 1px; min-width: 24px; height: 22px; border-radius: 6px; background: var(--sunken); border: 1px solid var(--line); font-size: 12px; font-weight: 700; color: var(--subtle); display: inline-flex; align-items: center; justify-content: center; }
+  .who { font-size: 12px; color: var(--subtle); font-weight: 600; }
+  svg.diagram { width: 100%; height: auto; display: block; margin: 8px 0; }
+  svg.diagram text { font: 12px "Heebo", system-ui, sans-serif; fill: var(--fg); }
+  svg.diagram .small { font-size: 10.5px; fill: var(--muted); }
+  svg.diagram rect.box { fill: var(--surface); stroke: var(--line-strong); }
+  svg.diagram rect.store { fill: var(--info-soft); stroke: var(--info-line); }
+  svg.diagram rect.new { fill: var(--signal-soft); stroke: var(--signal); stroke-dasharray: 4 3; }
+  svg.diagram path, svg.diagram line { stroke: var(--subtle); fill: none; }
+  .ltr { direction: ltr; unicode-bidi: isolate; }
+  .appendix { font-size: 14px; }
+  .appendix h3 { border-top: 1px solid var(--line); padding-top: 14px; }
+  footer { color: var(--subtle); font-size: 13px; text-align: center; padding: 0 16px 32px; }
+  @media (max-width: 720px) {
+    h1 { font-size: 23px; }
+    section.block { padding: 16px 14px; }
+    .grid2 { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media print {
+    nav.toc, .lang { display: none; }
+    body { background: #fff; }
+    section.block { box-shadow: none; break-inside: auto; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="top">
+      <span class="brand">YMT DEVELOPMENT PARTNERSHIPS · <span data-l="he">אמיתי</span><span data-l="en">AMITAI</span></span>
+      <button type="button" class="lang" id="lang"><span data-l="he">English</span><span data-l="en">עברית</span></button>
+    </div>
+    <h1><span data-l="he">משימות השבוע – 22.11.2026: התשובות</span><span data-l="en">This week's missions – 22.11.2026: the answers</span></h1>
+    <p class="lede" data-l="he">מענה לשמונה המשימות מתוך „משימות לאמיתי – שבוע 22.11.2026”, על בסיס אפיון סוכן איתור הלידים (תומר, 22.11), מסמך עיצוב השירותים של YMT ייעוץ, והאפליקציה הקיימת. בסוף: רשימת פערים לבנייה ותרגום מלא של שלושת המסמכים לאנגלית.</p>
+    <p class="lede" data-l="en">Answers to the eight tasks in "Tasks for Amitai – week of 22.11.2026", based on the lead-finding agent specification (Tomer, 22.11), the YMT Consulting services design and the existing app. At the end: the build gap list and a full English translation of the three documents.</p>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <div class="wrap">
+    <a href="#summary"><span data-l="he">סיכום</span><span data-l="en">Summary</span></a>
+    <a href="#t1">1 <span data-l="he">שאלות</span><span data-l="en">Questions</span></a>
+    <a href="#t2">2 <span data-l="he">מושגי יסוד</span><span data-l="en">Concepts</span></a>
+    <a href="#t3">3 <span data-l="he">מבנה טכני</span><span data-l="en">Technical structure</span></a>
+    <a href="#t4">4 <span data-l="he">שדות</span><span data-l="en">Fields</span></a>
+    <a href="#t5">5 <span data-l="he">דירוג</span><span data-l="en">Score</span></a>
+    <a href="#t6">6 <span data-l="he">מבחן 20 חברות</span><span data-l="en">20-company test</span></a>
+    <a href="#t7">7 <span data-l="he">בדיקת הסוכן</span><span data-l="en">Agent test</span></a>
+    <a href="#t8">8 <span data-l="he">CRM</span><span data-l="en">CRM</span></a>
+    <a href="#gaps"><span data-l="he">פערים לבנייה</span><span data-l="en">Build gaps</span></a>
+    <a href="#meeting"><span data-l="he">מפגש סוף השבוע</span><span data-l="en">Meeting</span></a>
+    <a href="#appendix"><span data-l="he">תרגום</span><span data-l="en">Translation</span></a>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<section class="block" id="summary">
+  <h2><span data-l="he">סיכום ומצב</span><span data-l="en">Summary and status</span></h2>
+  <p data-l="he"><strong>מטרת השבוע:</strong> להגיע למפגש סוף השבוע עם הסוכנים, CRM משודרג ודשבורד, כשהפיילוט של סוכן איתור הלידים רץ במצב טיוטה. המסמך הזה עונה על כל משימה; מה שדורש הרצה או החלטה מסומן.</p>
+  <p data-l="en"><strong>The week's goal:</strong> reach the end-of-week meeting with the agents, an upgraded CRM and a dashboard, with the lead-finding agent pilot running in draft mode. This document answers every task; what still needs a run or a decision is marked.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th><span data-l="he">משימה</span><span data-l="en">Task</span></th><th><span data-l="he">מצב</span><span data-l="en">Status</span></th><th><span data-l="he">מה חסר</span><span data-l="en">What is missing</span></th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><span data-l="he">לקרוא את האפיון והחומרים ולרשום שאלות פתוחות</span><span data-l="en">Read the spec and materials, list open questions</span></td><td><span class="chip done"><span data-l="he">הושלם</span><span data-l="en">Done</span></span></td><td><span data-l="he">32 שאלות לתום, שיר ועומר (סעיף 1)</span><span data-l="en">32 questions for Tom, Shir and Omer (section 1)</span></td></tr>
+      <tr><td>2</td><td><span data-l="he">להגדיר מושגי יסוד של YMT</span><span data-l="en">Define YMT's foundation concepts</span></td><td><span class="chip done"><span data-l="he">הצעה מוכנה</span><span data-l="en">Proposal ready</span></span></td><td><span data-l="he">אישור תום לקודי השירותים ולמוסכמות השמות</span><span data-l="en">Tom's OK on service codes and naming</span></td></tr>
+      <tr><td>3</td><td><span data-l="he">מבנה טכני: קריאה, כתיבה, תדירות, כפילויות</span><span data-l="en">Technical structure: read, write, frequency, duplicates</span></td><td><span class="chip done"><span data-l="he">הצעה מוכנה</span><span data-l="en">Proposal ready</span></span></td><td><span data-l="he">רשימת ההחרגה של SHEPHA (פורמט ומקור)</span><span data-l="en">The SHEPHA exclusion list (format and source)</span></td></tr>
+      <tr><td>4</td><td><span data-l="he">רשימת שדות מדויקת ומיפוי לאפליקציה</span><span data-l="en">Exact field list and mapping to the app</span></td><td><span class="chip done"><span data-l="he">הושלם</span><span data-l="en">Done</span></span></td><td><span data-l="he">הגדרת תגיות D1–D3, S1–S4 (תום)</span><span data-l="en">Definition of tags D1–D3, S1–S4 (Tom)</span></td></tr>
+      <tr><td>5</td><td><span data-l="he">איך מחשבים את הדירוג 0–100</span><span data-l="en">How the 0–100 score is computed</span></td><td><span class="chip done"><span data-l="he">הצעה מוכנה</span><span data-l="en">Proposal ready</span></span></td><td><span data-l="he">אישור הסולמות לכל רכיב (תום ושיר)</span><span data-l="en">Approval of each component's rubric (Tom and Shir)</span></td></tr>
+      <tr><td>6</td><td><span data-l="he">מבחן 20 החברות עם תום</span><span data-l="en">The 20-company test with Tom</span></td><td><span class="chip need"><span data-l="he">פרוטוקול מוכן</span><span data-l="en">Protocol ready</span></span></td><td><span data-l="he">20 חברות עם איש קשר ידוע (שיר/תום), חשבונות חינמיים ב-Apollo וב-Lusha</span><span data-l="en">20 companies with a known contact (Shir/Tom); free Apollo and Lusha accounts</span></td></tr>
+      <tr><td>7</td><td><span data-l="he">לבדוק את הסוכן מול עשר חברות הבדיקה</span><span data-l="en">Test the agent on the ten test companies</span></td><td><span class="chip wait"><span data-l="he">מחכה להרצה</span><span data-l="en">Waiting for the run</span></span></td><td><span data-l="he">מפתח API של YMT; סקריפט ההרצה מוכן (סעיף 7)</span><span data-l="en">YMT's API key; the run script is ready (section 7)</span></td></tr>
+      <tr><td>8</td><td><span data-l="he">לסגור עם תום איזה CRM ואילו שדות חובה</span><span data-l="en">Close with Tom which CRM and which fields are mandatory</span></td><td><span class="chip need"><span data-l="he">המלצה מוכנה</span><span data-l="en">Recommendation ready</span></span></td><td><span data-l="he">החלטת תום</span><span data-l="en">Tom's decision</span></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note" data-l="he"><strong>העיקר:</strong> האפליקציה של YMT כבר עושה את רוב תהליך הסוכן (איתור, סיווג עם מקורות, בדיקת כפילויות, תור סקירה, אנשי קשר, פתיחת עסקה). האפיון החדש מוסיף בעיקר: דירוג 0–100 ושכבות, התאמה לכל שוק בנפרד, רשימת ההחרגה של SHEPHA, Defer כהמלצת סוכן, תוקף טריגרים, ושמות קודמים לבדיקת כפילויות. אלה 15 פריטים ברשימת הפערים; הבנייה מתחילה אחרי שתאשר/ו את המסמך.</div>
+  <div class="note" data-l="en"><strong>Bottom line:</strong> the YMT app already runs most of the agent's workflow (finding, classification with sources, duplicate check, review queue, contacts, opening a deal). The new spec mainly adds: the 0–100 score and tiers, fit per market, the SHEPHA exclusion list, Defer as an agent recommendation, trigger validity, and former names for duplicate checks. These are 15 items in the gap list; building starts once you approve this document.</div>
+</section>
+
+<section class="block" id="t1">
+  <h2><span class="no">1</span><span data-l="he">שאלות פתוחות מהאפיון</span><span data-l="en">Open questions from the spec</span></h2>
+  <p class="task-quote" data-l="he">„לקרוא את האפיון ואת חומרי הרקע, ולרשום שאלות פתוחות.”</p>
+  <p class="task-quote" data-l="en">"Read the spec and the background material, and write down open questions."</p>
+  <p data-l="he">לכל שאלה: למי היא מופנית. השאלות המסומנות ★ חוסמות את הבנייה או את הפיילוט.</p>
+  <p data-l="en">Each question names who it is for. Questions marked ★ block the build or the pilot.</p>
+
+  <h3><span data-l="he">א. מנדטים וגודל</span><span data-l="en">A. Mandates and size</span></h3>
+  <ol class="qs">
+    <li><span data-l="he">★ רצפת ה-30M$ חלה על SH1 ו-SH3 בלבד. ל-SH2 (יפן, 1M$–100M$) אין רצפה – נכון?</span><span data-l="en">★ The $30M floor applies to SH1 and SH3 only. SH2 (Japan, $1M–$100M) has no floor – correct?</span> <span class="who">Tom · Shir</span></li>
+    <li><span data-l="he">★ חברה של 10M$–30M$ נכנסת „עם טריגר חזק” ומסומנת „מתחת לרצפה”. מה נחשב טריגר חזק? הצעה: טריגר מאומת מ-6 החודשים האחרונים מסוג חיפוש מפיץ/שותף, רישום רגולטורי או תערוכה בשוק היעד.</span><span data-l="en">★ A $10M–$30M company enters "with a strong trigger" and is marked "below floor". What counts as strong? Proposal: a verified trigger from the last 6 months of type distributor/partner search, regulatory registration, or a trade show in the target market.</span> <span class="who">Shir</span></li>
+    <li><span data-l="he">„חברה בלי נתון מחזור נכנסת מ-10 עובדים” – לכל המנדטים, או רק למנדטים הבינלאומיים? (ב-SH1 הגודל המועדף הוא 50–249.)</span><span data-l="en">"A company without revenue data enters from 10 employees" – for every mandate, or only the international ones? (SH1's preferred size is 50–249.)</span> <span class="who">Tom</span></li>
+    <li><span data-l="he">הדירוג 0–100 לא כולל רכיב גודל. האם זה מכוון (הגודל רק מסנן ומסמן), או שצריך רכיב גודל?</span><span data-l="en">The 0–100 score has no size component. Is that intended (size only filters and flags), or should size be scored?</span> <span class="who">Tom · Shir</span></li>
+    <li><span data-l="he">★ SH1 כולל „הרחבה של חברות שכבר בהודו, בעדיפות נמוכה”, אבל Ceragon נדחית כי „הודו כבר השוק הגדול שלה”. איפה הקו? הצעה: כבר יש חברת בת/משרד/מפעל/JV בהודו או שהודו השוק הגדול ביותר → Reject; יש מפיץ אחד ורוצים להרחיב → קבלה בעדיפות נמוכה.</span><span data-l="en">★ SH1 includes "expansion of companies already in India, at lower priority", but Ceragon is rejected because "India is already its biggest market". Where is the line? Proposal: an existing subsidiary/office/plant/JV in India, or India as the largest market → Reject; one distributor and a wish to expand → accept at lower priority.</span> <span class="who">Shir</span></li>
+    <li><span data-l="he">GE1 (Growth &amp; Exit) אינו באפיון – „Growth &amp; Exit נשארים ללא סוכן”. לבטל את מנדט הטיוטה GE1 באפליקציה ולשלוח לשיוך ידני?</span><span data-l="en">GE1 (Growth &amp; Exit) is not in the spec – "Growth &amp; Exit remain without an agent". Remove the draft GE1 mandate in the app and send such cases to manual assignment?</span> <span class="who">Tom</span></li>
+  </ol>
+
+  <h3><span data-l="he">ב. פסילה, Defer ורשימות</span><span data-l="en">B. Disqualification, Defer and lists</span></h3>
+  <ol class="qs" start="7" style="counter-reset: q 6">
+    <li><span data-l="he">★ רשימת ההחרגה של SHEPHA: באיזה פורמט מגיעה (Excel? שמות בלבד או גם אתרים/ח.פ.)? כל כמה זמן מתעדכנת, ומי מעדכן? האם היא חסויה (לא תופיע במסמכים ובצילומי מסך)?</span><span data-l="en">★ The SHEPHA exclusion list: in what format does it arrive (Excel? names only, or also websites/company numbers)? How often is it updated, and by whom? Is it confidential (never shown in documents or screenshots)?</span> <span class="who">Shir</span></li>
+    <li><span data-l="he">★ מה נחשב „יצוא מוכח”? הצעה: מקור שמראה מכירות מחוץ לישראל – אתר החברה (לקוחות/מפיצים בחו”ל), מכון היצוא, דוחות בורסה או נתוני מכס. האם SaaS שנמכר לחו”ל נחשב יצוא?</span><span data-l="en">★ What counts as "proven export"? Proposal: a source showing sales outside Israel – the company's website (foreign customers/distributors), the Export Institute, stock-exchange reports or customs data. Does SaaS sold abroad count?</span> <span class="who">Shir · Tom</span></li>
+    <li><span data-l="he">Defer: מתי חוזרים? בדוגמת Kornit – „בעוד רבעון”. הצעה: ברירת מחדל 90 יום, עם תאריך שהבעלים יכול לשנות, ומשימה אוטומטית.</span><span data-l="en">Defer: when do we come back? Kornit's example says "in a quarter". Proposal: default 90 days, a date the owner can change, and an automatic task.</span> <span class="who">Shir</span></li>
+    <li><span data-l="he">חברות שנדחו בעבר בגלל „החלטה בחו”ל” נפתחות מחדש. לפתוח את כולן אוטומטית כטיוטות, או להציג לשיר רשימה להחלטה?</span><span data-l="en">Companies rejected in the past for "decision abroad" are reopened. Reopen all of them automatically as drafts, or show Shir a list to decide?</span> <span class="who">Shir</span></li>
+    <li><span data-l="he">„עצור והעבר לשיר”: מקורות סותרים, וייטנאם/תאילנד/סין, חיפוש ספקים בהודו. במקום אחר: „Manual assignment – תום משייך”. למי עוברים – שיר או תום?</span><span data-l="en">"Stop and pass to Shir": contradictory sources, Vietnam/Thailand/China, sourcing in India. Elsewhere: "Manual assignment – Tom assigns". Who receives them – Shir or Tom?</span> <span class="who">Tom · Shir</span></li>
+    <li><span data-l="he">„מפיץ חתום או MoU בשוק היעד → Defer” – גם כשהמפיץ לא מכסה את כל השוק (למשל רק צפון הודו)?</span><span data-l="en">"A signed distributor or MoU in the target market → Defer" – also when the distributor covers only part of the market (e.g. only North India)?</span> <span class="who">Shir</span></li>
+  </ol>
+
+  <h3><span data-l="he">ג. טריגרים ודירוג</span><span data-l="en">C. Triggers and score</span></h3>
+  <ol class="qs" start="13" style="counter-reset: q 12">
+    <li><span data-l="he">★ לכל רכיב בדירוג יש משקל, אבל אין סולם. מה מקבל 25 מתוך 25 ומה 10? הצעה מלאה בסעיף 5 – צריך אישור.</span><span data-l="en">★ Each score component has a weight but no scale. What earns 25 of 25 and what earns 10? A full proposal is in section 5 – it needs approval.</span> <span class="who">Tom · Shir</span></li>
+    <li><span data-l="he">טריגר בן 6–12 חודשים מקבל „חצי ניקוד” – כלומר 12.5 מתוך 25? ומשרה/דף מפיצים שכבר ירדו – 0 גם אם צולמו?</span><span data-l="en">A trigger aged 6–12 months gets "half the score" – that is 12.5 of 25? And a job posting or distributor page that is no longer live – 0 even if we saved a copy?</span> <span class="who">Shir</span></li>
+    <li><span data-l="he">Tier C (מתחת ל-65): מוצג בתור הסקירה בתחתית, או לא מוצג בכלל?</span><span data-l="en">Tier C (below 65): shown at the bottom of the review queue, or not shown at all?</span> <span class="who">Shir · Omer</span></li>
+    <li><span data-l="he">„השערים הישנים” (החלטה בישראל, מחזור בטוח, לא פועלת בשוק) נשמרים כמידע. להציג אותם בכרטיס כתגיות אזהרה?</span><span data-l="en">"The old gates" (decision in Israel, safe revenue, not active in the market) are kept as information. Show them on the card as warning badges?</span> <span class="who">Tom</span></li>
+    <li><span data-l="he">איך מאמתים „שהחברה עצמה אישרה” השתתפות בתערוכה? הצעה: מופיעה ברשימת המציגים הרשמית של התערוכה, או בהודעה של החברה עצמה.</span><span data-l="en">How do we verify that "the company itself confirmed" a trade-show appearance? Proposal: it appears on the show's official exhibitor list, or in the company's own announcement.</span> <span class="who">Shir</span></li>
+  </ol>
+
+  <h3><span data-l="he">ד. תהליך הסוכן ואנשי קשר</span><span data-l="en">D. Agent workflow and contacts</span></h3>
+  <ol class="qs" start="18" style="counter-reset: q 17">
+    <li><span data-l="he">★ פיילוט: עד 5 חברות חדשות לכל mandate בכל ריצה. כל כמה זמן ריצה (שבועית?), ומה תקציב ה-AI החודשי? (היום התקרה באפליקציה 20$; 6 מנדטים × 5 כרטיסים × 4 שבועות ≈ 15$–20$.)</span><span data-l="en">★ Pilot: up to 5 new companies per mandate per run. How often (weekly?), and what is the monthly AI budget? (The app's cap is $20 today; 6 mandates × 5 cards × 4 weeks ≈ $15–20.)</span> <span class="who">Tom</span></li>
+    <li><span data-l="he">„תפקיד מאומת ב-30 הימים האחרונים” – בלי כלים בתשלום, האימות הוא מפרופיל לינקדאין ציבורי או מאתר החברה. זה מספיק בפיילוט?</span><span data-l="en">"Role verified in the last 30 days" – without paid tools, verification comes from a public LinkedIn profile or the company website. Is that enough for the pilot?</span> <span class="who">Shir</span></li>
+    <li><span data-l="he">בדיקת תקינות מייל (NeverBounce/ZeroBounce): להשתמש בקרדיטים החינמיים בפיילוט, או לדלג עד אחרי מבחן 20 החברות?</span><span data-l="en">Email validity checks (NeverBounce/ZeroBounce): use the free credits in the pilot, or skip until after the 20-company test?</span> <span class="who">Tom</span></li>
+    <li><span data-l="he">★ „Accept פותח כרטיס ‚טרם התחיל’ ב-CRM” – אוטומטית? היום בעל הכרטיס לוחץ „פתיחת עסקה”. ממליץ: אוטומטי, עם תהליך וּמודל עסקה מברירת המחדל של ה-mandate.</span><span data-l="en">★ "Accept opens a 'Not started' card in the CRM" – automatically? Today the owner clicks "Open deal". Recommendation: automatic, with the mandate's default workflow and deal model.</span> <span class="who">Tom</span></li>
+    <li><span data-l="he">„מביא/ת הליד” בשדות ההזדמנות: כשהסוכן מצא – הערך „סוכן + שם בעל ה-mandate”? וכשמגיע מ-SHEPHA או מהפניה – שם השותף?</span><span data-l="en">"Lead originator" in the opportunity fields: when the agent found it – "agent + mandate owner"? And when it comes from SHEPHA or a referral – the partner's name?</span> <span class="who">Tom</span></li>
+    <li><span data-l="he">מילות המפתח לאנשי קשר מתאימות למנדטים הבינלאומיים. למנדטים בישראל (OM1–OM3) – אילו תפקידים? הצעה: מנכ”ל, סמנכ”ל תפעול, סמנכ”ל מכירות, סמנכ”ל משאבי אנוש.</span><span data-l="en">The contact keywords fit the international mandates. For the Israeli mandates (OM1–OM3) – which roles? Proposal: CEO, VP Operations, VP Sales, VP HR.</span> <span class="who">Omer</span></li>
+  </ol>
+
+  <h3><span data-l="he">ה. נתונים, CRM ומקורות</span><span data-l="en">E. Data, CRM and sources</span></h3>
+  <ol class="qs" start="24" style="counter-reset: q 23">
+    <li><span data-l="he">★ התגיות D1–D3 ו-S1–S4 – מה הן מסמנות? (החלטה פתוחה באפיון.)</span><span data-l="en">★ Tags D1–D3 and S1–S4 – what do they mark? (An open decision in the spec.)</span> <span class="who">Tom</span></li>
+    <li><span data-l="he">★ „כל הכרטיסים הקיימים באפליקציה עוברים מיפוי” – איזו אפליקציה? „אפליקציית מעקב הלידים” של שיר (9–12.11)? צריך ייצוא (Excel/CSV) כדי להעביר אותם.</span><span data-l="en">★ "All existing cards in the app are mapped" – which app? Shir's "lead-tracking app" (9–12.11)? We need an export (Excel/CSV) to migrate them.</span> <span class="who">Shir</span></li>
+    <li><span data-l="he">„מספר הארטיקלים בכרטיס מומר להזדמנויות נפרדות” – מה זה ארטיקל במערכת הקיימת (פריט/מוצר/פנייה)?</span><span data-l="en">"The number of articles in a card is converted to separate opportunities" – what is an article in the existing system (item/product/inquiry)?</span> <span class="who">Shir</span></li>
+    <li><span data-l="he">דן אנד ברדסטריט ישראל / Hoovers – האם כבר ביקשנו הצעת מחיר? נכנס רק אחרי מבחן 20 החברות?</span><span data-l="en">Dun &amp; Bradstreet Israel / Hoovers – have we asked for a quote? Only after the 20-company test?</span> <span class="who">Tom</span></li>
+    <li><span data-l="he">שפת הכרטיסים: הוחלט קודם „אנגלית”. נשאר כך, או שהסיכום והסיבה לפעול צריכים להיות בעברית?</span><span data-l="en">Card language: "English" was decided earlier. Keep it, or should the summary and reason to act be in Hebrew?</span> <span class="who">Tom · Shir</span></li>
+  </ol>
+
+  <h3><span data-l="he">ו. מסמך השירותים (YMT ייעוץ) מול שירותי הסוכן</span><span data-l="en">F. The services document (YMT Consulting) vs. the agent's services</span></h3>
+  <ol class="qs" start="29" style="counter-reset: q 28">
+    <li><span data-l="he">★ יש שני קטלוגים: „שירותים שהסוכן מציע” באפיון (YMT Development Partnerships) ו-23 השירותים IL-1…GL-11 במסמך העיצוב (YMT ייעוץ). מציע קטלוג אחד עם הקודים IL/GL, והסוכן ימליץ תמיד על קוד. מיפוי מוצע בסעיף 2 – לאשר.</span><span data-l="en">★ There are two catalogues: "services the agent offers" in the spec (YMT Development Partnerships) and the 23 services IL-1…GL-11 in the design document (YMT Consulting). I propose one catalogue with the IL/GL codes, and the agent always recommends a code. A proposed mapping is in section 2 – please approve.</span> <span class="who">Tom · Shir</span></li>
+    <li><span data-l="he">לשלושה שירותים של הסוכן אין קוד במסמך העיצוב: „כניסה ליפן” (SH2), „ייצור מקומי או JV בהודו או ביפן” (SH3), „צמיחת מכירות בישראל” (OM2). לפתוח קודים חדשים או למפות לקיימים?</span><span data-l="en">Three agent services have no code in the design document: "Japan entry" (SH2), "local production or JV in India or Japan" (SH3), "sales growth in Israel" (OM2). Open new codes or map them to existing ones?</span> <span class="who">Tom</span></li>
+    <li><span data-l="he">GL-1 „אבחון מוכנות” (פלטפורמת תומר לקס) ו„אבחון מוכנות – שאלון קצר חינם ואז דוח” באפיון – אותו שירות? ושאלון ההיכרות באפליקציה (Release 5) – הוא השאלון של IL-1/GL-1?</span><span data-l="en">GL-1 "readiness assessment" (Tomer Lex's platform) and "readiness assessment – short free questionnaire, then a report" in the spec – the same service? And is the app's discovery form (Release 5) the questionnaire of IL-1/GL-1?</span> <span class="who">Tom · Tomer</span></li>
+    <li><span data-l="he">בסעיף 6 של מסמך השירותים יש 13 פריטים פתוחים (חוסמות תמחור, חוסמות הסכמים, להחלטה בהמשך). מי הבעלים של כל אחד, ומה מהם חוסם את השבוע הזה? (לפי הבנתי – אף אחד מהם לא חוסם את פיילוט הסוכן.)</span><span data-l="en">Section 6 of the services document lists 13 open items (pricing blockers, agreement blockers, later decisions). Who owns each, and which block this week? (As I understand it, none of them blocks the agent pilot.)</span> <span class="who">Tom</span></li>
+  </ol>
+</section>
+
+<section class="block" id="t2">
+  <h2><span class="no">2</span><span data-l="he">מושגי היסוד של YMT</span><span data-l="en">YMT's foundation concepts</span></h2>
+  <p class="task-quote" data-l="he">„להגדיר מושגי יסוד לכל YMT, כבסיס לכל האופרציה: אתרים, דפי נחיתה, משימות וכל המעטפת.”</p>
+  <p class="task-quote" data-l="en">"Define foundation concepts for all of YMT, as the basis for the whole operation: websites, landing pages, tasks and the entire envelope."</p>
+  <p data-l="he">עיקרון: <strong>מילה אחת, משמעות אחת, קוד אחד</strong> – אותו מונח באפליקציה, באתר, בדף הנחיתה, בהצעת המחיר ובמשימה. המונחים נלקחו מהאפיון וממסמך השירותים; היכן ששניהם שונים, מוצע איחוד.</p>
+  <p data-l="en">Principle: <strong>one word, one meaning, one code</strong> – the same term in the app, on the website, on a landing page, in a proposal and in a task. Terms come from the spec and the services document; where the two differ, a merge is proposed.</p>
+
+  <svg class="diagram" viewBox="0 0 980 210" role="img" aria-labelledby="concepts-title">
+    <title id="concepts-title">Market → Mandate → Company → Opportunity → Review → Deal → Service → Tasks</title>
+    <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--subtle); stroke: none" /></marker></defs>
+    <g>
+      <rect class="box" x="10" y="20" width="120" height="60" rx="8" /><text x="70" y="45" text-anchor="middle">Market</text><text class="small" x="70" y="63" text-anchor="middle">India · Japan · TH/VN · CN · IL</text>
+      <rect class="box" x="150" y="20" width="120" height="60" rx="8" /><text x="210" y="45" text-anchor="middle">Mandate</text><text class="small" x="210" y="63" text-anchor="middle">SH1–SH3 · OM1–OM3</text>
+      <rect class="box" x="290" y="20" width="120" height="60" rx="8" /><text x="350" y="45" text-anchor="middle">Company</text><text class="small" x="350" y="63" text-anchor="middle">C-#### · domain</text>
+      <rect class="box" x="430" y="20" width="130" height="60" rx="8" /><text x="495" y="45" text-anchor="middle">Opportunity</text><text class="small" x="495" y="63" text-anchor="middle">O-#### · trigger · score</text>
+      <rect class="box" x="580" y="20" width="120" height="60" rx="8" /><text x="640" y="45" text-anchor="middle">Review</text><text class="small" x="640" y="63" text-anchor="middle">Accept·Verify·Defer·Reject</text>
+      <rect class="box" x="720" y="20" width="110" height="60" rx="8" /><text x="775" y="45" text-anchor="middle">Deal</text><text class="small" x="775" y="63" text-anchor="middle">D-#### · stage</text>
+      <rect class="box" x="850" y="20" width="120" height="60" rx="8" /><text x="910" y="45" text-anchor="middle">Service</text><text class="small" x="910" y="63" text-anchor="middle">IL-1…IL-12 · GL-1…GL-11</text>
+      <path d="M130 50 H148" marker-end="url(#arr)" /><path d="M270 50 H288" marker-end="url(#arr)" /><path d="M410 50 H428" marker-end="url(#arr)" />
+      <path d="M560 50 H578" marker-end="url(#arr)" /><path d="M700 50 H718" marker-end="url(#arr)" /><path d="M830 50 H848" marker-end="url(#arr)" />
+      <rect class="store" x="290" y="120" width="120" height="56" rx="8" /><text x="350" y="143" text-anchor="middle">Contact · Fact</text><text class="small" x="350" y="161" text-anchor="middle">every value: source + date</text>
+      <rect class="store" x="430" y="120" width="130" height="56" rx="8" /><text x="495" y="143" text-anchor="middle">Trigger · Source</text><text class="small" x="495" y="161" text-anchor="middle">verified · ≤ 6 / 12 months</text>
+      <rect class="store" x="720" y="120" width="250" height="56" rx="8" /><text x="845" y="143" text-anchor="middle">Task · Meeting · Message · Document</text><text class="small" x="845" y="161" text-anchor="middle">always linked to Company (+ Deal)</text>
+      <path d="M350 80 V118" /><path d="M495 80 V118" /><path d="M775 80 V118" />
+    </g>
+  </svg>
+
+  <h3><span data-l="he">מילון המושגים</span><span data-l="en">The concept dictionary</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">מושג</span><span data-l="en">Concept</span></th><th><span data-l="he">הגדרה</span><span data-l="en">Definition</span></th><th><span data-l="he">מזהה / ערכים</span><span data-l="en">ID / values</span></th><th><span data-l="he">איפה משתמשים</span><span data-l="en">Used in</span></th></tr></thead>
+    <tbody>
+      <tr><td><strong>YMT</strong></td><td><span data-l="he">שני שמות מסחריים: <em>YMT Development Partnerships</em> (צמיחה בינלאומית, עם SHEPHA) ו-<em>YMT ייעוץ</em> (שירותים לעסקים בישראל). מותג אחד, שני קווי שירות.</span><span data-l="en">Two trade names: <em>YMT Development Partnerships</em> (international growth, with SHEPHA) and <em>YMT Consulting</em> (services for Israeli businesses). One brand, two service lines.</span></td><td class="ltr">GL / IL</td><td><span data-l="he">אתר, דפי נחיתה, חתימות, מסמכים</span><span data-l="en">Website, landing pages, signatures, documents</span></td></tr>
+      <tr><td><strong><span data-l="he">שוק</span><span data-l="en">Market</span></strong></td><td><span data-l="he">מדינת יעד שאליה החברה רוצה להגיע. התאמה נבדקת לכל שוק בנפרד.</span><span data-l="en">A target country the company wants to reach. Fit is checked per market.</span></td><td class="ltr">IN · JP · TH/VN · CN · IL</td><td><span data-l="he">כרטיס, mandate, דפי נחיתה לפי שוק</span><span data-l="en">Card, mandate, landing page per market</span></td></tr>
+      <tr><td><strong>Mandate</strong></td><td><span data-l="he">המשימה של סוכן אחד: איזה סוג חברה, באיזה שוק, מה צריך להתקיים כדי שתתקבל, ואיזה שירות מציעים. יש לו בעלים וגרסאות.</span><span data-l="en">One agent's assignment: which company type, in which market, what must be true to accept it, and which service is offered. It has an owner and versions.</span></td><td class="ltr">SH1–SH3 · OM1–OM3</td><td><span data-l="he">סוכן, תור סקירה, מדדים, UTM</span><span data-l="en">Agent, review queue, metrics, UTM</span></td></tr>
+      <tr><td><strong><span data-l="he">חברה</span><span data-l="en">Company</span></strong></td><td><span data-l="he">רשומה אחת לכל חברה או יחידה עסקית. מפתח הזהות: דומיין האתר; אחריו ח.פ., שם + מדינת מטה, שמות קודמים.</span><span data-l="en">One record per company or business unit. Identity key: the website domain; then company number, name + HQ country, former names.</span></td><td class="ltr">C-0001</td><td><span data-l="he">כל המערכת; כל משימה/פגישה/מסמך מקושרים לחברה</span><span data-l="en">Everywhere; every task/meeting/document links to a company</span></td></tr>
+      <tr><td><strong><span data-l="he">הזדמנות</span><span data-l="en">Opportunity</span></strong></td><td><span data-l="he">יוזמה מסוימת של חברה מול שוק מסוים. לחברה אחת יכולות להיות כמה (הודו + חיבור חד-פעמי), לכל אחת בעלים אחד.</span><span data-l="en">One initiative of a company towards one market. A company can have several (India + a one-off connection), each with one owner.</span></td><td class="ltr">O-0001</td><td><span data-l="he">תור הסקירה, דירוג, עסקה</span><span data-l="en">Review queue, score, deal</span></td></tr>
+      <tr><td><strong><span data-l="he">טריגר</span><span data-l="en">Trigger</span></strong></td><td><span data-l="he">פעולה מאומתת של החברה עצמה, עם מקור ותאריך, שמעידה שהיא פועלת עכשיו. תוקף: עד 6 חודשים מלא, 6–12 חצי, מעל שנה רקע.</span><span data-l="en">A verified action of the company itself, with source and date, showing it is acting now. Validity: up to 6 months full, 6–12 half, over a year background.</span></td><td class="ltr">trade_show · delegation · job · distributor_search · regulatory · news</td><td><span data-l="he">כרטיס, דירוג, „הסיבה לפעול עכשיו” בפנייה</span><span data-l="en">Card, score, "reason to act now" in outreach</span></td></tr>
+      <tr><td><strong><span data-l="he">מקור ועובדה</span><span data-l="en">Source and fact</span></strong></td><td><span data-l="he">כל ערך בכרטיס (מחזור, עובדים, קשר לישראל…) נשמר עם קישור, ציטוט ותאריך בדיקה. ערך בלי מקור = „לא ידוע”.</span><span data-l="en">Every card value (revenue, staff, Israel link…) is stored with a link, a quote and a check date. A value without a source = "unknown".</span></td><td class="ltr">source_url · quote · checked_at</td><td><span data-l="he">כרטיס, בקרת איכות</span><span data-l="en">Card, quality control</span></td></tr>
+      <tr><td><strong><span data-l="he">דירוג ושכבה</span><span data-l="en">Score and tier</span></strong></td><td><span data-l="he">0–100 לפי חמישה רכיבים (סעיף 5). A = 80+, B = 65–79, C = מתחת.</span><span data-l="en">0–100 from five components (section 5). A = 80+, B = 65–79, C = below.</span></td><td class="ltr">0–100 · A/B/C</td><td><span data-l="he">מיון התור, דשבורד</span><span data-l="en">Queue order, dashboard</span></td></tr>
+      <tr><td><strong><span data-l="he">החלטת סקירה</span><span data-l="en">Review decision</span></strong></td><td><span data-l="he">Accept – מתאימה, נפתח כרטיס „טרם התחיל”; Verify – חסרה ראיה מכריעה; Defer – מתאימה, לא עכשיו; Reject – לא מתאימה, עם סיבה.</span><span data-l="en">Accept – fits, a "Not started" card opens; Verify – decisive evidence missing; Defer – fits, not now; Reject – does not fit, with a reason.</span></td><td class="ltr">Accept · Verify · Defer · Reject</td><td><span data-l="he">תור הסקירה, מדדים</span><span data-l="en">Review queue, metrics</span></td></tr>
+      <tr><td><strong><span data-l="he">מצבי רשומה</span><span data-l="en">Record states</span></strong></td><td><span data-l="he">Needs review – אין ראיה ליוזמה, עובר לשיר; Manual assignment – אין סוכן לצורך, תום משייך; Unknown – אין מקור או מקורות סותרים, לא מנחשים.</span><span data-l="en">Needs review – no evidence of an initiative, goes to Shir; Manual assignment – no agent for the need, Tom assigns; Unknown – no source or contradicting sources, never guessed.</span></td><td class="ltr">needs_review · manual_assignment · unknown</td><td><span data-l="he">תור הסקירה</span><span data-l="en">Review queue</span></td></tr>
+      <tr><td><strong><span data-l="he">רשימות חסימה</span><span data-l="en">Block lists</span></strong></td><td><span data-l="he">שלוש רשימות שונות: (1) רשימת ההחרגה של SHEPHA – פוסלת; (2) בנק הנפסלים – מציג סיבה קודמת; (3) „לא לפנות” – אדם שביקש הסרה, חוסם כל ערוץ.</span><span data-l="en">Three different lists: (1) the SHEPHA exclusion list – disqualifies; (2) the rejected bank – shows the earlier reason; (3) "do not contact" – a person who opted out, blocks every channel.</span></td><td class="ltr">shepha_exclusions · rejected · suppressions</td><td><span data-l="he">סוכן (שלב 2), פניות</span><span data-l="en">Agent (step 2), outreach</span></td></tr>
+      <tr><td><strong><span data-l="he">שירות</span><span data-l="en">Service</span></strong></td><td><span data-l="he">מוצר מוגדר שהלקוח מקבל ביד (לא שעות), עם כרטיס שירות של 10 שדות. קטלוג אחד לשני הקווים.</span><span data-l="en">A defined product the client receives (not hours), with a 10-field service card. One catalogue for both lines.</span></td><td class="ltr">IL-1…IL-12 · GL-1…GL-11</td><td><span data-l="he">המלצת הסוכן, עסקה, הצעת מחיר, דף נחיתה לכל שירות</span><span data-l="en">Agent recommendation, deal, proposal, one landing page per service</span></td></tr>
+      <tr><td><strong><span data-l="he">עסקה ושלב</span><span data-l="en">Deal and stage</span></strong></td><td><span data-l="he">כרטיס ב-CRM שנפתח מ-Accept. שלב ראשון „טרם התחיל”, אחר כך פנייה, שיחה, פגישה, הצעה, חוזה.</span><span data-l="en">The CRM card opened by Accept. First stage "Not started", then outreach, call, meeting, proposal, contract.</span></td><td class="ltr">D-0001 · research→contract</td><td><span data-l="he">צנרת, דשבורד</span><span data-l="en">Pipeline, dashboard</span></td></tr>
+      <tr><td><strong><span data-l="he">בעלים</span><span data-l="en">Owner</span></strong></td><td><span data-l="he">אדם אחד אחראי לכל mandate, הזדמנות ועסקה (שיר ל-SH, עומר ל-OM). בעלות לא „משותפת”.</span><span data-l="en">One person responsible for each mandate, opportunity and deal (Shir for SH, Omer for OM). Ownership is never "shared".</span></td><td class="ltr">user</td><td><span data-l="he">תורים, משימות, תזכורות</span><span data-l="en">Queues, tasks, reminders</span></td></tr>
+      <tr><td><strong><span data-l="he">משימה</span><span data-l="en">Task</span></strong></td><td><span data-l="he">פעולה אחת עם אחראי ותאריך, מקושרת לחברה (ולעסקה/פגישה). סוגים: לבדוק, לחזור (Defer), לברר מידע חסר, התחייבות לקוח.</span><span data-l="en">One action with an owner and a date, linked to a company (and deal/meeting). Types: verify, come back (Defer), find missing info, client commitment.</span></td><td class="ltr">T-0001</td><td><span data-l="he">תיבת עבודה, יומן</span><span data-l="en">Inbox, calendar</span></td></tr>
+      <tr><td><strong><span data-l="he">מביא/ת הליד</span><span data-l="en">Lead originator</span></strong></td><td><span data-l="he">מי הביא את ההזדמנות: סוכן (ואיזה mandate), איש צוות, SHEPHA, הפניה, טופס באתר.</span><span data-l="en">Who brought the opportunity: an agent (which mandate), a team member, SHEPHA, a referral, a website form.</span></td><td class="ltr">agent:SH1 · staff:shir · partner:shepha · web:IL-1</td><td><span data-l="he">מדדים, עמלות שותפים</span><span data-l="en">Metrics, partner commissions</span></td></tr>
+      <tr><td><strong><span data-l="he">מקור ליד באתר</span><span data-l="en">Web lead source</span></strong></td><td><span data-l="he">כל קישור לאתר או לדף נחיתה נושא את קוד השירות וה-mandate, כדי שטופס שמולא ייכנס עם המקור.</span><span data-l="en">Every link to the website or a landing page carries the service and mandate code, so a submitted form arrives with its source.</span></td><td class="ltr">?utm_source=linkedin&amp;utm_campaign=SH1&amp;utm_content=GL-2</td><td><span data-l="he">אתרים, דפי נחיתה, פוסטים, מיילים</span><span data-l="en">Websites, landing pages, posts, emails</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span data-l="he">קטלוג שירותים אחד: מיפוי שירותי הסוכן לקודים</span><span data-l="en">One service catalogue: mapping the agent's services to codes</span></h3>
+  <p data-l="he">האפיון מונה 15 שירותים שהסוכן מציע; מסמך העיצוב מונה 23 עם קודים. מוצע שהסוכן ימליץ תמיד על <strong>קוד</strong>. המיפוי (לאישור תום – שאלות 29–30):</p>
+  <p data-l="en">The spec lists 15 services the agent offers; the design document lists 23 with codes. The agent should always recommend a <strong>code</strong>. Mapping (for Tom's approval – questions 29–30):</p>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">שירות באפיון</span><span data-l="en">Service in the spec</span></th><th>Mandate</th><th><span data-l="he">קוד מוצע</span><span data-l="en">Proposed code</span></th><th><span data-l="he">ודאות</span><span data-l="en">Confidence</span></th></tr></thead>
+    <tbody>
+      <tr><td><span data-l="he">חיבור למפיץ או שותף מקומי</span><span data-l="en">Connection to a distributor or local partner</span></td><td>SH1, SH2</td><td class="ltr">GL-2</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td><span data-l="he">סקירת שוק יעד</span><span data-l="en">Target-market survey</span></td><td>SH1, SH2</td><td class="ltr">GL-3</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td><span data-l="he">פגישות B2B לתערוכה או משלחת</span><span data-l="en">B2B meetings for a trade show or delegation</span></td><td>SH1</td><td class="ltr">GL-4</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td><span data-l="he">כניסה לשוק ההודי מקצה לקצה</span><span data-l="en">India market entry end to end</span></td><td>SH1</td><td class="ltr">GL-6</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td><span data-l="he">הרחבה בהודו או ערוץ שנתקע</span><span data-l="en">Expansion in India or a stalled channel</span></td><td>SH1</td><td class="ltr">GL-7</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td><span data-l="he">כניסה ליפן</span><span data-l="en">Japan entry</span></td><td>SH2</td><td class="ltr">GL-8 ?</td><td><span class="chip wait"><span data-l="he">לבירור</span><span data-l="en">To confirm</span></span></td></tr>
+      <tr><td><span data-l="he">ייצור מקומי או JV בהודו או ביפן</span><span data-l="en">Local production or JV in India or Japan</span></td><td>SH3</td><td class="ltr"><span data-l="he">קוד חדש</span><span data-l="en">new code</span> GL-12 ?</td><td><span class="chip wait"><span data-l="he">לבירור</span><span data-l="en">To confirm</span></span></td></tr>
+      <tr><td><span data-l="he">איתור יצרנים וספקים</span><span data-l="en">Sourcing manufacturers and suppliers</span></td><td><span data-l="he">שיוך ידני</span><span data-l="en">manual</span></td><td class="ltr">GL-5 · IL-11</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td><span data-l="he">הבאת טכנולוגיה או מוצר לישראל</span><span data-l="en">Bringing a technology or product to Israel</span></td><td><span data-l="he">שיוך ידני</span><span data-l="en">manual</span></td><td class="ltr">GL-9</td><td><span class="chip need"><span data-l="he">בינונית</span><span data-l="en">Medium</span></span></td></tr>
+      <tr><td><span data-l="he">פיתוח עסקי מתמשך באסיה-פסיפיק</span><span data-l="en">Ongoing business development in Asia-Pacific</span></td><td><span data-l="he">שיוך ידני</span><span data-l="en">manual</span></td><td class="ltr">GL-8</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td><span data-l="he">אבחון מוכנות</span><span data-l="en">Readiness assessment</span></td><td><span data-l="he">שיוך ידני</span><span data-l="en">manual</span></td><td class="ltr">GL-1</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td>Growth &amp; Exit</td><td><span data-l="he">שיוך ידני</span><span data-l="en">manual</span></td><td class="ltr">GL-10</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td><span data-l="he">אבחון תפעולי בישראל</span><span data-l="en">Operational diagnosis in Israel</span></td><td>OM1</td><td class="ltr">IL-2</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+      <tr><td><span data-l="he">צמיחת מכירות בישראל</span><span data-l="en">Sales growth in Israel</span></td><td>OM2</td><td class="ltr">IL-3 / IL-6 ?</td><td><span class="chip wait"><span data-l="he">לבירור</span><span data-l="en">To confirm</span></span></td></tr>
+      <tr><td><span data-l="he">גיוס בכירים בישראל</span><span data-l="en">Executive search in Israel</span></td><td>OM3</td><td class="ltr">IL-8</td><td><span class="chip done"><span data-l="he">גבוהה</span><span data-l="en">High</span></span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span data-l="he">מוסכמות ל„מעטפת”: אתרים, דפי נחיתה, משימות</span><span data-l="en">Conventions for the "envelope": websites, landing pages, tasks</span></h3>
+  <div class="grid2">
+    <div class="card"><h4><span data-l="he">אתר ודפי נחיתה</span><span data-l="en">Website and landing pages</span></h4>
+      <ul data-l="he"><li>דף נחיתה אחד לכל שירות מוכן, בכתובת לפי הקוד: <code>/services/gl-2</code>.</li><li>כל דף מבוסס על כרטיס השירות: „במילים של הלקוח” = הכותרת, „מוצר” = מה מקבלים, „מדד הצלחה” = ההבטחה.</li><li>טופס הדף מוביל לשאלון ההיכרות באפליקציה ונכנס עם קוד השירות ומקור ה-UTM.</li><li>מחירים בדף רק לשירותים שעיקרון 7 מגדיר כפומביים (שער כניסה).</li></ul>
+      <ul data-l="en"><li>One landing page per ready service, at an address by code: <code>/services/gl-2</code>.</li><li>Each page follows the service card: "in the client's words" = the headline, "product" = what they get, "success metric" = the promise.</li><li>The page's form leads to the app's discovery form and arrives with the service code and UTM source.</li><li>Prices on a page only for services the 7 principles make public (entry gate).</li></ul></div>
+    <div class="card"><h4><span data-l="he">משימות ותורים</span><span data-l="en">Tasks and queues</span></h4>
+      <ul data-l="he"><li>כותרת משימה: פועל + חברה + מה, למשל „לברר: מחזור 2025 – Cortex Dental”.</li><li>לכל משימה אחראי אחד ותאריך; משימה בלי תאריך היא הערה, לא משימה.</li><li>Defer יוצר משימת „לחזור” בתאריך שנקבע; Verify יוצר משימת „לבדוק”.</li><li>מידע חסר בתשובת לקוח הופך למשימה (קיים ב-Release 4).</li></ul>
+      <ul data-l="en"><li>Task title: verb + company + what, e.g. "Find out: 2025 revenue – Cortex Dental".</li><li>Every task has one owner and a date; a task without a date is a note, not a task.</li><li>Defer creates a "come back" task on the set date; Verify creates a "check" task.</li><li>Missing information in a client reply becomes a task (exists since Release 4).</li></ul></div>
+    <div class="card"><h4><span data-l="he">שמות ומזהים</span><span data-l="en">Names and IDs</span></h4>
+      <ul data-l="he"><li>שם החברה באנגלית כפי שבאתר שלה; השם העברי כשם נוסף (לבדיקת כפילויות).</li><li>מזהים קבועים: C- חברה, O- הזדמנות, D- עסקה, T- משימה – מופיעים במיילים פנימיים ובמסמכים.</li><li>קודי mandate ושירות באותיות גדולות: SH1, GL-2.</li></ul>
+      <ul data-l="en"><li>Company name in English as on its website; the Hebrew name as an extra name (for duplicate checks).</li><li>Stable IDs: C- company, O- opportunity, D- deal, T- task – used in internal emails and documents.</li><li>Mandate and service codes in capitals: SH1, GL-2.</li></ul></div>
+    <div class="card"><h4><span data-l="he">שפה ופנייה</span><span data-l="en">Language and outreach</span></h4>
+      <ul data-l="he"><li>כרטיסים ומדדים: אנגלית (כפי שהוחלט; שאלה 28). ממשק: עברית/אנגלית.</li><li>פנייה ללקוח בשפה המועדפת של איש הקשר; „פרסומת” ומשפט הסרה לפי כללי הפנייה.</li><li>הסוכן אף פעם לא שולח; כל פנייה דרך תור האישורים.</li></ul>
+      <ul data-l="en"><li>Cards and metrics: English (as decided; question 28). Interface: Hebrew/English.</li><li>Outreach in the contact's preferred language; "פרסומת" and the opt-out sentence per the outreach rules.</li><li>The agent never sends; every message goes through the approval queue.</li></ul></div>
+  </div>
+</section>
+
+<section class="block" id="t3">
+  <h2><span class="no">3</span><span data-l="he">מבנה טכני</span><span data-l="en">Technical structure</span></h2>
+  <p class="task-quote" data-l="he">„להציע מבנה טכני: מאיפה הסוכן קורא את בנק החברות ואת רשימת ההחרגה, לאן הוא כותב, כל כמה זמן הוא רץ, ואיך הוא מזהה כפילויות (למשל לפי כתובת האתר).”</p>
+  <p class="task-quote" data-l="en">"Propose a technical structure: where the agent reads the company bank and the exclusion list, where it writes, how often it runs, and how it detects duplicates (for example by website address)."</p>
+
+  <svg class="diagram" viewBox="0 0 980 300" role="img" aria-labelledby="tech-title">
+    <title id="tech-title">Agent reads the bank and block lists, writes draft cards to the review queue; Accept opens a CRM deal</title>
+    <defs><marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" style="fill: var(--subtle); stroke: none" /></marker></defs>
+    <rect class="box" x="10" y="20" width="170" height="110" rx="8" />
+    <text x="95" y="42" text-anchor="middle">Free sources</text>
+    <text class="small" x="95" y="62" text-anchor="middle">web search · company sites</text>
+    <text class="small" x="95" y="78" text-anchor="middle">exhibitor lists · job posts</text>
+    <text class="small" x="95" y="94" text-anchor="middle">registrar · TASE · Export Inst.</text>
+    <text class="small" x="95" y="110" text-anchor="middle">MCA21 · Zauba (India)</text>
+    <rect class="box" x="220" y="20" width="260" height="110" rx="8" />
+    <text x="350" y="42" text-anchor="middle">Agent run (per mandate)</text>
+    <text class="small" x="350" y="62" text-anchor="middle">1 find → 2 bank check → 3 classify</text>
+    <text class="small" x="350" y="78" text-anchor="middle">4 verify → 5 contacts → 6 recommend</text>
+    <text class="small" x="350" y="94" text-anchor="middle">→ 7 review queue (draft only)</text>
+    <text class="small" x="350" y="114" text-anchor="middle">weekly + on demand · ≤ 5 new / run</text>
+    <rect class="store" x="220" y="170" width="125" height="110" rx="8" />
+    <text x="282" y="192" text-anchor="middle">Reads</text>
+    <text class="small" x="282" y="212" text-anchor="middle">companies + aliases</text>
+    <text class="small" x="282" y="228" text-anchor="middle">opportunities</text>
+    <text class="small" x="282" y="244" text-anchor="middle">rejected bank</text>
+    <text class="small" x="282" y="260" text-anchor="middle">mandate version</text>
+    <rect class="new" x="355" y="170" width="125" height="110" rx="8" />
+    <text x="417" y="192" text-anchor="middle">Reads (new)</text>
+    <text class="small" x="417" y="212" text-anchor="middle">SHEPHA exclusion</text>
+    <text class="small" x="417" y="228" text-anchor="middle">former names</text>
+    <text class="small" x="417" y="244" text-anchor="middle">parents · acquisitions</text>
+    <text class="small" x="417" y="260" text-anchor="middle">company number</text>
+    <rect class="store" x="520" y="20" width="200" height="110" rx="8" />
+    <text x="620" y="42" text-anchor="middle">Writes (draft)</text>
+    <text class="small" x="620" y="62" text-anchor="middle">company + facts + sources</text>
+    <text class="small" x="620" y="78" text-anchor="middle">opportunity + trigger + score</text>
+    <text class="small" x="620" y="94" text-anchor="middle">contact proposals (≤ 3)</text>
+    <text class="small" x="620" y="110" text-anchor="middle">run log + cost</text>
+    <rect class="box" x="760" y="20" width="210" height="50" rx="8" />
+    <text x="865" y="42" text-anchor="middle">Review queue (owner)</text>
+    <text class="small" x="865" y="58" text-anchor="middle">trigger first, then score</text>
+    <rect class="box" x="760" y="90" width="210" height="50" rx="8" />
+    <text x="865" y="112" text-anchor="middle">CRM deal "Not started"</text>
+    <text class="small" x="865" y="128" text-anchor="middle">on Accept</text>
+    <rect class="box" x="760" y="160" width="210" height="50" rx="8" />
+    <text x="865" y="182" text-anchor="middle">Outreach · conversations</text>
+    <text class="small" x="865" y="198" text-anchor="middle">approval queue (Release 3–4)</text>
+    <path d="M180 75 H218" marker-end="url(#arr2)" />
+    <path d="M480 75 H518" marker-end="url(#arr2)" />
+    <path d="M720 50 H758" marker-end="url(#arr2)" />
+    <path d="M865 70 V88" marker-end="url(#arr2)" />
+    <path d="M865 140 V158" marker-end="url(#arr2)" />
+    <path d="M282 130 V168" marker-start="url(#arr2)" />
+    <path d="M417 130 V168" marker-start="url(#arr2)" />
+  </svg>
+  <p class="small" data-l="he" style="font-size:13px;color:var(--subtle)">מסגרת מקווקוות כתומה = חדש, לבנייה. השאר קיים היום באפליקציה.</p>
+  <p class="small" data-l="en" style="font-size:13px;color:var(--subtle)">Dashed orange frame = new, to build. Everything else exists in the app today.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4><span data-l="he">איפה הנתונים</span><span data-l="en">Where the data lives</span></h4>
+      <p data-l="he">מסד נתונים אחד (SQLite) בתוך אפליקציית YMT, על דיסק קבוע ב-Render (פרנקפורט). „בנק החברות” = טבלת החברות + ההזדמנויות + הנפסלים, כולל חברות שנוספו ידנית. אין גיליון נפרד שצריך לסנכרן. גיבוי: הורדה חודשית מהגדרות → נתונים ופרטיות.</p>
+      <p data-l="en">One database (SQLite) inside the YMT app, on a persistent disk at Render (Frankfurt). "The company bank" = the companies table + opportunities + rejected ones, including companies added by hand. No separate sheet to sync. Backup: monthly download from Settings → Data &amp; privacy.</p>
+    </div>
+    <div class="card">
+      <h4><span data-l="he">רשימת ההחרגה של SHEPHA (חדש)</span><span data-l="en">The SHEPHA exclusion list (new)</span></h4>
+      <p data-l="he">טבלה נפרדת שמנהל/ת מערכת מייבא/ת מ-CSV/Excel (שם, שמות נוספים, אתר, ח.פ. אם יש). נקראת בשלב 2 של כל ריצה. התאמה = פסילה עם הסיבה „ברשימת ההחרגה של SHEPHA”. הרשימה עצמה לא מוצגת לאף אחד מלבד מנהלי מערכת, ולא נשלחת ל-AI – ההשוואה נעשית בקוד.</p>
+      <p data-l="en">A separate table an admin imports from CSV/Excel (name, other names, website, company number if any). Read in step 2 of every run. A match = disqualified with the reason "on the SHEPHA exclusion list". The list itself is shown only to admins and never sent to the AI – the comparison runs in code.</p>
+    </div>
+    <div class="card">
+      <h4><span data-l="he">כל כמה זמן</span><span data-l="en">How often</span></h4>
+      <ul data-l="he"><li>כל mandate פעיל רץ פעם בשבוע ביום שבעליו בוחר (קיים), ולפי דרישה בכפתור „הרצה”.</li><li>פיילוט: עד 5 חברות חדשות לכל mandate בכל ריצה (ברירת המחדל היום 5 ✓).</li><li>תקרת AI חודשית נבדקת לפני כל קריאה; כשנגמרת – הריצות מחכות, לא נכשלות.</li><li>בדיקה חוזרת של טריגרים „חיים” (משרה, דף מפיצים) ביום הסקירה – חדש.</li></ul>
+      <ul data-l="en"><li>Each active mandate runs once a week on the day its owner chooses (exists), and on demand with "Run".</li><li>Pilot: up to 5 new companies per mandate per run (today's default is 5 ✓).</li><li>The monthly AI cap is checked before every call; when reached, runs wait instead of failing.</li><li>"Live" triggers (job posting, distributor page) are re-checked on review day – new.</li></ul>
+    </div>
+    <div class="card">
+      <h4><span data-l="he">מה נכתב, ואיפה</span><span data-l="en">What is written, and where</span></h4>
+      <ul data-l="he"><li>חברה (חדשה, או רק השלמת שדות ריקים בקיימת – לעולם לא דריסה).</li><li>עובדות: ערך + ציטוט + קישור + תאריך בדיקה.</li><li>הזדמנות במצב טיוטה עם הטריגר, ההמלצה, הדירוג ומה שלא ידוע.</li><li>עד 3 אנשי קשר כהצעות – נשמרים כאנשי קשר רק אחרי אישור הבעלים.</li><li>יומן ריצה: מה נמצא, מה נפסל ולמה, עלות.</li></ul>
+      <ul data-l="en"><li>Company (new, or only the empty fields of an existing one – never overwritten).</li><li>Facts: value + quote + link + check date.</li><li>Opportunity as a draft with the trigger, recommendation, score and unknowns.</li><li>Up to 3 contacts as proposals – saved as contacts only after the owner confirms.</li><li>Run log: what was found, what was dropped and why, cost.</li></ul>
+    </div>
+  </div>
+
+  <h3><span data-l="he">זיהוי כפילויות – לפי הסדר</span><span data-l="en">Duplicate detection – in order</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th><span data-l="he">בדיקה</span><span data-l="en">Check</span></th><th><span data-l="he">איך</span><span data-l="en">How</span></th><th><span data-l="he">היום</span><span data-l="en">Today</span></th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><span data-l="he">דומיין האתר</span><span data-l="en">Website domain</span></td><td><span data-l="he">מנרמלים: בלי https, בלי www, אותיות קטנות, הדומיין הרשום בלבד (<code>shop.acme.co.il</code> → <code>acme.co.il</code>). התאמה = אותה חברה.</span><span data-l="en">Normalise: no https, no www, lower case, the registrable domain only (<code>shop.acme.co.il</code> → <code>acme.co.il</code>). A match = same company.</span></td><td><span class="chip done"><span data-l="he">קיים (בלי תת-דומיין)</span><span data-l="en">Exists (sub-domain to add)</span></span></td></tr>
+      <tr><td>2</td><td><span data-l="he">ח.פ. / מספר רישום</span><span data-l="en">Company number</span></td><td><span data-l="he">כשידוע (רשם החברות, מאי”ה) – המפתח החזק ביותר.</span><span data-l="en">When known (registrar, TASE) – the strongest key.</span></td><td><span class="chip gap"><span data-l="he">חדש</span><span data-l="en">New</span></span></td></tr>
+      <tr><td>3</td><td><span data-l="he">שם + מדינת מטה</span><span data-l="en">Name + HQ country</span></td><td><span data-l="he">שם מנורמל (בלי Ltd, בע”מ, סימני פיסוק) + אותה מדינת מטה. התאמה בשם בלבד = סימון „כפילות אפשרית” לבעלים.</span><span data-l="en">Normalised name (no Ltd, בע”מ, punctuation) + the same HQ country. A name-only match = flag "possible duplicate" for the owner.</span></td><td><span class="chip done"><span data-l="he">קיים</span><span data-l="en">Exists</span></span></td></tr>
+      <tr><td>4</td><td><span data-l="he">שמות קודמים, שם עברי, חברת אם, רכישות</span><span data-l="en">Former names, Hebrew name, parent, acquisitions</span></td><td><span data-l="he">טבלת שמות נוספים לכל חברה; הסוכן מוסיף שמות שמצא עם מקור. נבדקים כמו שם (3).</span><span data-l="en">An extra-names table per company; the agent adds names it found, with a source. Checked like a name (3).</span></td><td><span class="chip gap"><span data-l="he">חדש</span><span data-l="en">New</span></span></td></tr>
+      <tr><td>5</td><td><span data-l="he">אותה יוזמה</span><span data-l="en">Same initiative</span></td><td><span data-l="he">אותו קישור מקור, או הזדמנות פתוחה לאותו צורך ואותו שוק → לא נפתחת הזדמנות שנייה.</span><span data-l="en">The same source link, or an open opportunity for the same need and market → no second opportunity.</span></td><td><span class="chip done"><span data-l="he">קיים</span><span data-l="en">Exists</span></span></td></tr>
+    </tbody>
+  </table></div>
+  <h3><span data-l="he">מה קורה כשנמצאה התאמה</span><span data-l="en">What happens on a match</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">מצב</span><span data-l="en">Situation</span></th><th><span data-l="he">פעולה</span><span data-l="en">Action</span></th><th><span data-l="he">היום</span><span data-l="en">Today</span></th></tr></thead>
+    <tbody>
+      <tr><td><span data-l="he">כבר בבנק</span><span data-l="en">Already in the bank</span></td><td><span data-l="he">מוסיפים הזדמנות לכרטיס הקיים; לא פותחים כרטיס כפול</span><span data-l="en">Add an opportunity to the existing card; never a second card</span></td><td><span class="chip done"><span data-l="he">קיים</span><span data-l="en">Exists</span></span></td></tr>
+      <tr><td><span data-l="he">נפסלה בעבר</span><span data-l="en">Rejected before</span></td><td><span data-l="he">הכרטיס מציג את הסיבה הקודמת, מי ומתי</span><span data-l="en">The card shows the earlier reason, who and when</span></td><td><span class="chip need"><span data-l="he">חלקי</span><span data-l="en">Partial</span></span></td></tr>
+      <tr><td><span data-l="he">נפסלה בגלל „החלטה בחו”ל”</span><span data-l="en">Rejected for "decision abroad"</span></td><td><span data-l="he">נפתחת מחדש (לפי הכלל החדש)</span><span data-l="en">Reopened (per the new rule)</span></td><td><span class="chip gap"><span data-l="he">חדש</span><span data-l="en">New</span></span></td></tr>
+      <tr><td><span data-l="he">ברשימת ההחרגה של SHEPHA</span><span data-l="en">On the SHEPHA exclusion list</span></td><td><span data-l="he">נפסלת עם סיבה; נרשמת ביומן הריצה בלבד</span><span data-l="en">Disqualified with a reason; recorded in the run log only</span></td><td><span class="chip gap"><span data-l="he">חדש</span><span data-l="en">New</span></span></td></tr>
+      <tr><td><span data-l="he">אדם ברשימת „לא לפנות”</span><span data-l="en">A person on "do not contact"</span></td><td><span data-l="he">החברה נשארת; האדם לא מוצע כאיש קשר</span><span data-l="en">The company stays; that person is not proposed as a contact</span></td><td><span class="chip done"><span data-l="he">קיים</span><span data-l="en">Exists</span></span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="block" id="t4">
+  <h2><span class="no">4</span><span data-l="he">שדות כרטיס החברה וההזדמנות</span><span data-l="en">Company card and opportunity fields</span></h2>
+  <p class="task-quote" data-l="he">„להפוך את שדות כרטיס החברה וההזדמנות לרשימה מדויקת: שם, סוג, ערכים מותרים, חובה או לא, ומיפוי לאפליקציה הקיימת או ל-CRM.”</p>
+  <p class="task-quote" data-l="en">"Turn the company card and opportunity fields into an exact list: name, type, allowed values, required or not, and mapping to the existing app or the CRM."</p>
+  <p data-l="he"><strong>חובה</strong> = הכרטיס לא נכנס לתור בלעדיו (מותר הערך „לא ידוע” היכן שמצוין). כל שדה עובדתי נשמר גם כעובדה עם מקור ותאריך (טבלת <code>facts</code>). עמודת „באפליקציה”: <span class="chip done">✓</span> קיים, <span class="chip need">~</span> קיים חלקית, <span class="chip gap">+</span> חדש.</p>
+  <p data-l="en"><strong>Required</strong> = the card cannot enter the queue without it ("unknown" allowed where stated). Every factual field is also stored as a fact with a source and date (table <code>facts</code>). The "In the app" column: <span class="chip done">✓</span> exists, <span class="chip need">~</span> partly, <span class="chip gap">+</span> new.</p>
+
+  <h3><span data-l="he">רשומת חברה</span><span data-l="en">Company record</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">שדה</span><span data-l="en">Field</span></th><th><span data-l="he">סוג</span><span data-l="en">Type</span></th><th><span data-l="he">ערכים מותרים</span><span data-l="en">Allowed values</span></th><th><span data-l="he">חובה</span><span data-l="en">Required</span></th><th><span data-l="he">באפליקציה</span><span data-l="en">In the app</span></th></tr></thead>
+    <tbody>
+      <tr><td><span data-l="he">שם (באנגלית)</span><span data-l="en">Name (English)</span></td><td>text ≤ 200</td><td><span data-l="he">כפי שבאתר החברה</span><span data-l="en">As on the company website</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>companies.name</code></td></tr>
+      <tr><td><span data-l="he">שמות נוספים</span><span data-l="en">Other names</span></td><td>list</td><td><span data-l="he">שם עברי, שמות קודמים, שם קבוצה – כל אחד עם מקור</span><span data-l="en">Hebrew name, former names, group name – each with a source</span></td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip gap">+</span> <code>company_aliases</code></td></tr>
+      <tr><td><span data-l="he">אתר</span><span data-l="en">Website</span></td><td>URL</td><td><span data-l="he">אתר חי; מפתח לבדיקת כפילויות</span><span data-l="en">A live site; duplicate-check key</span></td><td><span data-l="he">כן, אם קיים</span><span data-l="en">Yes, if one exists</span></td><td><span class="chip done">✓</span> <code>companies.website</code></td></tr>
+      <tr><td><span data-l="he">ח.פ. / מספר רישום</span><span data-l="en">Company number</span></td><td>text</td><td><span data-l="he">מרשם החברות</span><span data-l="en">From the registrar</span></td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip gap">+</span> <code>companies.registry_number</code></td></tr>
+      <tr><td><span data-l="he">חברת אם ויחידה</span><span data-l="en">Parent and unit</span></td><td>text</td><td>—</td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip done">✓</span> <code>parent_company</code>, <code>business_unit</code></td></tr>
+      <tr><td><span data-l="he">קשר לישראל</span><span data-l="en">Israel connection</span></td><td>enum</td><td class="ltr">hq_israel · israeli_unit · other_connection · none · unknown</td><td><span data-l="he">כן (none = לא נכנסת)</span><span data-l="en">Yes (none = does not enter)</span></td><td><span class="chip done">✓</span> <code>israel_connection</code></td></tr>
+      <tr><td><span data-l="he">מדינת התאגדות</span><span data-l="en">Incorporation country</span></td><td>country</td><td>—</td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip done">✓</span> <code>incorporation_country</code></td></tr>
+      <tr><td><span data-l="he">מדינת מטה</span><span data-l="en">HQ country</span></td><td>country</td><td><span data-l="he">או „לא ידוע”</span><span data-l="en">or "unknown"</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>hq_country</code></td></tr>
+      <tr><td><span data-l="he">מודל עסקי ראשי</span><span data-l="en">Primary business model</span></td><td>enum</td><td class="ltr">product_owner · contract_producer · software_ip · distributor_retailer · service_project · platform · asset_operator · other · unknown</td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>model_primary</code></td></tr>
+      <tr><td><span data-l="he">מודל עסקי משני</span><span data-l="en">Secondary business model</span></td><td>enum</td><td><span data-l="he">כמו הראשי</span><span data-l="en">Same as primary</span></td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip done">✓</span> <code>model_secondary</code></td></tr>
+      <tr><td><span data-l="he">סקטור</span><span data-l="en">Sector</span></td><td>enum</td><td><span data-l="he">12 הסקטורים של תום + unknown</span><span data-l="en">Tom's 12 sectors + unknown</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>sector</code></td></tr>
+      <tr><td><span data-l="he">תת-סקטור</span><span data-l="en">Subsector</span></td><td>text</td><td><span data-l="he">מרשימת התתי-תחומים המועדפים, או חופשי</span><span data-l="en">From the priority-subsector list, or free text</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip need">~</span> <code>subsector</code> <span data-l="he">(רשימה מועדפת חדשה)</span><span data-l="en">(priority list new)</span></td></tr>
+      <tr><td><span data-l="he">סוג לקוח</span><span data-l="en">Customer type</span></td><td>multi-enum</td><td class="ltr">business · consumer · public_sector</td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip done">✓</span> <code>customer_types</code></td></tr>
+      <tr><td><span data-l="he">שווקי לקוחות</span><span data-l="en">Customer markets</span></td><td>list</td><td><span data-l="he">חופשי (למשל „קמעונאות”)</span><span data-l="en">Free text (e.g. "retail")</span></td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip done">✓</span> <code>customer_markets</code></td></tr>
+      <tr><td><span data-l="he">עובדים (עם תאריך)</span><span data-l="en">Employees (with date)</span></td><td>int range + date</td><td><span data-l="he">מינימום–מקסימום, נכון ל-</span><span data-l="en">min–max, as of</span></td><td><span data-l="he">כן, או „לא ידוע”</span><span data-l="en">Yes, or "unknown"</span></td><td><span class="chip done">✓</span> <code>employees_min/max/as_of</code></td></tr>
+      <tr><td><span data-l="he">מחזור</span><span data-l="en">Revenue</span></td><td>USD range + year + basis</td><td><span data-l="he">שנה, מטבע מקורי, מדווח/משוער</span><span data-l="en">Year, original currency, reported/estimated</span></td><td><span data-l="he">כן, או „לא ידוע” (אז מ-10 עובדים)</span><span data-l="en">Yes, or "unknown" (then from 10 employees)</span></td><td><span class="chip done">✓</span> <code>revenue_usd_min/max</code>, <code>revenue_fiscal_year</code>, <code>revenue_basis</code>, <code>revenue_original</code></td></tr>
+      <tr><td><span data-l="he">רצועת גודל</span><span data-l="en">Size band</span></td><td><span data-l="he">מחושב</span><span data-l="en">computed</span></td><td class="ltr">Micro · Small · Medium · Large · Large enterprise · Spans multiple bands</td><td>—</td><td><span class="chip done">✓</span> <span data-l="he">מחושב בקוד</span><span data-l="en">computed in code</span></td></tr>
+      <tr><td><span data-l="he">מתחת לרצפה</span><span data-l="en">Below floor</span></td><td><span data-l="he">מחושב</span><span data-l="en">computed</span></td><td><span data-l="he">כן/לא (SH1, SH3: מתחת ל-30M$)</span><span data-l="en">yes/no (SH1, SH3: under $30M)</span></td><td>—</td><td><span class="chip gap">+</span></td></tr>
+      <tr><td><span data-l="he">בעלות</span><span data-l="en">Ownership</span></td><td>text</td><td><span data-l="he">פרטית, ציבורית, קרן, משפחתית…</span><span data-l="en">Private, public, fund-owned, family…</span></td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip done">✓</span> <code>ownership</code></td></tr>
+      <tr><td><span data-l="he">ראיית יצוא</span><span data-l="en">Proof of export</span></td><td>enum + source</td><td class="ltr">proven · none · unknown</td><td><span data-l="he">כן (none = פסילה)</span><span data-l="en">Yes (none = disqualified)</span></td><td><span class="chip need">~</span> <code>exports</code> <span data-l="he">(היום כן/לא ידני; צריך מקור)</span><span data-l="en">(today a manual yes/no; needs a source)</span></td></tr>
+      <tr><td><span data-l="he">מצב בכל שוק יעד</span><span data-l="en">Status in each target market</span></td><td><span data-l="he">רשומה לכל שוק</span><span data-l="en">one row per market</span></td><td class="ltr">not_active · exploring · distributor · subsidiary · plant_or_jv · unknown</td><td><span data-l="he">כן, לשוק של ה-mandate</span><span data-l="en">Yes, for the mandate's market</span></td><td><span class="chip gap">+</span> <code>company_markets</code> <span data-l="he">(מחליף את india_activity)</span><span data-l="en">(replaces india_activity)</span></td></tr>
+      <tr><td><span data-l="he">התאמה לכל שוק</span><span data-l="en">Fit per market</span></td><td>enum + note</td><td class="ltr">fit · possible · no_fit · unknown</td><td><span data-l="he">כן, ל-IN/JP/TH-VN/CN</span><span data-l="en">Yes, for IN/JP/TH-VN/CN</span></td><td><span class="chip gap">+</span> <code>company_markets.fit</code></td></tr>
+      <tr><td><span data-l="he">תיאור קצר וייחודיות</span><span data-l="en">Short description and differentiators</span></td><td>text ≤ 500</td><td>—</td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip need">~</span> <span data-l="he">(יש תקציר מאושר; צריך שדה תיאור)</span><span data-l="en">(approved brief exists; needs a description field)</span></td></tr>
+      <tr><td><span data-l="he">תגיות D1–D3, S1–S4</span><span data-l="en">Tags D1–D3, S1–S4</span></td><td>?</td><td><span data-l="he">ממתין להגדרת תום (שאלה 24)</span><span data-l="en">Waiting for Tom's definition (question 24)</span></td><td>?</td><td><span class="chip gap">+</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span data-l="he">אנשי קשר</span><span data-l="en">Contacts</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">שדה</span><span data-l="en">Field</span></th><th><span data-l="he">סוג</span><span data-l="en">Type</span></th><th><span data-l="he">ערכים מותרים</span><span data-l="en">Allowed values</span></th><th><span data-l="he">חובה</span><span data-l="en">Required</span></th><th><span data-l="he">באפליקציה</span><span data-l="en">In the app</span></th></tr></thead>
+    <tbody>
+      <tr><td><span data-l="he">שם</span><span data-l="en">Name</span></td><td>text</td><td>—</td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>contacts.full_name</code></td></tr>
+      <tr><td><span data-l="he">תפקיד</span><span data-l="en">Role</span></td><td>text</td><td><span data-l="he">הכותרת כפי שבלינקדאין/אתר; לפי רשימת מילות המפתח</span><span data-l="en">The title as on LinkedIn/the site; per the keyword list</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>job_title</code></td></tr>
+      <tr><td><span data-l="he">מייל</span><span data-l="en">Email</span></td><td>email</td><td><span data-l="he">רק אם פורסם, או נמצא ועבר בדיקת תקינות; לא מנחשים</span><span data-l="en">Only if published, or found and validated; never guessed</span></td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip done">✓</span> <code>email</code></td></tr>
+      <tr><td><span data-l="he">טלפון</span><span data-l="en">Phone</span></td><td>text</td><td><span data-l="he">עסקי בלבד</span><span data-l="en">Business only</span></td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip done">✓</span> <code>phone</code></td></tr>
+      <tr><td><span data-l="he">לינקדאין</span><span data-l="en">LinkedIn</span></td><td>URL</td><td class="ltr">linkedin.com/in/…</td><td><span data-l="he">לא</span><span data-l="en">No</span></td><td><span class="chip done">✓</span> <code>linkedin_url</code></td></tr>
+      <tr><td><span data-l="he">ערוץ מועדף</span><span data-l="en">Preferred channel</span></td><td>enum</td><td class="ltr">email · linkedin · phone · whatsapp · switchboard</td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip gap">+</span></td></tr>
+      <tr><td><span data-l="he">תאריך אימות תפקיד</span><span data-l="en">Role verification date</span></td><td>date</td><td><span data-l="he">עד 30 יום לפני פנייה</span><span data-l="en">Within 30 days before outreach</span></td><td><span data-l="he">כן, לפני פנייה</span><span data-l="en">Yes, before outreach</span></td><td><span class="chip need">~</span> <code>verified_at</code> <span data-l="he">(צריך חסימה מעל 30 יום)</span><span data-l="en">(needs the 30-day block)</span></td></tr>
+      <tr><td><span data-l="he">מקור</span><span data-l="en">Source</span></td><td>URL + quote</td><td>—</td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>verified_source</code></td></tr>
+      <tr><td><span data-l="he">שפה, מדינה, הסכמה ל-WhatsApp, הסרה</span><span data-l="en">Language, country, WhatsApp consent, opt-out</span></td><td>—</td><td>—</td><td><span data-l="he">שפה: כן</span><span data-l="en">Language: yes</span></td><td><span class="chip done">✓</span> <span data-l="he">(Release 3)</span><span data-l="en">(Release 3)</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span data-l="he">הזדמנות</span><span data-l="en">Opportunity</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">שדה</span><span data-l="en">Field</span></th><th><span data-l="he">סוג</span><span data-l="en">Type</span></th><th><span data-l="he">ערכים מותרים</span><span data-l="en">Allowed values</span></th><th><span data-l="he">חובה</span><span data-l="en">Required</span></th><th><span data-l="he">באפליקציה</span><span data-l="en">In the app</span></th></tr></thead>
+    <tbody>
+      <tr><td><span data-l="he">תפקיד החברה</span><span data-l="en">Company role</span></td><td>enum</td><td class="ltr">client · delivery_partner · supplier · unknown</td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>relationship_role</code></td></tr>
+      <tr><td><span data-l="he">מדינת יעד</span><span data-l="en">Target country</span></td><td>enum</td><td class="ltr">India · Japan · Thailand · Vietnam · China · Israel</td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip need">~</span> <code>target_country</code> <span data-l="he">(היום טקסט חופשי)</span><span data-l="en">(free text today)</span></td></tr>
+      <tr><td><span data-l="he">הצורך במילים של החברה</span><span data-l="en">The need in the company's words</span></td><td>quote</td><td><span data-l="he">ציטוט מהמקור</span><span data-l="en">A quote from the source</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>evidence_quote</code>, <code>business_need</code></td></tr>
+      <tr><td><span data-l="he">טריגר: מה</span><span data-l="en">Trigger: what</span></td><td>enum</td><td class="ltr">trade_show · delegation · job_posting · distributor_search · regulatory · news · none</td><td><span data-l="he">כן (none מותר)</span><span data-l="en">Yes (none allowed)</span></td><td><span class="chip gap">+</span> <code>trigger_type</code></td></tr>
+      <tr><td><span data-l="he">טריגר: מתי, מקור</span><span data-l="en">Trigger: when, source</span></td><td>date + URL</td><td><span data-l="he">תאריך פרסום; קישור שהחיפוש החזיר</span><span data-l="en">Publication date; a link the search returned</span></td><td><span data-l="he">כן, כשיש טריגר</span><span data-l="en">Yes, when there is a trigger</span></td><td><span class="chip done">✓</span> <code>evidence_date</code>, <code>evidence_source_id</code></td></tr>
+      <tr><td><span data-l="he">טריגר: מאומת</span><span data-l="en">Trigger: verified</span></td><td>bool + date</td><td><span data-l="he">פעולה של החברה עצמה; „חי” ביום הבדיקה</span><span data-l="en">An action of the company itself; "live" on check day</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip gap">+</span> <code>trigger_verified_at</code></td></tr>
+      <tr><td>Mandate</td><td>ref</td><td>SH1–SH3 · OM1–OM3 · <span data-l="he">שיוך ידני</span><span data-l="en">manual assignment</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>mandate_id</code></td></tr>
+      <tr><td><span data-l="he">שירות מוצע</span><span data-l="en">Proposed service</span></td><td><span data-l="he">קוד</span><span data-l="en">code</span></td><td class="ltr">IL-1…IL-12 · GL-1…GL-11</td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip need">~</span> <code>proposed_service</code> <span data-l="he">(היום טקסט; צריך קוד)</span><span data-l="en">(text today; needs a code)</span></td></tr>
+      <tr><td><span data-l="he">סיבה לפעול עכשיו</span><span data-l="en">Reason to act now</span></td><td>text</td><td><span data-l="he">משפט אחד</span><span data-l="en">One sentence</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>reason_to_act</code></td></tr>
+      <tr><td><span data-l="he">בעלים</span><span data-l="en">Owner</span></td><td>user</td><td><span data-l="he">בעל/ת ה-mandate</span><span data-l="en">The mandate owner</span></td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip done">✓</span> <code>owner_id</code></td></tr>
+      <tr><td><span data-l="he">דירוג ורכיביו</span><span data-l="en">Score and components</span></td><td>int 0–100 + 5 parts</td><td><span data-l="he">סעיף 5</span><span data-l="en">Section 5</span></td><td><span data-l="he">כן (מחושב)</span><span data-l="en">Yes (computed)</span></td><td><span class="chip gap">+</span> <code>score</code>, <code>score_parts</code>, <code>tier</code></td></tr>
+      <tr><td><span data-l="he">מצב בדיקה וסיבה</span><span data-l="en">Review status and reason</span></td><td>enum + text</td><td class="ltr">Accept · Verify · Defer · Reject (+ reason)</td><td><span data-l="he">כן, בהחלטה</span><span data-l="en">Yes, at decision</span></td><td><span class="chip done">✓</span> <code>status</code>, <code>decision_reason</code>, <code>decision_note</code></td></tr>
+      <tr><td><span data-l="he">לחזור בתאריך</span><span data-l="en">Come back on</span></td><td>date</td><td><span data-l="he">ברירת מחדל +90 יום</span><span data-l="en">Default +90 days</span></td><td><span data-l="he">כן ב-Defer</span><span data-l="en">Yes on Defer</span></td><td><span class="chip gap">+</span> <code>defer_until</code></td></tr>
+      <tr><td><span data-l="he">מביא/ת הליד</span><span data-l="en">Lead originator</span></td><td>enum + ref</td><td class="ltr">agent · staff · partner · referral · web</td><td><span data-l="he">כן</span><span data-l="en">Yes</span></td><td><span class="chip gap">+</span> <code>originator</code></td></tr>
+      <tr><td><span data-l="he">מה לא ידוע</span><span data-l="en">What is unknown</span></td><td>list</td><td>—</td><td><span data-l="he">כן (יכול להיות ריק)</span><span data-l="en">Yes (may be empty)</span></td><td><span class="chip done">✓</span> <code>unknowns</code></td></tr>
+      <tr><td><span data-l="he">סטטוס הפנייה</span><span data-l="en">Outreach status</span></td><td>—</td><td><span data-l="he">נרשם בנפרד מהסיווג</span><span data-l="en">Recorded separately from classification</span></td><td>—</td><td><span class="chip done">✓</span> <span data-l="he">שיחות ותור אישורים (Release 3–4)</span><span data-l="en">Conversations and approval queue (Release 3–4)</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="block" id="t5">
+  <h2><span class="no">5</span><span data-l="he">איך מחשבים את הדירוג 0–100</span><span data-l="en">How the 0–100 score is computed</span></h2>
+  <p class="task-quote" data-l="he">„להציע איך מחשבים את הדירוג (0–100) מתוך המשקלות שבאפיון.”</p>
+  <p class="task-quote" data-l="en">"Propose how the score (0–100) is computed from the weights in the spec."</p>
+  <p data-l="he"><strong>המשקלות מהאפיון:</strong> התאמה לתת-תחום 25 · טריגר עכשווי 25 · גישה למקבל ההחלטה 20 · התאמה לשירות שלנו 20 · איכות הראיות 10 = 100. Tier A = 80 ומעלה, B = 65–79, C = מתחת.</p>
+  <p data-l="en"><strong>The spec's weights:</strong> subsector fit 25 · current trigger 25 · decision-maker access 20 · fit to our service 20 · evidence quality 10 = 100. Tier A = 80+, B = 65–79, C = below.</p>
+  <div class="note" data-l="he"><strong>העיקרון המוצע:</strong> ה-AI לא נותן מספרים. לכל רכיב הוא בוחר <em>רמה</em> מתוך רשימה סגורה ומצרף את הראיה (קישור + ציטוט). הקוד הופך רמות לנקודות. כך הדירוג עקבי בין ריצות, אפשר לבדוק כל נקודה, ושינוי משקל הוא שינוי הגדרה – לא שינוי פרומפט.</div>
+  <div class="note" data-l="en"><strong>Proposed principle:</strong> the AI gives no numbers. For each component it picks a <em>level</em> from a closed list and attaches the evidence (link + quote). Code turns levels into points. The score is then consistent between runs, every point can be checked, and changing a weight is a setting – not a prompt change.</div>
+
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">רכיב</span><span data-l="en">Component</span></th><th><span data-l="he">רמה</span><span data-l="en">Level</span></th><th class="n"><span data-l="he">נקודות</span><span data-l="en">Points</span></th></tr></thead>
+    <tbody>
+      <tr><td rowspan="5"><strong><span data-l="he">התאמה לתת-תחום</span><span data-l="en">Subsector fit</span></strong> (25)</td><td><span data-l="he">תת-תחום מהרשימה המועדפת, או אחד משלושת תחומי המיקוד (תוכנה, ביטחון, פלסטיק)</span><span data-l="en">A priority subsector, or one of the three focus areas (software, defence, plastics)</span></td><td class="n">25</td></tr>
+      <tr><td><span data-l="he">סקטור שבו ל-SHEPHA יש ניסיון (רפואי, אנרגיה, סייבר, מים) – בהודו</span><span data-l="en">A sector where SHEPHA has experience (medical, energy, cyber, water) – for India</span></td><td class="n">20</td></tr>
+      <tr><td><span data-l="he">סקטור אחר, מודל עסקי שנכנס לחיפוש (בעל מוצר, יצרן בקבלנות, תוכנה)</span><span data-l="en">Another sector, a business model the search accepts (product owner, contract producer, software)</span></td><td class="n">12</td></tr>
+      <tr><td><span data-l="he">מפיץ או נותן שירות – רק עם סיבה מפורשת</span><span data-l="en">Distributor or service provider – only with an explicit reason</span></td><td class="n">5</td></tr>
+      <tr><td><span data-l="he">לא ידוע</span><span data-l="en">Unknown</span></td><td class="n">0</td></tr>
+      <tr><td rowspan="5"><strong><span data-l="he">טריגר עכשווי</span><span data-l="en">Current trigger</span></strong> (25)</td><td><span data-l="he">חיפוש מפיץ/שותף, MoU, משרד או גיוס לשוק היעד, רישום רגולטורי (BIS, CDSCO…)</span><span data-l="en">Distributor/partner search, MoU, an office or hire for the target market, a regulatory registration (BIS, CDSCO…)</span></td><td class="n">25</td></tr>
+      <tr><td><span data-l="he">תערוכה או משלחת בשוק היעד שהחברה עצמה אישרה</span><span data-l="en">A trade show or delegation in the target market that the company itself confirmed</span></td><td class="n">20</td></tr>
+      <tr><td><span data-l="he">משרה פתוחה לתפקיד בשוק היעד (חיה ביום הבדיקה)</span><span data-l="en">An open job for a target-market role (live on check day)</span></td><td class="n">18</td></tr>
+      <tr><td><span data-l="he">הצהרה של החברה שמזכירה את השוק, בלי פעולה</span><span data-l="en">A company statement naming the market, without an action</span></td><td class="n">10</td></tr>
+      <tr><td><span data-l="he">אין טריגר (מגמה ענפית, „חזון”, תערוכה לא מאומתת)</span><span data-l="en">No trigger (industry trend, "vision", unverified show)</span></td><td class="n">0</td></tr>
+      <tr><td colspan="3"><span data-l="he"><strong>× גיל הטריגר:</strong> עד 6 חודשים ×1 · 6–12 חודשים ×0.5 · מעל שנה ×0 (רקע בלבד). משרה או דף מפיצים שכבר לא חיים = 0.</span><span data-l="en"><strong>× trigger age:</strong> up to 6 months ×1 · 6–12 months ×0.5 · over a year ×0 (background only). A job posting or distributor page that is no longer live = 0.</span></td></tr>
+      <tr><td rowspan="5"><strong><span data-l="he">גישה למקבל ההחלטה</span><span data-l="en">Decision-maker access</span></strong> (20)</td><td><span data-l="he">מקבל החלטה בשמו (לפי מילות המפתח), תפקיד אומת ב-30 יום, ויש דרך: מייל שפורסם/נבדק, לינקדאין או טלפון – או היכרות קיימת</span><span data-l="en">A named decision maker (per the keywords), role verified within 30 days, and a route: a published/validated email, LinkedIn or phone – or an existing relationship</span></td><td class="n">20</td></tr>
+      <tr><td><span data-l="he">בשמו ועם דרך, אבל התפקיד לא אומת ב-30 יום</span><span data-l="en">Named with a route, but the role was not verified within 30 days</span></td><td class="n">14</td></tr>
+      <tr><td><span data-l="he">בשמו, בלי דרך</span><span data-l="en">Named, without a route</span></td><td class="n">8</td></tr>
+      <tr><td><span data-l="he">רק דרך כללית (מרכזייה, info@)</span><span data-l="en">Only a general route (switchboard, info@)</span></td><td class="n">4</td></tr>
+      <tr><td><span data-l="he">כלום</span><span data-l="en">Nothing</span></td><td class="n">0</td></tr>
+      <tr><td rowspan="4"><strong><span data-l="he">התאמה לשירות שלנו</span><span data-l="en">Fit to our service</span></strong> (20)</td><td><span data-l="he">הצורך מתאים לשירות של ה-mandate, ושירות זה במצב „מוכן”</span><span data-l="en">The need matches the mandate's service, and that service is "ready"</span></td><td class="n">20</td></tr>
+      <tr><td><span data-l="he">מתאים, אבל השירות „בבנייה” / „בבדיקה”</span><span data-l="en">Matches, but the service is "in build" / "in testing"</span></td><td class="n">12</td></tr>
+      <tr><td><span data-l="he">מתאים לשירות של mandate אחר</span><span data-l="en">Fits another mandate's service</span></td><td class="n">8</td></tr>
+      <tr><td><span data-l="he">אין שירות מתאים (שיוך ידני)</span><span data-l="en">No matching service (manual assignment)</span></td><td class="n">0</td></tr>
+      <tr><td rowspan="4"><strong><span data-l="he">איכות הראיות</span><span data-l="en">Evidence quality</span></strong> (10)</td><td><span data-l="he">כל נתון חשוב (מחזור, תפקיד, מצב בשוק) מאומת מול שני מקורות לפחות</span><span data-l="en">Every important fact (revenue, role, market status) checked against at least two sources</span></td><td class="n">10</td></tr>
+      <tr><td><span data-l="he">מקור ראשוני רשמי אחד לכל נתון (אתר החברה, רשם, מאי”ה, מכון היצוא)</span><span data-l="en">One official primary source per fact (company site, registrar, TASE, Export Institute)</span></td><td class="n">7</td></tr>
+      <tr><td><span data-l="he">מקורות משניים בלבד (אתרי חדשות, מאגרים)</span><span data-l="en">Secondary sources only (news, aggregators)</span></td><td class="n">4</td></tr>
+      <tr><td><span data-l="he">מקורות סותרים או חסרים</span><span data-l="en">Contradicting or missing sources</span></td><td class="n">0</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span data-l="he">כללים סביב הדירוג</span><span data-l="en">Rules around the score</span></h3>
+  <ul data-l="he">
+    <li><strong>פסילה לפני דירוג:</strong> רשימת ההחרגה של SHEPHA, אין יצוא מוכח, אין קשר מזוהה לישראל → Reject, בלי דירוג.</li>
+    <li><strong>Defer הוא החלטה, לא ציון:</strong> מפיץ חתום או MoU בשוק → המלצת Defer גם עם דירוג גבוה.</li>
+    <li><strong>„מורידים עדיפות” כחיסור קבוע</strong> (הצעה): מחזור עיקרי מחוץ לטווח, החלטה בחו”ל, חברת בת/מפעל/JV בשוק → −10 כל אחד, מינימום 0. מוצג כתגית.</li>
+    <li><strong>מתחת לרצפה</strong> (SH1, SH3: 10M$–30M$): תגית בלבד, לא משנה את הציון.</li>
+    <li><strong>סדר התור:</strong> קודם כרטיסים עם טריגר, אחר כך לפי ציון. כרטיס בלי טריגר לא נמחק.</li>
+    <li><strong>השערים הישנים</strong> (החלטה בישראל, מחזור בטוח, לא פעילה בשוק) מוצגים כמידע ולא נכנסים לחישוב.</li>
+  </ul>
+  <ul data-l="en">
+    <li><strong>Disqualify before scoring:</strong> the SHEPHA exclusion list, no proven export, no identified Israeli connection → Reject, no score.</li>
+    <li><strong>Defer is a decision, not a score:</strong> a signed distributor or MoU in the market → a Defer recommendation even with a high score.</li>
+    <li><strong>"Lowers priority" as a fixed deduction</strong> (proposal): main revenue outside the range, decision abroad, a subsidiary/plant/JV in the market → −10 each, minimum 0. Shown as a badge.</li>
+    <li><strong>Below floor</strong> (SH1, SH3: $10M–$30M): a badge only, the score is unchanged.</li>
+    <li><strong>Queue order:</strong> cards with a trigger first, then by score. A card without a trigger is never deleted.</li>
+    <li><strong>The old gates</strong> (decision in Israel, safe revenue, not active in the market) are shown as information and are not part of the calculation.</li>
+  </ul>
+
+  <h3><span data-l="he">שתי דוגמאות (להמחשה – לפי המידע באפיון, לפני הרצה אמיתית)</span><span data-l="en">Two examples (illustrative – from the spec's information, before a real run)</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">רכיב</span><span data-l="en">Component</span></th><th>Cortex Dental</th><th class="n"></th><th>Kornit Digital</th><th class="n"></th></tr></thead>
+    <tbody>
+      <tr><td><span data-l="he">תת-תחום</span><span data-l="en">Subsector</span></td><td><span data-l="he">רפואת שיניים – ברשימה המועדפת</span><span data-l="en">Dental – on the priority list</span></td><td class="n">25</td><td><span data-l="he">הדפסה דיגיטלית לטקסטיל – סקטור אחר, בעל מוצר</span><span data-l="en">Digital textile printing – another sector, product owner</span></td><td class="n">12</td></tr>
+      <tr><td><span data-l="he">טריגר</span><span data-l="en">Trigger</span></td><td><span data-l="he">מחפשת מפיץ בהודו כבר חודשים (עד 6 חודשים)</span><span data-l="en">Has been looking for an Indian distributor for months (under 6 months)</span></td><td class="n">25</td><td><span data-l="he">„עניין אסטרטגי”, בלי פעולה מתוארכת</span><span data-l="en">"Strategic interest", no dated action</span></td><td class="n">0</td></tr>
+      <tr><td><span data-l="he">מקבל החלטה</span><span data-l="en">Decision maker</span></td><td><span data-l="he">נניח: בשמו עם לינקדאין, תפקיד לא אומת</span><span data-l="en">Assume: named with LinkedIn, role not verified</span></td><td class="n">14</td><td><span data-l="he">נניח: אותו מצב</span><span data-l="en">Assume: the same</span></td><td class="n">14</td></tr>
+      <tr><td><span data-l="he">שירות</span><span data-l="en">Service</span></td><td><span data-l="he">GL-2 חיבור למפיץ – מוכן</span><span data-l="en">GL-2 distributor connection – ready</span></td><td class="n">20</td><td><span data-l="he">GL-6 כניסה מקצה לקצה – מוכן</span><span data-l="en">GL-6 end-to-end entry – ready</span></td><td class="n">20</td></tr>
+      <tr><td><span data-l="he">ראיות</span><span data-l="en">Evidence</span></td><td><span data-l="he">מקור ראשוני אחד</span><span data-l="en">One primary source</span></td><td class="n">7</td><td><span data-l="he">דוחות בורסה + אתר</span><span data-l="en">Exchange filings + website</span></td><td class="n">10</td></tr>
+      <tr><td><strong><span data-l="he">סה”כ</span><span data-l="en">Total</span></strong></td><td><strong>Tier A</strong> · <span data-l="he">תגית „מתחת לרצפה”</span><span data-l="en">badge "below floor"</span></td><td class="n"><strong>91</strong></td><td><strong>Tier C</strong> · <span data-l="he">המלצה: Defer (לחזור ברבעון)</span><span data-l="en">recommendation: Defer (come back in a quarter)</span></td><td class="n"><strong>56</strong></td></tr>
+    </tbody>
+  </table></div>
+  <p data-l="he">שני המקרים מסתדרים עם התוצאה הצפויה באפיון (Cortex – Accept, Kornit – Defer). ההרצה האמיתית (סעיף 7) תבדוק את זה על הנתונים בפועל.</p>
+  <p data-l="en">Both match the spec's expected results (Cortex – Accept, Kornit – Defer). The real run (section 7) checks this on actual data.</p>
+</section>
+
+<section class="block" id="t6">
+  <h2><span class="no">6</span><span data-l="he">מבחן 20 החברות (אנשי קשר)</span><span data-l="en">The 20-company test (contacts)</span></h2>
+  <p class="task-quote" data-l="he">„להכין עם תום את מבחן 20 החברות: להריץ חברות שאיש הקשר הנכון בהן ידוע קודם במקורות החינמיים (מנועי חיפוש, אתרים, לינקדאין פומבי) ובמכסות החינמיות של Apollo ו-Lusha, ולספור כמה תשובות נכונות כל כלי מחזיר.”</p>
+  <p class="task-quote" data-l="en">"Prepare the 20-company test with Tom: run companies whose correct contact is already known, first in the free sources (search engines, websites, public LinkedIn) and in the free quotas of Apollo and Lusha, and count how many correct answers each tool returns."</p>
+
+  <h3><span data-l="he">המטרה וכלל ההחלטה</span><span data-l="en">Goal and decision rule</span></h3>
+  <p data-l="he">לבדוק, על חברות שהתשובה בהן ידועה, אם הדרך החינמית מגיעה לאנשים הנכונים. <strong>כלל מוצע:</strong> משלמים על כלי רק אם הוא מוסיף לפחות 5 אנשי קשר נכונים מתוך 20 מעבר לדרך החינמית, והעלות לאיש קשר נכון נוסף נמוכה מ-10$. (שני המספרים – להחלטת תום ושיר.)</p>
+  <p data-l="en">Check, on companies where the answer is known, whether the free route reaches the right people. <strong>Proposed rule:</strong> pay for a tool only if it adds at least 5 correct contacts out of 20 beyond the free route, at under $10 per extra correct contact. (Both numbers – for Tom and Shir to decide.)</p>
+
+  <h3><span data-l="he">בחירת 20 החברות</span><span data-l="en">Choosing the 20 companies</span></h3>
+  <ul data-l="he">
+    <li>שיר בוחרת (לפי האפיון) עם תום: חברות שבהן איש הקשר הנכון כבר ידוע לנו בוודאות (שם, תפקיד, מייל/טלפון עובדים).</li>
+    <li>תמהיל: 10 בינלאומיות (SH1–SH3), 5 ישראליות (OM1–OM3), 5 „קשות” (קטנות, אתר בעברית בלבד, בלי פרופילים).</li>
+    <li>ממלאים את „התשובה הנכונה” לפני שמריצים כלי – כדי שלא תושפע מהתוצאות.</li>
+  </ul>
+  <ul data-l="en">
+    <li>Shir chooses (per the spec) with Tom: companies whose correct contact we already know for sure (name, role, working email/phone).</li>
+    <li>Mix: 10 international (SH1–SH3), 5 Israeli (OM1–OM3), 5 "hard" ones (small, Hebrew-only site, no profiles).</li>
+    <li>Fill in "the right answer" before running any tool – so the results cannot influence it.</li>
+  </ul>
+
+  <h3><span data-l="he">הכלים, לפי הסדר</span><span data-l="en">The tools, in order</span></h3>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">כלי</span><span data-l="en">Tool</span></th><th><span data-l="he">איך</span><span data-l="en">How</span></th><th><span data-l="he">עלות במבחן</span><span data-l="en">Cost in the test</span></th></tr></thead>
+    <tbody>
+      <tr><td><strong>A</strong> · <span data-l="he">הדרך החינמית (הסוכן)</span><span data-l="en">The free route (the agent)</span></td><td><span data-l="he">„חיפוש מקבלי החלטות” באפליקציה: מנועי חיפוש, אתר החברה עמוד אחר עמוד, לינקדאין פומבי דרך מנוע חיפוש. מייל רק אם פורסם.</span><span data-l="en">The app's "decision-maker search": search engines, the company site page by page, public LinkedIn via a search engine. Email only if published.</span></td><td>≈ $0.03 <span data-l="he">לחברה</span><span data-l="en">per company</span></td></tr>
+      <tr><td><strong>B</strong> · Apollo</td><td><span data-l="he">תוכנית חינם: חיפוש החברה → סינון לפי תפקיד (מילות המפתח) → חשיפת מייל/טלפון</span><span data-l="en">Free plan: search the company → filter by title (the keywords) → reveal email/phone</span></td><td><span data-l="he">חינם (מכסה חודשית)</span><span data-l="en">Free (monthly quota)</span></td></tr>
+      <tr><td><strong>C</strong> · Lusha</td><td><span data-l="he">תוכנית חינם: 40 קרדיטים; טלפון עולה יותר קרדיטים ממייל – לחשוף טלפון רק כשאין מייל</span><span data-l="en">Free plan: 40 credits; a phone costs more credits than an email – reveal a phone only when there is no email</span></td><td><span data-l="he">חינם</span><span data-l="en">Free</span></td></tr>
+      <tr><td><strong>D</strong> · <span data-l="he">בדיקת מייל</span><span data-l="en">Email check</span></td><td><span data-l="he">כל מייל שנמצא (A–C) עובר בדיקת תקינות (ZeroBounce/NeverBounce, קרדיטי ניסיון)</span><span data-l="en">Every email found (A–C) goes through a validity check (ZeroBounce/NeverBounce, trial credits)</span></td><td><span data-l="he">חינם בניסיון</span><span data-l="en">Free on trial</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span data-l="he">מה סופרים, לכל חברה ולכל כלי</span><span data-l="en">What we count, per company and per tool</span></h3>
+  <ul data-l="he">
+    <li><strong>אדם נכון</strong> (1/0) – אותו אדם כמו התשובה הידועה, או אדם שתום/שיר מאשרים שגם הוא נכון.</li>
+    <li><strong>תפקיד עדכני</strong> (1/0) – עדיין בתפקיד היום.</li>
+    <li><strong>מייל עובד</strong> (1/0) – תואם לידוע או עבר בדיקת תקינות. <strong>טלפון נכון</strong> (1/0).</li>
+    <li><strong>דקות</strong> ו<strong>קרדיטים</strong> שנוצלו.</li>
+    <li>בסוף: אחוז הצלחה לכל כלי, כמה אנשים נכונים כל כלי <em>הוסיף</em> מעבר ל-A, ועלות לאיש קשר נכון נוסף.</li>
+  </ul>
+  <ul data-l="en">
+    <li><strong>Right person</strong> (1/0) – the same person as the known answer, or one Tom/Shir confirm is also right.</li>
+    <li><strong>Current role</strong> (1/0) – still in the role today.</li>
+    <li><strong>Working email</strong> (1/0) – matches the known one or passed the validity check. <strong>Right phone</strong> (1/0).</li>
+    <li><strong>Minutes</strong> and <strong>credits</strong> used.</li>
+    <li>At the end: hit rate per tool, how many right people each tool <em>added</em> beyond A, and cost per extra correct contact.</li>
+  </ul>
+  <p><a id="csv" download="ymt-contact-test-20.csv" href="#"><span data-l="he">הורדת גיליון המבחן (CSV, נפתח ב-Excel)</span><span data-l="en">Download the test sheet (CSV, opens in Excel)</span></a></p>
+
+  <h3><span data-l="he">לוח זמנים לשבוע</span><span data-l="en">Schedule for the week</span></h3>
+  <ol data-l="he"><li>יום א’–ב’: שיר ותום ממלאים 20 חברות + התשובה הנכונה בגיליון. פותחים חשבונות חינם ב-Apollo וב-Lusha (מייל חברה).</li><li>יום ג’: אמיתי מריץ את A (הסוכן) על 20 החברות ומזין לגיליון.</li><li>יום ד’: תום מריץ B ו-C, ובודק מיילים (D).</li><li>יום ה’: סיכום טבלה למפגש + המלצה: אילו מקורות משתמשים (הנקודה הפתוחה „בצד שלנו”).</li></ol>
+  <ol data-l="en"><li>Sun–Mon: Shir and Tom fill in 20 companies + the right answer in the sheet. Open free Apollo and Lusha accounts (company email).</li><li>Tue: Amitai runs A (the agent) on the 20 companies and enters the results.</li><li>Wed: Tom runs B and C, and checks emails (D).</li><li>Thu: summary table for the meeting + recommendation: which sources we use (the open point "on our side").</li></ol>
+</section>
+
+<section class="block" id="t7">
+  <h2><span class="no">7</span><span data-l="he">בדיקת הסוכן מול עשר חברות הבדיקה</span><span data-l="en">Testing the agent on the ten test companies</span></h2>
+  <p class="task-quote" data-l="he">„לבדוק את הסוכן מול עשר חברות הבדיקה שבאפיון.”</p>
+  <p class="task-quote" data-l="en">"Test the agent against the ten test companies in the spec."</p>
+  <h3><span data-l="he">השיטה</span><span data-l="en">Method</span></h3>
+  <ul data-l="he">
+    <li>הסוכן האמיתי של האפליקציה (אותם שלבים כמו ריצה: איתור יוזמה → סיווג עם מקורות → בדיקה מול ה-mandate), עם <strong>SH1 בנוסח האפיון של 22.11</strong> (כללי הקבלה, הפסילה וה-Defer, רצפת 30M$, תחומי המיקוד).</li>
+    <li>כל חברה נבדקת לבד, עם מקורות מ-12 החודשים האחרונים. כל שלב נשמר – גם פסילות שריצה רגילה לא מציגה.</li>
+    <li>תרגום ההחלטה: match → Accept · weak → Verify · no_match → Reject · לא נמצאה יוזמה → Needs review. (לסוכן היום אין „Defer” – לכן Verify מול Defer צפוי נחשב „קרוב”.)</li>
+    <li>עלות משוערת: 1$–2$ לכל ההרצה.</li>
+  </ul>
+  <ul data-l="en">
+    <li>The app's real agent (the same steps as a run: find the initiative → classify with sources → check against the mandate), with <strong>SH1 as worded in the spec of 22.11</strong> (accept, reject and Defer rules, the $30M floor, the focus areas).</li>
+    <li>Each company is checked on its own, with sources from the last 12 months. Every step is kept – also rejections a normal run does not show.</li>
+    <li>Decision mapping: match → Accept · weak → Verify · no_match → Reject · no initiative found → Needs review. (The agent has no "Defer" today – so Verify against an expected Defer counts as "close".)</li>
+    <li>Estimated cost: $1–2 for the whole run.</li>
+  </ul>
+  <h3><span data-l="he">איך מריצים (במחשב שלך)</span><span data-l="en">How to run it (on your computer)</span></h3>
+  <ol data-l="he"><li>ב-<code>C:\code\ymt</code> צור/י קובץ בשם <code>.env</code> עם השורה <code>ANTHROPIC_API_KEY=</code> ואחריה המפתח של YMT (מ-platform.claude.com → API keys). הקובץ לא נשמר ב-Git.</li><li>ב-PowerShell: <code>cd C:\code\ymt</code>, <code>git pull</code>, <code>npm install</code>, <code>npm run agent:test</code>.</li><li>אחרי כ-5 דקות מודפסת טבלה, ונוצר הקובץ <code>agent-test-results.json</code> עם הראיות, העובדות והנימוקים. שלח/י לי אותו – והטבלה למטה מתמלאת.</li></ol>
+  <ol data-l="en"><li>In <code>C:\code\ymt</code> create a file named <code>.env</code> with the line <code>ANTHROPIC_API_KEY=</code> followed by YMT's key (platform.claude.com → API keys). The file is never stored in Git.</li><li>In PowerShell: <code>cd C:\code\ymt</code>, <code>git pull</code>, <code>npm install</code>, <code>npm run agent:test</code>.</li><li>After about 5 minutes a table is printed and the file <code>agent-test-results.json</code> is created with the evidence, facts and reasons. Send it to me – and the table below gets filled in.</li></ol>
+  <h3><span data-l="he">תוצאות</span><span data-l="en">Results</span></h3>
+  <div class="scroll"><table id="agent-results">
+    <thead><tr><th><span data-l="he">חברה</span><span data-l="en">Company</span></th><th><span data-l="he">צפוי</span><span data-l="en">Expected</span></th><th><span data-l="he">למה (מהאפיון)</span><span data-l="en">Why (spec)</span></th><th><span data-l="he">הסוכן</span><span data-l="en">Agent</span></th><th><span data-l="he">מסכים</span><span data-l="en">Agrees</span></th></tr></thead>
+    <tbody>
+      <tr><td>Magen eco-Energy</td><td>Accept</td><td><span data-l="he">יצרנית ששוקלת כניסה להודו אחרי ניסיון שנכשל; הגיעה להצעת מחיר</span><span data-l="en">Manufacturer considering India after a failed attempt; reached a price proposal</span></td><td class="pending">—</td><td>—</td></tr>
+      <tr><td>Cortex Dental</td><td>Accept</td><td><span data-l="he">מחפשת מפיץ בהודו חודשים; שני מפיצים נפלו על מחיר. טריגר חזק, מתחת לרצפה</span><span data-l="en">Looking for an Indian distributor for months; two fell over price. Strong trigger, below floor</span></td><td class="pending">—</td><td>—</td></tr>
+      <tr><td>Crow</td><td>Accept</td><td><span data-l="he">שיחה טובה; המנכ”ל ביקש הצעה</span><span data-l="en">Good call; the CEO asked for a proposal</span></td><td class="pending">—</td><td>—</td></tr>
+      <tr><td>Tomorrow.io</td><td>Accept</td><td><span data-l="he">מחפשת שותפים רציניים בהודו; המנכ”ל סימן אזורים חדשים</span><span data-l="en">Looking for serious partners in India; the CEO approved new regions</span></td><td class="pending">—</td><td>—</td></tr>
+      <tr><td>Kornit Digital</td><td>Defer</td><td><span data-l="he">מתעניינת אסטרטגית, לא ממהרת; לחזור ברבעון</span><span data-l="en">Strategic interest, no rush; come back in a quarter</span></td><td class="pending">—</td><td>—</td></tr>
+      <tr><td>ARAN Packaging</td><td>Defer</td><td><span data-l="he">נותנת קודם הזדמנות לסוכן הבלעדי שלה</span><span data-l="en">Gives its exclusive agent the first chance</span></td><td class="pending">—</td><td>—</td></tr>
+      <tr><td>Ceragon</td><td>Reject</td><td><span data-l="he">הודו כבר השוק הגדול שלה</span><span data-l="en">India is already its biggest market</span></td><td class="pending">—</td><td>—</td></tr>
+      <tr><td>Phinergy</td><td>Reject</td><td><span data-l="he">כבר יש JV עם חברת הנפט הממשלתית של הודו</span><span data-l="en">Already has a JV with India's state oil company</span></td><td class="pending">—</td><td>—</td></tr>
+      <tr><td>Gaash Lighting</td><td>Reject</td><td><span data-l="he">אין יצוא, והחברה נמכרה לאחרונה</span><span data-l="en">No export, and the company was recently sold</span></td><td class="pending">—</td><td>—</td></tr>
+      <tr><td>Highcon</td><td>Reject</td><td><span data-l="he">חדלות פירעון; הפעילות עברה לחו”ל</span><span data-l="en">Insolvency; operations moved abroad</span></td><td class="pending">—</td><td>—</td></tr>
+    </tbody>
+  </table></div>
+  <div class="warn" data-l="he"><strong>מה אני מצפה לראות, ולמה זה חשוב:</strong> חלק מעשר החברות נקבעו לפי שיחות פרטיות (הצעת מחיר, „המנכ”ל ביקש הצעה”) שאין להן מקור פומבי – שם הסוכן יחזיר Needs review, וזה תקין. בדחיות הסוכן צריך <em>למצוא</em> את העובדה הפוסלת (JV, נמכרה, חדלות פירעון); היום אין לו בדיקה מפורשת של „מצב בשוק” ו„יצוא מוכח”, ולכן כל פספוס כאן נכנס ישר לרשימת הפערים (פריטים 3 ו-5).</div>
+  <div class="warn" data-l="en"><strong>What I expect to see, and why it matters:</strong> some of the ten were decided from private conversations (a price proposal, "the CEO asked for a proposal") with no public source – there the agent will return Needs review, which is correct. For the rejections the agent must <em>find</em> the disqualifying fact (JV, sold, insolvency); today it has no explicit "market status" and "proven export" check, so any miss here goes straight into the gap list (items 3 and 5).</div>
+</section>
+
+<section class="block" id="t8">
+  <h2><span class="no">8</span><span data-l="he">איזה CRM ואילו שדות חובה</span><span data-l="en">Which CRM and which fields are mandatory</span></h2>
+  <p class="task-quote" data-l="he">„לסגור עם תום לאיזה CRM הסוכנים מזינים, ואילו שדות מסתנכרנים.”</p>
+  <p class="task-quote" data-l="en">"Close with Tom which CRM the agents feed, and which fields are synced."</p>
+  <h3><span data-l="he">ההמלצה: אפליקציית YMT היא ה-CRM</span><span data-l="en">Recommendation: the YMT app is the CRM</span></h3>
+  <div class="grid2">
+    <div class="card"><h4><span data-l="he">למה</span><span data-l="en">Why</span></h4>
+      <ul data-l="he"><li>כבר כוללת חברות, אנשי קשר, עסקאות, צנרת לפי שלבים, ציר זמן, משימות, פגישות, מסמכים וחתימות, תור אישורים ושיחות.</li><li>כרטיס הסוכן והעסקה באותו מסד: הקישור (ראיה → החלטה → עסקה) לא נשבר, ואין סנכרון.</li><li>בלי עלות רישוי למשתמש; עברית ואנגלית; הנתונים בפרנקפורט.</li><li>„אילו שדות מסתנכרנים” הופך ל„אילו שדות חובה” – אין מערכת שנייה.</li></ul>
+      <ul data-l="en"><li>It already has companies, contacts, deals, a staged pipeline, a timeline, tasks, meetings, documents and signatures, an approval queue and conversations.</li><li>The agent's card and the deal live in the same database: the link (evidence → decision → deal) never breaks, and nothing needs syncing.</li><li>No per-user licence; Hebrew and English; the data stays in Frankfurt.</li><li>"Which fields sync" becomes "which fields are mandatory" – there is no second system.</li></ul></div>
+    <div class="card"><h4><span data-l="he">מתי בכל זאת CRM חיצוני</span><span data-l="en">When an external CRM would still make sense</span></h4>
+      <ul data-l="he"><li>אם SHEPHA או שותפים נוספים צריכים לעבוד באותה צנרת – אפשר לחבר בהמשך דרך webhook/ייצוא, בלי להחליף.</li><li>אם הצוות כבר עובד ב-Monday/HubSpot ולא יעבור – אז מסנכרנים רק את שדות החובה למטה, בכיוון אחד (מהאפליקציה החוצה).</li></ul>
+      <ul data-l="en"><li>If SHEPHA or other partners must work in the same pipeline – connect later via webhook/export, without replacing anything.</li><li>If the team already works in Monday/HubSpot and won't move – then sync only the mandatory fields below, one way (from the app out).</li></ul></div>
+  </div>
+  <h3><span data-l="he">מה נפתח ב-Accept, ושדות החובה</span><span data-l="en">What Accept opens, and the mandatory fields</span></h3>
+  <p data-l="he">Accept פותח אוטומטית עסקה בשלב „טרם התחיל” (שלב המחקר בצנרת), עם התהליך ומודל העסקה של ה-mandate. הכרטיס לא יכול לעבור ל-Accept בלי:</p>
+  <p data-l="en">Accept automatically opens a deal at stage "Not started" (the research stage of the pipeline), with the mandate's workflow and deal model. A card cannot be accepted without:</p>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">שדה חובה</span><span data-l="en">Mandatory field</span></th><th><span data-l="he">למה</span><span data-l="en">Why</span></th></tr></thead>
+    <tbody>
+      <tr><td><span data-l="he">שם חברה + אתר</span><span data-l="en">Company name + website</span></td><td><span data-l="he">זהות וכפילויות</span><span data-l="en">Identity and duplicates</span></td></tr>
+      <tr><td><span data-l="he">קשר לישראל + ראיית יצוא</span><span data-l="en">Israel connection + proof of export</span></td><td><span data-l="he">שניים משלושת תנאי הפסילה</span><span data-l="en">Two of the three disqualifiers</span></td></tr>
+      <tr><td><span data-l="he">סקטור + תת-סקטור</span><span data-l="en">Sector + subsector</span></td><td><span data-l="he">דירוג ומיקוד</span><span data-l="en">Score and focus</span></td></tr>
+      <tr><td><span data-l="he">מדינת יעד + מצב בשוק</span><span data-l="en">Target country + market status</span></td><td><span data-l="he">ההזדמנות עצמה</span><span data-l="en">The opportunity itself</span></td></tr>
+      <tr><td><span data-l="he">טריגר (מקור + תאריך) או „אין טריגר”</span><span data-l="en">Trigger (source + date) or "no trigger"</span></td><td><span data-l="he">הסיבה לפעול עכשיו</span><span data-l="en">The reason to act now</span></td></tr>
+      <tr><td>Mandate + <span data-l="he">בעלים</span><span data-l="en">owner</span></td><td><span data-l="he">אחריות</span><span data-l="en">Accountability</span></td></tr>
+      <tr><td><span data-l="he">קוד שירות מוצע</span><span data-l="en">Proposed service code</span></td><td><span data-l="he">מה מוכרים</span><span data-l="en">What we sell</span></td></tr>
+      <tr><td><span data-l="he">דירוג + Tier</span><span data-l="en">Score + tier</span></td><td><span data-l="he">סדר עבודה</span><span data-l="en">Work order</span></td></tr>
+      <tr><td><span data-l="he">איש קשר אחד לפחות, או „איש קשר לא ידוע”</span><span data-l="en">At least one contact, or "contact unknown"</span></td><td><span data-l="he">הצעד הבא</span><span data-l="en">The next step</span></td></tr>
+      <tr><td><span data-l="he">מביא/ת הליד</span><span data-l="en">Lead originator</span></td><td><span data-l="he">מדידה ועמלות</span><span data-l="en">Measurement and commissions</span></td></tr>
+    </tbody>
+  </table></div>
+  <h3><span data-l="he">הדשבורד</span><span data-l="en">The dashboard</span></h3>
+  <p data-l="he">מדדי הפיילוט מהאפיון מול מה שקיים בדף „מדדי מחקר”:</p>
+  <p data-l="en">The spec's pilot metrics against what the "Research metrics" page shows today:</p>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">מדד</span><span data-l="en">Metric</span></th><th><span data-l="he">היום</span><span data-l="en">Today</span></th></tr></thead>
+    <tbody>
+      <tr><td><span data-l="he">כמה כרטיסים נבדקו וכמה התקבלו</span><span data-l="en">Cards checked and accepted</span></td><td><span class="chip done">✓</span></td></tr>
+      <tr><td><span data-l="he">כפילויות מול הבנק</span><span data-l="en">Duplicates against the bank</span></td><td><span class="chip done">✓</span></td></tr>
+      <tr><td><span data-l="he">התאמות לשוק הלא נכון או לקונה הלא נכון</span><span data-l="en">Matches to the wrong market or wrong buyer</span></td><td><span class="chip done">✓</span> <span data-l="he">(לפי סיבת הפסילה)</span><span data-l="en">(from the reject reason)</span></td></tr>
+      <tr><td><span data-l="he">אנשי קשר שגויים או לא עדכניים</span><span data-l="en">Contacts found wrong or outdated</span></td><td><span class="chip gap">+</span> <span data-l="he">(צריך סימון „שגוי” באישור איש קשר)</span><span data-l="en">(needs a "wrong" mark when confirming a contact)</span></td></tr>
+      <tr><td><span data-l="he">דקות בדיקה לכרטיס, לפני ואחרי כיוונון</span><span data-l="en">Review minutes per card, before and after tuning</span></td><td><span class="chip need">~</span> <span data-l="he">(דקות קיימות; השוואה לפי גרסת mandate – חדש)</span><span data-l="en">(minutes exist; comparison by mandate version – new)</span></td></tr>
+      <tr><td><span data-l="he">עלות לכרטיס שהתקבל</span><span data-l="en">Cost per accepted card</span></td><td><span class="chip done">✓</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="block" id="gaps">
+  <h2><span data-l="he">פערים לבנייה: האפיון מול האפליקציה</span><span data-l="en">Build gaps: the spec against the app</span></h2>
+  <p data-l="he">אחרי אישורך – זה סדר הבנייה המוצע לפני המפגש. גודל: S = עד חצי יום, M = יום.</p>
+  <p data-l="en">After your approval – this is the proposed build order before the meeting. Size: S = up to half a day, M = a day.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th><span data-l="he">פער</span><span data-l="en">Gap</span></th><th><span data-l="he">גודל</span><span data-l="en">Size</span></th><th><span data-l="he">תלוי ב</span><span data-l="en">Depends on</span></th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><span data-l="he">טבלת ה-mandates לפי האפיון (גדלים, רצפת 30M$ ל-SH1/SH3, הסרת GE1 לשיוך ידני, תחומי מיקוד)</span><span data-l="en">The mandate table per the spec (sizes, $30M floor for SH1/SH3, GE1 removed to manual assignment, focus areas)</span></td><td>S</td><td><span data-l="he">שאלות 1, 6</span><span data-l="en">Questions 1, 6</span></td></tr>
+      <tr><td>2</td><td><span data-l="he">דירוג 0–100, רכיבים, Tier, מיון „טריגר קודם”</span><span data-l="en">0–100 score, components, tier, "trigger first" ordering</span></td><td>M</td><td><span data-l="he">שאלות 13–15</span><span data-l="en">Questions 13–15</span></td></tr>
+      <tr><td>3</td><td><span data-l="he">מצב והתאמה לכל שוק (IN, JP, TH/VN, CN), מחליף את „פעילות בהודו”</span><span data-l="en">Status and fit per market (IN, JP, TH/VN, CN), replacing "India activity"</span></td><td>M</td><td>—</td></tr>
+      <tr><td>4</td><td><span data-l="he">רשימת ההחרגה של SHEPHA (ייבוא, פסילה בקוד, הרשאות)</span><span data-l="en">The SHEPHA exclusion list (import, disqualification in code, permissions)</span></td><td>S</td><td><span data-l="he">שאלה 7</span><span data-l="en">Question 7</span></td></tr>
+      <tr><td>5</td><td><span data-l="he">כללי פסילה חדשים: רק שלושה; Defer כהמלצת סוכן (מפיץ/MoU); „מוריד עדיפות”; בדיקת יצוא מוכח</span><span data-l="en">New disqualification rules: only three; Defer as an agent recommendation (distributor/MoU); "lowers priority"; proven-export check</span></td><td>M</td><td><span data-l="he">שאלות 5, 8, 12</span><span data-l="en">Questions 5, 8, 12</span></td></tr>
+      <tr><td>6</td><td><span data-l="he">תוקף טריגר (6/12 חודשים), סוג טריגר, בדיקת „חי” ביום הסקירה</span><span data-l="en">Trigger validity (6/12 months), trigger type, "live" check on review day</span></td><td>S</td><td><span data-l="he">שאלות 14, 17</span><span data-l="en">Questions 14, 17</span></td></tr>
+      <tr><td>7</td><td><span data-l="he">שמות נוספים, ח.פ., תת-דומיין – לבדיקת כפילויות; פתיחה מחדש של „החלטה בחו”ל”; הצגת סיבת פסילה קודמת</span><span data-l="en">Other names, company number, sub-domains – for duplicate checks; reopening "decision abroad"; showing the earlier reject reason</span></td><td>M</td><td><span data-l="he">שאלה 10</span><span data-l="en">Question 10</span></td></tr>
+      <tr><td>8</td><td><span data-l="he">אנשי קשר: מילות מפתח לכל mandate, ערוץ מועדף, חסימה מעל 30 יום מאימות, סימון „שגוי”</span><span data-l="en">Contacts: keywords per mandate, preferred channel, a block after 30 days from verification, a "wrong" mark</span></td><td>M</td><td><span data-l="he">שאלות 19, 23</span><span data-l="en">Questions 19, 23</span></td></tr>
+      <tr><td>9</td><td><span data-l="he">קטלוג שירותים עם קודים IL/GL; השירות המוצע כקוד</span><span data-l="en">Service catalogue with IL/GL codes; the proposed service as a code</span></td><td>S</td><td><span data-l="he">שאלות 29–31</span><span data-l="en">Questions 29–31</span></td></tr>
+      <tr><td>10</td><td><span data-l="he">Accept פותח אוטומטית עסקה „טרם התחיל”; שדות חובה ל-Accept</span><span data-l="en">Accept automatically opens a "Not started" deal; mandatory fields for Accept</span></td><td>S</td><td><span data-l="he">שאלה 21</span><span data-l="en">Question 21</span></td></tr>
+      <tr><td>11</td><td><span data-l="he">מביא/ת הליד; Defer עם תאריך חזרה ומשימה</span><span data-l="en">Lead originator; Defer with a come-back date and task</span></td><td>S</td><td><span data-l="he">שאלות 9, 22</span><span data-l="en">Questions 9, 22</span></td></tr>
+      <tr><td>12</td><td><span data-l="he">רשימת תתי-תחומים מועדפים ותחומי המיקוד בהנחיות החיפוש</span><span data-l="en">The priority-subsector list and focus areas in the search instructions</span></td><td>S</td><td>—</td></tr>
+      <tr><td>13</td><td><span data-l="he">מדדי פיילוט חסרים: אנשי קשר שגויים, דקות לפני/אחרי כיוונון</span><span data-l="en">Missing pilot metrics: wrong contacts, minutes before/after tuning</span></td><td>S</td><td>—</td></tr>
+      <tr><td>14</td><td><span data-l="he">העברת הכרטיסים הקיימים (מיפוי ל-12 הסקטורים, ארטיקלים → הזדמנויות)</span><span data-l="en">Migrating the existing cards (mapping to the 12 sectors, articles → opportunities)</span></td><td>M</td><td><span data-l="he">שאלות 25–26 + ייצוא</span><span data-l="en">Questions 25–26 + an export</span></td></tr>
+      <tr><td>15</td><td><span data-l="he">תאילנד/וייטנאם/סין ואיתור ספקים בהודו → שיוך ידני; „עצור והעבר” במקורות סותרים</span><span data-l="en">Thailand/Vietnam/China and sourcing in India → manual assignment; "stop and pass" on contradicting sources</span></td><td>S</td><td><span data-l="he">שאלה 11</span><span data-l="en">Question 11</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="block" id="meeting">
+  <h2><span data-l="he">מפגש סוף השבוע: מה מציגים</span><span data-l="en">End-of-week meeting: what we present</span></h2>
+  <div class="scroll"><table>
+    <thead><tr><th><span data-l="he">מהמשימות</span><span data-l="en">From the tasks</span></th><th><span data-l="he">מה יוצג</span><span data-l="en">What will be shown</span></th><th><span data-l="he">מצב</span><span data-l="en">Status</span></th></tr></thead>
+    <tbody>
+      <tr><td><span data-l="he">הסוכנים, CRM משודרג ודשבורד</span><span data-l="en">The agents, an upgraded CRM and a dashboard</span></td><td><span data-l="he">האפליקציה החיה ב-Render: 6 mandates לפי האפיון, תור סקירה עם דירוג, עסקה אוטומטית ב-Accept, דף „מדדי מחקר”</span><span data-l="en">The live app on Render: 6 mandates per the spec, a review queue with scores, an automatic deal on Accept, the "Research metrics" page</span></td><td><span class="chip wait"><span data-l="he">אחרי הבנייה</span><span data-l="en">After the build</span></span></td></tr>
+      <tr><td><span data-l="he">כרטיס חברה מלא אחד עם מקורות, ובדיקת כפילויות</span><span data-l="en">One full company card with sources, and a duplicate check</span></td><td><span data-l="he">כרטיס אמיתי מההרצה (סעיף 7), ואז אותה חברה מוזנת שוב – ומוצג שלא נפתח כרטיס כפול</span><span data-l="en">A real card from the run (section 7), then the same company fed again – showing no duplicate card opens</span></td><td><span class="chip wait"><span data-l="he">אחרי ההרצה</span><span data-l="en">After the run</span></span></td></tr>
+      <tr><td><span data-l="he">תוצאה אחת שהתקבלה ואחת שנפסלה</span><span data-l="en">One accepted result and one rejected</span></td><td><span data-l="he">מתוך עשר חברות הבדיקה, עם הנימוק והמקור</span><span data-l="en">From the ten test companies, with the reason and the source</span></td><td><span class="chip wait"><span data-l="he">אחרי ההרצה</span><span data-l="en">After the run</span></span></td></tr>
+      <tr><td><span data-l="he">רשימת השאלות שעלו מהאפיון</span><span data-l="en">The list of questions from the spec</span></td><td><span data-l="he">סעיף 1 (32 שאלות)</span><span data-l="en">Section 1 (32 questions)</span></td><td><span class="chip done"><span data-l="he">מוכן</span><span data-l="en">Ready</span></span></td></tr>
+      <tr><td><span data-l="he">פתוח בצד שלנו: אילו מקורות מידע</span><span data-l="en">Open on our side: which information sources</span></td><td><span data-l="he">טבלת מבחן 20 החברות + המלצה</span><span data-l="en">The 20-company test table + a recommendation</span></td><td><span class="chip need"><span data-l="he">תלוי ברשימה</span><span data-l="en">Needs the list</span></span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="block appendix" id="appendix" lang="en" dir="ltr">
+  <h2>Appendix: English translation of the three documents</h2>
+  <p data-l="he" lang="he" dir="rtl">התרגום לאנגלית מוצג גם במצב עברית; המקורות בעברית נמצאים אצל הצוות.</p>
+  <p class="note">Translated from Hebrew. Codes, company names, amounts and tables are kept as in the originals.</p>
+
+  <h3>A. Tasks for Amitai – week of 22.11.2026</h3>
+  <p><strong>The goal for the week:</strong> reach the end-of-week meeting with the agents, an upgraded CRM and a dashboard, with the lead-finding agent pilot running in draft mode.</p>
+  <p><strong>What you receive</strong></p>
+  <ul>
+    <li>The specification (Document): who we are, the services, the foundation definitions, the six mandates, the workflow, the company card, sources and costs, ten companies for testing, and a glossary.</li>
+    <li>Tom's background material: the classification dictionary (Company Classification), the team guide (Team Referral Guide), the pilot plan and the pricing sheet.</li>
+  </ul>
+  <p><strong>This week's tasks</strong></p>
+  <ol>
+    <li>Read the specification and the background material, and write down open questions.</li>
+    <li>Define foundation concepts for all of YMT, as the basis for the whole operation: websites, landing pages, tasks and the entire envelope.</li>
+    <li>Propose a technical structure: where the agent reads the company bank and the exclusion list, where it writes, how often it runs, and how it detects duplicates (for example by website address).</li>
+    <li>Turn the company card and opportunity fields into an exact list: name, type, allowed values, required or not, and mapping to the existing application or to the CRM.</li>
+    <li>Propose how the score (0–100) is computed from the weights in the specification.</li>
+    <li>Prepare the 20-company test with Tom: run companies whose correct contact is already known, first in the free sources (search engines, websites, public LinkedIn) and in the free quotas of Apollo and Lusha, and count how many correct answers each tool returns.</li>
+    <li>Test the agent against the ten test companies in the specification.</li>
+    <li>Close with Tom which CRM the agents feed, and which fields are synced.</li>
+  </ol>
+  <p><strong>Guiding principle:</strong> free sources first. The agent does the hard work: several searches per company, going through the website page by page, and cross-checking against two sources. A paid tool comes in only if the test shows a gap that cannot be closed for free.</p>
+  <p><strong>End-of-week meeting – what we present:</strong> the agents, the upgraded CRM and the dashboard; one full company card with sources, and a duplicate check; one result that was accepted and one that was rejected; the list of questions that came up from the specification.</p>
+  <p><strong>Still open on our side:</strong> which information sources we use, after the 20-company test.</p>
+
+  <h3>B. Lead-finding agent specification · YMT Development Partnerships (Nov 22, 2026, @tomer roditi)</h3>
+  <h4>Goal and who does what</h4>
+  <p>The agent replaces the manual search for leads: it finds companies, classifies and verifies them, finds the right contact and proposes a service. Every card goes to a review queue, and no outreach goes out without a person's approval.</p>
+  <p>YMT is currently in a pilot. This document is the specification, and Amitai builds the system from it, so every definition here must be precise and testable.</p>
+  <p><strong>Stages:</strong> stage A – Israeli companies. Stage B – more agents for American companies that want the same development and support services we provide today in India and Japan. The system must be built so that a source country can be added without rebuilding.</p>
+  <div class="scroll"><table><thead><tr><th>Role</th><th>Responsibility</th></tr></thead><tbody>
+    <tr><td>Tom and Shir</td><td>Business definitions: target client, sectors, services, mandates</td></tr>
+    <tr><td>Amitai</td><td>System design, development, integrations, testing and interface</td></tr>
+    <tr><td>Tom and Amitai</td><td>Building the first mandates, testing and guidance</td></tr>
+    <tr><td>Shir</td><td>Owner of guidance: international search quality (SH1–SH3) and client conversations</td></tr>
+    <tr><td>Omer</td><td>Owner of guidance: search quality in Israel (OM1–OM3)</td></tr>
+  </tbody></table></div>
+  <p>The document combines: Tom's classification documents, the team guide and the pilot plan (20.11); "Lead-finding process – agent guide" (22.11); "Lead agents – prompts and service catalogue" (15.11); the documents of the consulting environment in Israel (9–12.11); the lead-tracking application and Shir's working rules. Where there is a conflict, the decision of 22.11 prevails.</p>
+  <h4>Who we are and what the agent can offer</h4>
+  <p>YMT Development Partnerships helps mid-size and large companies grow sales, enter new markets and find partners, technologies and suppliers – from the first introduction to exit. We are the gateway of companies to international markets, with a focus on Asia, and later also South America and Europe. One team leads strategy and execution, and stays with the client after signing too. The division is currently in a pilot.</p>
+  <p><strong>Four areas of activity</strong></p>
+  <div class="scroll"><table><thead><tr><th>Area</th><th>What we do</th><th>Where</th><th>Lead</th></tr></thead><tbody>
+    <tr><td>Entry and growth in India and Japan</td><td>Entry strategy and regulation (such as BIS and QCO in India), mapping distributors and partners, meetings with decision makers, negotiation and support after signing, local teams, local production, JV and acquisitions</td><td>India: YMT advises management in Israel, SHEPHA leads execution on the ground. Japan: a direction exists, the execution team is being set up</td><td>Shir</td></tr>
+    <tr><td>International business development</td><td>A focused introduction to a manufacturer or technology supplier; commercial partnerships and contract manufacturing to find technologies and bring them to Israel</td><td>Vietnam and Thailand, and any focused introduction in any market</td><td>Tom</td></tr>
+    <tr><td>Procurement and contract manufacturing</td><td>From the brief to a delivered product: suppliers, samples, private label, quality control, import and logistics, in 8 divisions</td><td>China, with Smart Products Group</td><td>Tom</td></tr>
+    <tr><td>Growth &amp; Exit</td><td>Growth in sales, mergers and acquisitions, building company value and preparing for sale</td><td>Any market</td><td>Tomer Lex</td></tr>
+  </tbody></table></div>
+  <p><strong>Business development in Israel (Omer):</strong> supporting Israeli companies in the local market, without going abroad. Three mandates: OM1 operational diagnosis (10–249 employees), OM2 sales growth, distribution and customer retention (50–249), OM3 recruiting VPs and C-suite (50–999, with Elad Namani). When the diagnosis shows a need, the specialists come in: marketing and branding, finance and banks, pension and insurance, organisational psychologists. Technology services (automation, CRM, landing pages) are given in YMT's name and carried out by Amitai, who also builds our internal systems.</p>
+  <p><strong>How we work with a client</strong></p>
+  <ul>
+    <li><strong>Three scopes:</strong> a focused introduction to one decision maker; a defined project (finding and choosing partners by brief and timeline); end-to-end support through implementation and beyond.</li>
+    <li><strong>Four stages:</strong> together we define the goal → we locate markets and partners → we prepare meetings and manage negotiation → we execute on the client team's side, and then support on a retainer.</li>
+    <li><strong>No payment until there is an agreement on a commercial model:</strong> understanding the needs, getting to know the product and checking market fit are free.</li>
+    <li><strong>The difference:</strong> we save the client wasted conversations and reach the right people; we don't leave after a partner is found; we are the client's eyes on the ground. "We are the Waze, you are the drivers."</li>
+    <li>In the first approach we present SHEPHA, not as a small mention beside YMT. <strong>SHEPHA and YMT are partners.</strong> YMT first.</li>
+  </ul>
+  <h4>The services the agent proposes</h4>
+  <p>All services are available for sale today. For each company the agent records a service as an entry point, the possible continuation, and why.</p>
+  <div class="scroll"><table><thead><tr><th>Service</th><th>What the client receives</th><th>Who delivers</th><th>Scope</th><th>Mandate</th></tr></thead><tbody>
+    <tr><td>Connection to a distributor or local partner</td><td>1–3 screened candidates and an introduction meeting</td><td>SHEPHA and YMT</td><td>One-off</td><td>SH1, SH2</td></tr>
+    <tr><td>Target-market survey</td><td>Demand, competitors, regulation, prices and channels</td><td>YMT and SHEPHA analysts</td><td>One-off</td><td>SH1, SH2</td></tr>
+    <tr><td>B2B meetings for a trade show or delegation</td><td>A pre-arranged meeting schedule</td><td>SHEPHA and YMT</td><td>One-off</td><td>SH1</td></tr>
+    <tr><td>India market entry end to end</td><td>Strategy, execution on the ground, regulation, local entity, distributor management</td><td>SHEPHA and YMT</td><td>Support</td><td>SH1</td></tr>
+    <tr><td>Expansion in India or a stalled channel</td><td>More distributors and partners, activating an existing distributor and following up on it</td><td>SHEPHA and YMT</td><td>Support</td><td>SH1</td></tr>
+    <tr><td>Japan entry</td><td>Market check, integration partners and rollout</td><td>YMT, local team being set up</td><td>Support</td><td>SH2</td></tr>
+    <tr><td>Local production or JV in India or Japan</td><td>Comparing production models, finding partners and support during setup</td><td>SHEPHA and YMT</td><td>Support</td><td>SH3</td></tr>
+    <tr><td>Sourcing manufacturers and suppliers</td><td>Verified factories and reference prices</td><td>Tom and the sourcing network (China, Thailand, Vietnam, India)</td><td>One-off</td><td>Manual assignment</td></tr>
+    <tr><td>Bringing a technology or product to Israel</td><td>Finding a supplier abroad and fitting it to the need</td><td>Tom and the sourcing network</td><td>One-off</td><td>Manual assignment</td></tr>
+    <tr><td>Ongoing business development in Asia-Pacific</td><td>Opening doors over time (Japan, Korea, Singapore, Malaysia)</td><td>Tomer Lex</td><td>Support</td><td>Manual assignment</td></tr>
+    <tr><td>Readiness assessment</td><td>A short free questionnaire, then a detailed report with a work plan</td><td>Tomer Lex</td><td>One-off</td><td>Manual assignment</td></tr>
+    <tr><td>Growth &amp; Exit</td><td>Growth, mergers and acquisitions, operational improvement and preparing for exit</td><td>Tomer Lex</td><td>Support</td><td>Manual assignment</td></tr>
+    <tr><td>Operational diagnosis in Israel</td><td>A focused diagnosis of the operating model</td><td>Omer</td><td>One-off</td><td>OM1</td></tr>
+    <tr><td>Sales growth in Israel</td><td>Distribution channels, customer retention, sales operation</td><td>Omer</td><td>Support</td><td>OM2</td></tr>
+    <tr><td>Executive recruitment in Israel</td><td>Defining the VP and C-suite role and the search</td><td>Omer and Elad Namani</td><td>One-off</td><td>OM3</td></tr>
+  </tbody></table></div>
+  <p><strong>Tomer Lex's three services</strong> (per the sales script, 22.11):</p>
+  <div class="scroll"><table><thead><tr><th>Service</th><th>The promise</th><th>Suitable client</th><th>Entry offer</th></tr></thead><tbody>
+    <tr><td>GTM (entry to markets)</td><td>Opening a new market or a stalled channel with a plan, partners and first deals</td><td>A manufacturer, a consumer-products company or Israeli software entering India, East Asia, the US or Europe; or a foreign company entering Israel</td><td>GTM assessment: a market and channel map, a partner list, a 90-day plan</td></tr>
+    <tr><td>Growth (Exit and preparing for sale)</td><td>A company worth more and ready for a sale, an investor or a merger</td><td>A company in owner management that is considering a sale, an investment or succession within 1–5 years; or a company that wants to acquire another</td><td>Exit-readiness assessment: value drivers, gaps, a 12-month plan</td></tr>
+    <tr><td>Continuity (BCP)</td><td>The business keeps working in a disruption, and proves it to clients, banks and insurers</td><td>A company exposed to supply-chain disruption, manpower, cyber or a site; a large client or a bank that asked for a plan (especially defence suppliers)</td><td>Continuity assessment: critical processes, single points of failure, 90-day fixes</td></tr>
+  </tbody></table></div>
+  <p>The agent marks a fit to these services by public signals: a named target market or a stalled distributor (GTM); a founder-managed, mature company, a capital raise or an acquisition (Exit); defence and infrastructure suppliers, or a planned disruption event (BCP). When the first conversation succeeds, a 45-minute meeting with Tomer and the decision maker is set, and the lead is recorded in the CRM with the name of the person who brought it.</p>
+  <p><strong>Fit by size:</strong> a company below the floor buys one connection, not a retainer. A mid-size company may start from a defined project that can turn into support. A large company needs someone to hold the whole market entry over time.</p>
+  <p><strong>What the agent does not offer:</strong> prices or promises of results; consulting to Indian companies leaving for abroad. Technology services (research agent, CRM, bot, landing page) are marked only as a note when there is a fit.</p>
+  <h4>Foundation definitions</h4>
+  <p>A new company enters the search from $30M revenue upward, with a proven connection to Israel and proven export. Companies already in the bank are not disqualified because of the new threshold.</p>
+  <p><strong>Size</strong></p>
+  <ul>
+    <li>Revenue and number of employees are recorded separately, per entity, with source and date. Revenue: fiscal year, original currency, and whether the figure is reported or estimated.</li>
+    <li>The floor for new companies: annual revenue of $30M (about ₪110M) in SH1 and SH3. In SH2 (Japan) Tom's floor remains ($1M). Ceiling: per Tom's mandate table. A company with no revenue figure enters from 10 employees. A company of $10M–$30M with a strong trigger enters marked "below floor", and Shir decides.</li>
+    <li>Tom's size bands are kept for tagging:</li>
+  </ul>
+  <div class="scroll"><table><thead><tr><th>Band</th><th>Employees</th><th>Annual revenue (USD)</th></tr></thead><tbody>
+    <tr><td>Micro</td><td>1–9</td><td>Under $1M</td></tr><tr><td>Small</td><td>10–49</td><td>$1M to $10M</td></tr><tr><td>Medium</td><td>50–249</td><td>$10M to $100M</td></tr><tr><td>Large</td><td>250–999</td><td>$100M to $500M</td></tr><tr><td>Large enterprise</td><td>1,000+</td><td>$500M and up</td></tr>
+  </tbody></table></div>
+  <p>When a source gives a range that crosses bands, keep the range and mark "Spans multiple bands".</p>
+  <p><strong>Connection to Israel (one value)</strong></p>
+  <div class="scroll"><table><thead><tr><th>Value</th><th>When</th><th>What we do</th></tr></thead><tbody>
+    <tr><td>Headquartered in Israel</td><td>An official source states HQ in Israel</td><td>The primary target group</td></tr>
+    <tr><td>Israeli business unit of a foreign group</td><td>HQ abroad; the Israeli unit decides or holds a budget</td><td>Enters. Record the unit and the parent company separately</td></tr>
+    <tr><td>Other Israeli connection</td><td>Founders or an R&amp;D centre in Israel, without a deciding unit</td><td>Outside the primary group; check who is authorised to sign</td></tr>
+    <tr><td>No identified Israeli connection</td><td>HQ and activity outside Israel</td><td>Does not enter the search</td></tr>
+    <tr><td>Unknown</td><td>Missing or contradicting sources</td><td>To check, with the sources</td></tr>
+  </tbody></table></div>
+  <p>A market decision taken abroad is not a reason for disqualification. It is recorded as information.</p>
+  <p><strong>Sector and business model</strong></p>
+  <ul>
+    <li>A primary sector, one of Tom's 12 sectors, by the main activity, and below it a free subsector. The customers' market is recorded as a separate tag. Tom's example: rent software for retailers is recorded under technology, and retail is the customers' market.</li>
+    <li>The 12 sectors: agriculture and food · industry and manufacturing · energy, resources and environment · construction and real estate · consumer products and trade · technology and communications · health and life sciences · financial and business services · transport and logistics · education, personal and leisure services · defence and dual-use · other / unknown.</li>
+    <li>The search is open to all sectors. The sectors where SHEPHA has experience (medical, energy, cyber, water) get a fit mark for India.</li>
+    <li>A primary and secondary business model from Tom's list: product or brand owner · contract producer · software or IP provider · distributor or retailer · service or project contractor · platform or intermediary · asset owner or operator · other / unknown.</li>
+  </ul>
+  <p><strong>Business models that enter the search:</strong> product or brand owner, contract producer, software or IP provider. Distributors, retailers and service providers enter only with an explicit reason.</p>
+  <p><strong>Priority subsectors</strong> (from the companies we have already worked with):</p>
+  <div class="scroll"><table><thead><tr><th>Primary sector</th><th>Subsector</th></tr></thead><tbody>
+    <tr><td>Industry &amp; manufacturing</td><td>Polymers, plastics &amp; additives · Advanced &amp; recycled materials · Industrial equipment &amp; heat transfer · Valves, flow control &amp; precision components · Packaging · Lighting &amp; electrical · Fire &amp; safety systems</td></tr>
+    <tr><td>Technology &amp; communications</td><td>Industrial / OT cybersecurity · Enterprise software (ERP) · Financial-crime &amp; regtech software · Climate &amp; weather data</td></tr>
+    <tr><td>Health &amp; life sciences</td><td>Medical devices · Dental</td></tr>
+    <tr><td>Energy, resources &amp; environment</td><td>Renewable energy &amp; agrivoltaics · Oil &amp; gas equipment · Water &amp; wastewater (lower priority)</td></tr>
+    <tr><td>Construction &amp; real estate</td><td>Building materials &amp; surfaces · Infrastructure contractors</td></tr>
+    <tr><td>Defence &amp; dual-use</td><td>The whole field: vehicles and systems, software, subcontractors, dual-use</td></tr>
+  </tbody></table></div>
+  <p><strong>Search focus (22.11):</strong> three priority areas: software, the whole defence field, and general plastics and metal manufacturing. A company in these areas gets the full score for field fit. The other areas stay open, at lower priority. Defence companies also fit India (SH1) and other markets, without restriction.</p>
+  <p><strong>Fit to markets:</strong> each company gets a separate fit mark per market: India (what SHEPHA knows how to give), Japan, Thailand and Vietnam, China. One company can fit several markets.</p>
+  <p><strong>Disqualification:</strong> a company is disqualified in three cases only: (1) it is on SHEPHA's exclusion list (the list comes from the application and does not appear in the document); (2) it has no proven export; (3) it has no identified connection to Israel. Everything else lowers priority but does not disqualify: main revenue outside the range, a decision abroad, a subsidiary, plant or JV in the target market, a signed distributor or MoU.</p>
+  <p><strong>Defer lead:</strong> the company has already signed a distributor or an MoU in the target market.</p>
+  <p><strong>Stop and pass to Shir:</strong> contradicting sources (Unknown), Vietnam, Thailand or China, sourcing suppliers in India.</p>
+  <p><strong>The agent never:</strong> sends outreach, guesses revenue or an email address, promises a price, or uses an unverified trade show as a trigger.</p>
+  <p><strong>Priorities</strong></p>
+  <ol>
+    <li><strong>First:</strong> companies with a documented trigger. A trigger is a verified action of the company itself, with source and date: a public distributor search, a job in the target market, a presentation at a trade show in the target market, joining a delegation, an announcement of market entry, a regulatory registration.</li>
+    <li><strong>Then:</strong> companies by profile and score. They are never deleted for lack of a trigger.</li>
+  </ol>
+  <p>What is not a trigger: a general industry trend, participation in an unverified event, a "strategic" vision without application, a factory in the target market advertising for clients (that is a supplier, not a client).</p>
+  <p><strong>Score 0–100:</strong> subsector fit (25), current trigger (25), access to the decision maker (20), fit to our service (20), evidence quality (10). Tier A = 80 and up, B = 65–79, C = below. The old gates (decision in Israel, safe revenue, not operating in the market) are kept as information only and do not disqualify.</p>
+  <p><strong>Trigger validity:</strong> up to 6 months – full score. 6–12 months – half score. Over a year – background only, not a trigger. An open job posting and a distributor-search page count only if they are still live on the day of the check. A trade show or delegation counts as a trigger if it is planned or took place in the last half year.</p>
+  <h4>The six mandates (an agent per assignment)</h4>
+  <p>A <strong>mandate</strong> is one agent's assignment: which company type it searches, in which market, what must hold for a company to be accepted, and which service is offered to it. The term and the table come from Tom's documents (Team Referral Guide and Company Classification).</p>
+  <div class="scroll"><table><thead><tr><th>Mandate</th><th>Owner</th><th>Market and need</th><th>Preferred size (employees / revenue)</th><th>Accepted for review if</th><th>First offer</th><th>Common error</th></tr></thead><tbody>
+    <tr><td>SH1</td><td>Shir</td><td>India: entry, distribution, commercial partnerships, expansion</td><td>50–249 / $10M–$100M</td><td>An export-ready product and an initiative that mentions India</td><td>Mapping the route to market</td><td>General interest in Asia is sent to Verify, not rejected</td></tr>
+    <tr><td>SH2</td><td>Shir</td><td>Japan: entry, distribution, integration partner</td><td>10–249 / $1M–$100M</td><td>A proven B2B vendor that mentions a launch in Japan or a partner search</td><td>Checking local integration and a partner list</td><td>A translated Japanese website alone</td></tr>
+    <tr><td>SH3</td><td>Shir</td><td>India or Japan: production, subcontractors, JV</td><td>50–999 / $10M–$500M</td><td>A product owner that mentions a production or JV initiative in the country</td><td>Comparing production models</td><td>A sales-channel request that belongs to SH1 or SH2</td></tr>
+    <tr><td>OM1</td><td>Omer</td><td>Israel: operational diagnosis, reorganisation, integration</td><td>10–249 / $1M–$100M</td><td>Local management that mentions examining the operating model</td><td>A focused diagnosis</td><td>A new CEO alone requires verification</td></tr>
+    <tr><td>OM2</td><td>Omer</td><td>Israel: sales growth, distribution, customer retention</td><td>50–249 / $10M–$100M</td><td>An established B2B company with a channel, sales or retention goal in Israel</td><td>A pipeline and channel review</td><td>A sales goal abroad belongs to an international mandate</td></tr>
+    <tr><td>OM3</td><td>Omer and Elad</td><td>Israel: VP and C-suite recruitment</td><td>50–999 / $10M–$500M</td><td>An open senior position in Israel</td><td>Defining the role</td><td>A position already filled, or a role abroad</td></tr>
+  </tbody></table></div>
+  <p><strong>Our notes on Shir's mandates:</strong> in SH1 and SH3 the floor is $30M, higher than in the table; the ceiling stays as in the table. In SH1 the early trigger is a preference, not a requirement: a company that fits the profile without a trigger enters with a lower score. It also includes expansion of companies already in India, at lower priority when they have a subsidiary, a plant or a JV.</p>
+  <p>One-off connections, Thailand and Vietnam, China, and Growth &amp; Exit remain without an agent: the card is marked "Manual assignment required" and Tom assigns it. Sourcing suppliers and manufacturers and import to Israel (as in India) also go to Manual assignment in the pilot.</p>
+  <p><strong>What changed (22.11):</strong> the agents by company size (G1–G3, 15.11) were replaced by mandates by market and need; size only screens and determines which service to propose. The IL2 agent (businesses with ₪1M–15M revenue) was dropped, and in Israel OM1–OM3 operate as Tom defined.</p>
+  <h4>The agent's workflow</h4>
+  <p>The agent goes through seven steps and stops before outreach. It does not send messages: outreach drafts arrive only in stage 3 of Tom's plan, and every approach remains personal, up to three touches.</p>
+  <ol>
+    <li><strong>Finding.</strong> Search by mandate: subsector, size and target market. Two routes in parallel: scanning triggers (trade shows and delegations, jobs, news, distributor pages) and filtering databases by profile.</li>
+    <li><strong>Checking against the banks.</strong> Each name is checked against the companies in the application, the list of rejected ones, the list of the barred and SHEPHA's exclusion list, including former names, parent companies and acquisitions. Stop: already in the bank: add opportunities to the existing card and do not open a duplicate. Rejected in the past: show the old reason; those rejected because of "a decision abroad" are reopened.</li>
+    <li><strong>Classification.</strong> Connection to Israel, sector and subsector, business model, customer type (business / consumer / public), size, ownership, export, fit to each market.</li>
+    <li><strong>Verification.</strong> The company is registered and active in the registrar, the website is live, for revenue and export there is a source, and the company's status in the target market is as described (operates there or not, and if so how). A fact that is not found is recorded as "unknown" and not assumed.</li>
+    <li><strong>Contact.</strong> The person truly responsible for the need: international sales, Asia, business development or growth strategy. Not a group president or the CEO of a large company, unless he owns the need. In a small company the CEO or founder is usually the right person (for example Dror Yamin of Crow). Up to three different people, so that phone, LinkedIn and email can be approached in parallel. The role is verified in the last 30 days and the email passes a validity check.</li>
+    <li><strong>Recommendation.</strong> A mandate, a service from the table above, a reason to act now in one sentence, and a list of what is unknown.</li>
+    <li><strong>Review queue.</strong> The card enters sorted: first those with triggers, then by score. The mandate owner marks Accept, Verify, Defer or Reject with a reason. Accept opens a "Not started" card in the CRM. In the pilot: up to 5 new companies per mandate in each run.</li>
+  </ol>
+  <p><strong>Keywords for finding contacts (by role and by LinkedIn title):</strong> VP · VP Marketing &amp; Sales · VP Business Development · Asia-Pacific Market Development · Head of APAC / Asia Sales · International Sales · B2B Sales Leader · Revenue Growth · Global Business Development · Strategic Partnerships. A person whose title mentions B2B sales, revenue growth or business development in Asian markets comes before someone whose role is general. The agent keeps the title as it appears on the contact card.</p>
+  <h4>Company card and opportunity</h4>
+  <p>Each company is one record, and each initiative of it opens a separate opportunity. So one company can be both in India and in a one-off connection, with one owner per approach. Every factual field is saved with a link to the source and the check date.</p>
+  <div class="scroll"><table><thead><tr><th>Record</th><th>Fields</th></tr></thead><tbody>
+    <tr><td>Company</td><td>Name (in English), website, parent company and unit, connection to Israel, country of incorporation, HQ country, primary and secondary business model, sector, subsector, customer type, customer markets, employees (with date), revenue (year, currency, reported or estimated), ownership, proof of export, status in each target market, short description and differentiators</td></tr>
+    <tr><td>Contacts</td><td>Name, role, email, phone, LinkedIn, preferred channel, role verification date, source</td></tr>
+    <tr><td>Opportunity</td><td>The company's role (paying client, delivery partner, supplier, unknown), target country, the need in the company's words, trigger (what, when, source, verified), mandate, proposed service, owner, score, review status (Accept / Verify / Defer / Reject) and reason, lead originator</td></tr>
+  </tbody></table></div>
+  <p>The outreach status is recorded separately from the classification. When there is no evidence of an initiative, the record is marked "Needs review". Opportunities in Thailand, Vietnam and China are marked "Manual assignment required".</p>
+  <p>All existing cards in the application are mapped to this method. The old segments are converted to Tom's 12 sectors, and the number of articles in a card is converted into separate opportunities.</p>
+  <h4>Information sources</h4>
+  <p>No single tool covers mid-size Israeli industrial companies well, and Apollo alone will not bring enough results. So each layer uses the source that is strongest for it. Free sources first: the agent does the hard work itself, searches in several ways and cross-checks between sources. We pay only for what is proven impossible to get for free.</p>
+  <div class="scroll"><table><thead><tr><th>Purpose</th><th>Source</th><th>What it gives</th></tr></thead><tbody>
+    <tr><td>Companies, revenue and employees</td><td>Dun &amp; Bradstreet Israel and Hoovers</td><td>About 1.6 million businesses in Israel, filtering by revenue, size and industry</td></tr>
+    <tr><td>Public companies</td><td>TASE (stock-exchange reports)</td><td>Reported revenue, geographic breakdown of sales</td></tr>
+    <tr><td>Proof of export</td><td>The Export Institute</td><td>Confirmation that the company is known outside Israel</td></tr>
+    <tr><td>Status in India</td><td>Volza, Zauba, MCA21, BIS, CDSCO</td><td>Shipments to India, a registered Indian entity, regulatory registrations</td></tr>
+    <tr><td>Triggers</td><td>Exhibitor lists at trade shows, delegations (including the Israel–Asia Chamber of Commerce), jobs, news, distributor pages</td><td>A documented initiative with a date</td></tr>
+    <tr><td>Contacts: current role</td><td>LinkedIn Sales Navigator</td><td>Who is really in the role today</td></tr>
+    <tr><td>Contacts: email and phone</td><td>Apollo and Lusha within Clay</td><td>Search across several providers in a row, paying only when a match is found</td></tr>
+    <tr><td>Company existence</td><td>The registrar of companies</td><td>Registered and active, not in liquidation</td></tr>
+    <tr><td>Email validity</td><td>Email checking tools (e.g. NeverBounce or ZeroBounce)</td><td>That the email exists before it enters the card</td></tr>
+  </tbody></table></div>
+  <p><strong>Test before purchase:</strong> Shir chooses 20 companies where the right contact is already known. They are run in 2–3 tools during a trial period, and we count how many correct answers each tool returns. We buy what succeeded. Prices are checked with the providers during the test.</p>
+  <p><strong>Costs (in dollars, checked in November 2026):</strong></p>
+  <div class="scroll"><table><thead><tr><th>Source</th><th>Starting price</th><th>Note</th></tr></thead><tbody>
+    <tr><td>LinkedIn Sales Navigator Core</td><td>$119.99 a month, or $1,079.88 a year</td><td>Per user</td></tr>
+    <tr><td>Clay</td><td>Free; Launch from $185 a month</td><td>Unlimited users, pay per use</td></tr>
+    <tr><td>Apollo</td><td>Free; Basic $49 a month (annual)</td><td>Per user</td></tr>
+    <tr><td>Lusha</td><td>Free (40 credits); Starter $37.45 a month (annual)</td><td>A phone costs more credits than an email</td></tr>
+    <tr><td>ZeroBounce</td><td>$39 for 2,000 checks</td><td>Email validity</td></tr>
+    <tr><td>Volza</td><td>From $125 a month (annual)</td><td>Trade data with India</td></tr>
+    <tr><td>Dun &amp; Bradstreet Israel / Hoovers</td><td>By quote</td><td>Request a quote</td></tr>
+    <tr><td>Registrar of companies, TASE, the Export Institute, MCA21</td><td>Free or almost free</td><td></td></tr>
+  </tbody></table></div>
+  <p><strong>Policy: free first.</strong> In the pilot the agent works only with free sources and the free versions of the tools: search engines, the company website (about pages, team, partners, news), public LinkedIn profiles and the company page, newspaper articles, exhibitor lists at trade shows and delegation participants, the registrar of companies, TASE, the Export Institute, MCA21 and Zauba, and the free quotas of Apollo, Lusha and ZeroBounce.</p>
+  <p>What this says about the agent: it has to rack its brain. For each company it runs several different searches (the company name in Hebrew and English, former names, the parent company, the product + India / Asia / distributor), goes through the official website page by page, finds contacts through a search of role + company name + LinkedIn in a search engine, and cross-checks every important figure (revenue, role, status in the target market) against at least two sources. An email enters the card only if it is published or found and passed a validity check; otherwise the way to reach the person is recorded (LinkedIn, switchboard, general email).</p>
+  <p>A paid tool comes in only if the 20-company test shows that the free route does not reach the right people, and then only the tool that closed the gap. The prices in the table above are for information only.</p>
+  <h4>Quality control in the pilot</h4>
+  <p>The pilot passes when the mandate owner can explain every recommendation from its source, and what is missing appears in the card. Acceptance check: Shir verifies 5 cards against the source and the date.</p>
+  <p>What is measured in each run: how many cards were checked and how many accepted; duplicates against the bank; matches to the wrong market or the wrong buyer; contacts found wrong or out of date; review minutes per card, before and after tuning.</p>
+  <p>Tuning: change one thing at a time (subsector, size, search term or exclusion) and run again on the same examples. A change to shared data, routing or approvals goes through Tom and Amitai.</p>
+  <h4>Examples: correct match against wrong match</h4>
+  <p>The examples are based on cases that already happened in the research, without company names. They can be used to guide the agent.</p>
+  <div class="scroll"><table><thead><tr><th>What the agent learns</th><th>Wrong match</th><th>Correct match</th><th>Mandate</th></tr></thead><tbody>
+    <tr><td>A company deep in the market usually does not need an entry partner</td><td>A communications company for which India is its biggest market, with offices there</td><td>An Israeli materials manufacturer that invites distributors on its website, and India does not appear in its territories</td><td>SH1</td></tr>
+    <tr><td>A past attempt that failed is a good sign. An existing JV lowers priority</td><td>A company that already set up a JV with an Indian state company</td><td>A company that entered India several times without a strategy and recently changed model</td><td>SH1</td></tr>
+    <tr><td>A trigger must be verified against the company itself</td><td>A company that only belongs to the industry of the trade show</td><td>A company exhibiting at a trade show in India, with confirmation from the exhibitor list</td><td>SH1</td></tr>
+    <tr><td>A factory is a possible partner, not a client</td><td>An Indian factory advertising to receive inquiries</td><td>A product manufacturer that already started shipping and announced it is examining local production</td><td>SH3</td></tr>
+    <tr><td>An existing escort lowers priority but does not disqualify</td><td>A company that already has an active escort in the same country</td><td>An Israeli manufacturer looking for raw-material and machinery suppliers in Asia</td><td>SH3 or one-off</td></tr>
+    <tr><td>Check the registrar and last year's news</td><td>A company that closed or was sold, and whose activity moved abroad</td><td>An active, registered company with a live website</td><td>General</td></tr>
+  </tbody></table></div>
+  <p><strong>Ten companies to test the agent</strong> (from the tracking; none of them is a SHEPHA client):</p>
+  <div class="scroll"><table><thead><tr><th>Expected result</th><th>Company</th><th>Why</th></tr></thead><tbody>
+    <tr><td>Accept</td><td>Magen eco-Energy</td><td>A manufacturer considering entering India after a previous attempt that failed; reached a price proposal</td></tr>
+    <tr><td>Accept</td><td>Cortex Dental</td><td>Has been looking for a distributor in India for months; two distributors fell over price. A strong trigger, below the floor</td></tr>
+    <tr><td>Accept</td><td>Crow</td><td>A good conversation; the CEO asked for a proposal</td></tr>
+    <tr><td>Accept</td><td>Tomorrow.io</td><td>Looking for serious partners in India; the CEO marked new regions that he approved</td></tr>
+    <tr><td>Defer</td><td>Kornit Digital</td><td>Interested in India strategically, not in a hurry; come back in another quarter</td></tr>
+    <tr><td>Defer</td><td>ARAN Packaging</td><td>Gives its exclusive agent the first opportunity</td></tr>
+    <tr><td>Reject</td><td>Ceragon</td><td>India is already its big market</td></tr>
+    <tr><td>Reject</td><td>Phinergy</td><td>Already has a JV with India's government oil company</td></tr>
+    <tr><td>Reject</td><td>Gaash Lighting</td><td>No export, and the company was sold recently</td></tr>
+    <tr><td>Reject</td><td>Highcon</td><td>Insolvency, the activity moved abroad</td></tr>
+  </tbody></table></div>
+  <h4>Glossary</h4>
+  <div class="scroll"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody>
+    <tr><td>SHEPHA</td><td>YMT's partner in India: an Israeli-Indian consulting firm executing on the ground. Holds an exclusion list of companies that may not be approached</td></tr>
+    <tr><td>Mandate</td><td>One agent's assignment: market, need, size and service (SH1–SH3, OM1–OM3)</td></tr>
+    <tr><td>Company card</td><td>One record for each company or business unit</td></tr>
+    <tr><td>Opportunity</td><td>A specific initiative of a company towards a specific market. A company can have several</td></tr>
+    <tr><td>Trigger</td><td>A verified action of the company itself, with source and date, showing that it is acting now</td></tr>
+    <tr><td>Accept</td><td>Fits; a "Not started" card opens</td></tr>
+    <tr><td>Verify</td><td>Looks fitting; decisive evidence is missing</td></tr>
+    <tr><td>Defer</td><td>Fits, not now</td></tr>
+    <tr><td>Reject</td><td>Does not fit, with a reason</td></tr>
+    <tr><td>Needs review</td><td>No evidence of an initiative; goes to Shir</td></tr>
+    <tr><td>Manual assignment</td><td>No agent for this need; Tom assigns manually</td></tr>
+    <tr><td>Unknown</td><td>No source, or the sources contradict. We do not guess</td></tr>
+  </tbody></table></div>
+  <h4>Open decisions</h4>
+  <div class="scroll"><table><thead><tr><th>Topic</th><th>What has to be decided</th><th>Who</th></tr></thead><tbody>
+    <tr><td>Size ceiling</td><td>Closed: per Tom's mandate table</td><td>Shir and Tom</td></tr>
+    <tr><td>A company without a revenue figure</td><td>Closed: from 10 employees</td><td>Shir and Tom</td></tr>
+    <tr><td>Tags D1–D3 and S1–S4</td><td>What they mark</td><td>Tom</td></tr>
+    <tr><td>CRM</td><td>The existing application or an external system, and which fields are synced</td><td>Tom and Amitai</td></tr>
+    <tr><td>Information providers</td><td>Results of the 20-company test and the budget</td><td>Shir and Tom</td></tr>
+    <tr><td>One-off connection model</td><td>Pricing and deal structure</td><td>Shir and Tom</td></tr>
+  </tbody></table></div>
+  <p><strong>To raise with Shaked:</strong> the model as we discussed it. We are in a process of building more partnerships like SHEPHA in more markets.</p>
+
+  <h3>C. Services design — YMT Consulting</h3>
+  <h4>1. Design principles</h4>
+  <p>Every service in this document is built on seven rules we have already agreed. A service that does not meet them does not enter the catalogue.</p>
+  <ol>
+    <li><strong>The funnel and the escalation.</strong> The core team's business-strategic consulting is the product. Specialists come in only when the assessment shows a need.</li>
+    <li><strong>Priced as products, not hours.</strong> Every service has a defined product the client receives in hand. Hour tracking is internal only.</li>
+    <li><strong>Every assessment ends in writing.</strong> A gap map, action recommendations and a 90-day road map.</li>
+    <li><strong>One point of contact.</strong> The core team passes from the assessment to the specialist, supervises and returns for feedback. The specialist does not replace us towards the client.</li>
+    <li><strong>Escalation by size.</strong> A small business gets a one-off service with a clear product. A larger business gets support. Every one-off service has a defined continuation.</li>
+    <li><strong>Knowledge, not a pool of suppliers.</strong> We decide which specialist, how much and when. The client does not choose from a HUB list.</li>
+    <li><strong>Opening the skies.</strong> The international services (India, sourcing, Asia) are available to a small Israeli client too, and that is what sets us apart.</li>
+  </ol>
+  <h4>2. The services map</h4>
+  <p><em>Every client enters through an assessment, and specialists come in only through the core.</em> Israel: entry gate – IL-1 introduction call → IL-2 paid assessment; core – the anchor: IL-3 strategic support, IL-4 focused project, IL-5 processes and organisation; add-ons – the escalation (only from an assessment or support): IL-6 marketing and branding, IL-7 automation and digitisation, IL-8 human capital and workshops, IL-9 pension and insurance (lead), IL-10 financing and grants. Differentiators: IL-11 sourcing suppliers and import · IL-12 business community. Global: GL-1 readiness assessment → one-off up to $30M: GL-2 connection to a distributor/partner, GL-3 market survey, GL-4 B2B meetings, GL-5 sourcing manufacturers → continuation → support above $30M: GL-6 India entry end to end, GL-7 managing a distribution network, GL-8 business development in Asia, GL-9 two-way consulting, GL-10 operations and exit, GL-11 defence (under examination); large companies go straight to support.</p>
+  <p>The services map · Israel and global, 23 services. Read from right to left: in Israel every client passes an introduction call and an assessment, and only then specialists. In global, a small company starts with a one-off connection, and a large company goes straight to support.</p>
+  <h4>3. Service card template</h4>
+  <p>Each service has 10 fields. A full card is the basis for the agreement with the specialist, for the price list and for the marketing text.</p>
+  <div class="scroll"><table><thead><tr><th>Field</th><th>What is written</th><th>Used for</th></tr></thead><tbody>
+    <tr><td>In the client's words</td><td>The sentence the business owner says</td><td>Marketing, bot</td></tr>
+    <tr><td>Trigger</td><td>What happens with them that indicates a need</td><td>The lead agents</td></tr>
+    <tr><td>For whom</td><td>Revenue band + situation tag</td><td>Agents, Omer</td></tr>
+    <tr><td>Product</td><td>What the client receives in hand</td><td>Price proposal, agreement</td></tr>
+    <tr><td>Duration and pace</td><td>How long, how many meetings</td><td>Internal hours planning</td></tr>
+    <tr><td>Who delivers</td><td>Core team / specialist (by role, not name)</td><td>Specialist agreements</td></tr>
+    <tr><td>One-off / support</td><td>And what the natural continuation is</td><td>Business model</td></tr>
+    <tr><td>Pricing model</td><td>Price per product / retainer / success fee / lead fee</td><td>Price list</td></tr>
+    <tr><td>Success metric</td><td>What is measured to say we succeeded</td><td>Quarterly review</td></tr>
+    <tr><td>Status</td><td>Ready / in build / in examination</td><td>What may already be sold today</td></tr>
+  </tbody></table></div>
+  <h4>4. Service cards · Israel</h4>
+  <p>12 services: two entry gates, three core services, five specialist services, and two that set us apart. The ranges in ₪ are market prices for reference from the pricing document. Our price is set at the pricing stage.</p>
+  <p><strong>Entry gate</strong></p>
+  <p><strong>IL-1 · Introduction call.</strong> In the client's words: "Something isn't working for me and I'm not sure what." Product: a 20–30 minute Zoom call + an intake questionnaire. Ends with an email with the problem in one sentence and a proposal for an assessment. Who delivers: Omer. Pricing: no cost. Metric: percentage of calls that move on to an assessment. Status: ready. The questionnaire exists in Google Form.</p>
+  <p><strong>IL-2 · Business assessment.</strong> In the client's words: "I need someone to look from outside and tell me what to do first." For whom: every client who passed an introduction call. The gate to all the services after it. Product: two documents, dry and fast: a gap map by the questionnaire topics (strategy, human capital, marketing, finance, pension and insurance), and a 90-day road map with 3 topics by order of impact. Duration: a 90–120 minute meeting + delivery of the documents within [X] days. Who delivers: Shir / Tom. Continuation: support (IL-3), project (IL-4) or a specialist. Pricing: a fixed price per product, paid in advance. Consider offsetting it from the support if they continue. Market range: ₪200–3,000. Metric: percentage of assessments that move on to a proposal. Status: in build. The price and the template of the two documents need to be set.</p>
+  <p><strong>The core</strong></p>
+  <p><strong>IL-3 · Business-strategic support.</strong> In the client's words: "I do everything alone, and I have no one to think with." Trigger: fast growth, return from reserve duty, transfer of a business from owners to a management layer, second generation. For whom: revenue of ₪1–15 million, with preference to reservist businesses. Product: a quarterly work plan, 3 agreed metrics, a written summary within 24 hours of each meeting, and a quarterly review. Duration and pace: 3 months renewing. Up to ₪1 million: a monthly Zoom. ₪1–5 million: bi-weekly. ₪5–15 million: weekly, with management. Who delivers: Shir / Tom. Specialists come in as needed. Pricing: a monthly retainer in revenue bands. Market range: ₪2,000–4,500 (up to ₪1 million), ₪4,500–9,000 (₪1–5 million), ₪9,000–15,000 (₪5–15 million). Metric: percentage of tasks completed on time, and the change in the 3 metrics. Status: ready for a pilot (at a reduced price).</p>
+  <p><strong>IL-4 · Focused project.</strong> In the client's words: "The bank asked for a business plan" / "I don't know what I'm earning from." Product (one of three): a written business plan · a commercial model (pricing, channels, profitability by product) · a gap map with an action plan. Duration: [X] weeks per product. Who delivers: Shir / Tom. Continuation: implementation support (IL-3). Pricing: a closed price per product. Market range for a business plan: ₪2,600–15,000. Status: ready.</p>
+  <p><strong>IL-5 · Implementing processes and organisational structure.</strong> In the client's words: "Everything goes through me; it can't expand like this." Product: an organisational structure, role definitions, procedures and implementation on the ground. Who delivers: Shir. Pricing: a closed project, or part of the support retainer. Status: ready.</p>
+  <p><strong>Specialists — come in only from an assessment or support</strong></p>
+  <div class="scroll"><table><thead><tr><th>Code</th><th>Service</th><th>In the client's words</th><th>Product</th><th>Who delivers</th><th>Pricing</th><th>Status</th></tr></thead><tbody>
+    <tr><td>IL-6</td><td>Marketing and branding</td><td>"No one knows us"</td><td>Positioning, branded management and media</td><td>Marketing specialist</td><td>Project or retainer</td><td>Ready</td></tr>
+    <tr><td>IL-7</td><td>Automation and digitisation</td><td>"Everything is in Excel and WhatsApp"</td><td>Specification, CRM, automations, website</td><td>IT specialist (behind the scenes)</td><td>Closed project, 50/50 split</td><td>Ready, the subcontracting issue open</td></tr>
+    <tr><td>IL-8</td><td>Human capital: assessment, placement, workshops</td><td>"I can't recruit the right people"</td><td>Candidate assessment, placement, team workshop</td><td>Organisational psychologist</td><td>Per product. Workshops under his name</td><td>Ready</td></tr>
+    <tr><td>IL-9</td><td>Pension and insurance</td><td>"I don't know what state my employees' and my coverage is in"</td><td>Check and arrangement</td><td>Licensed insurance agent</td><td>Lead fee only (commission sharing forbidden)</td><td>Pilot, pricing open</td></tr>
+    <tr><td>IL-10</td><td>Financing, banks and grants</td><td>"I need money to grow"</td><td>Matching a grant or financing track, preparation for the bank</td><td>Not yet set</td><td>Project. Success fee only as a hybrid</td><td>In build</td></tr>
+  </tbody></table></div>
+  <p><strong>What sets us apart</strong></p>
+  <p><strong>IL-11 · Sourcing suppliers and import.</strong> In the client's words: "I buy from an Israeli supplier and pay double." For whom: small businesses in the 5 areas that overlap with the sourcing group. Product: a list of verified factories + reference prices + support in the first order. Who delivers: the sourcing group, through us. Pricing: price per product, or a percentage of the order. Open. Status: in build.</p>
+  <p><strong>IL-12 · Business community.</strong> Product: regular meetings, referrals between businesses, access to specialists. For whom: clients who finished an assessment or support. A retention mechanism. Who delivers: Omer. Pricing: included in support, or company fees. Open. Status: in build.</p>
+  <h4>5. Service cards · Global</h4>
+  <p>The global services are split by company size. A company up to $30 million buys one connection. Above $50 million it buys market-entry support. Every service that touches India goes through the SHEPHA agreement, including the written referral (section 3.1).</p>
+  <p><strong>Entry gate — GL-1 · Market-readiness assessment.</strong> In the client's words: "We heard India is an opportunity, but we don't know where to start." Product: a short free questionnaire, then a detailed report with a work plan. Who delivers: Tomer Lex's assessment platform, adapted to the target market. Pricing: the questionnaire is free, the report about $1,000. Continuation: any one-off or support service. Status: under examination. The platform is built today for exit, and the playbook needs to be adapted for market entry.</p>
+  <p><strong>One-off — mainly for companies up to $30 million</strong></p>
+  <div class="scroll"><table><thead><tr><th>Code</th><th>Service</th><th>In the client's words</th><th>Product</th><th>Who delivers</th><th>Continuation</th><th>Status</th></tr></thead><tbody>
+    <tr><td>GL-2</td><td>Connection to a distributor / local partner</td><td>"We have no one to sell for us there"</td><td>1–3 screened candidates + introduction meeting</td><td>The team + SHEPHA / contacts in Asia</td><td>GL-7 managing the network</td><td>Ready (India)</td></tr>
+    <tr><td>GL-3</td><td>Target-market survey</td><td>"Is it even worth it for us?"</td><td>A planning document: demand, competitors, regulation, channels</td><td>Analysts through SHEPHA</td><td>GL-2 or GL-6</td><td>Ready (India)</td></tr>
+    <tr><td>GL-4</td><td>B2B meetings for a trade show / delegation</td><td>"We're flying to the show with no fixed meetings"</td><td>A meeting schedule arranged in advance</td><td>The team + SHEPHA</td><td>GL-2</td><td>Ready (India)</td></tr>
+    <tr><td>GL-5</td><td>Sourcing manufacturers and suppliers abroad</td><td>"We're looking for a factory that will produce for us more cheaply"</td><td>A list of verified factories + reference prices</td><td>The sourcing group (China, Thailand, Vietnam)</td><td>Support in the first order</td><td>In build</td></tr>
+  </tbody></table></div>
+  <p><strong>Support — mainly for companies above $30 million</strong></p>
+  <p><strong>GL-6 · India market entry end to end.</strong> In the client's words: "We want to enter India seriously, and we don't have the team for it." Trigger: searching for distributors, considering entry without proven ability, a nearby trade show, an existing distributor that got stuck. Product: entry strategy, analysts, execution on the ground and distributor management, and a quarterly report. Who delivers: the team + SHEPHA (Partnership). Pricing: retainer + bonus on target, per the SHEPHA agreement. Metric: a signed distributor, a first order, revenue from the market. Status: ready. This is the track we work in today in the tracking.</p>
+  <div class="scroll"><table><thead><tr><th>Code</th><th>Service</th><th>Product</th><th>Who delivers</th><th>Status</th></tr></thead><tbody>
+    <tr><td>GL-7</td><td>Managing an existing distribution network</td><td>Activating a distributor that got stuck, monthly performance follow-up</td><td>The team + SHEPHA</td><td>Ready (India)</td></tr>
+    <tr><td>GL-8</td><td>Ongoing business development in Asia-Pacific</td><td>Opening doors in Japan, Korea, Singapore, Malaysia</td><td>Tomer Lex's contacts</td><td>Under examination (Japan through Craig)</td></tr>
+    <tr><td>GL-9</td><td>Two-way consulting</td><td>A foreign company entering Israel: partners, clients, technology</td><td>The team</td><td>Under examination</td></tr>
+    <tr><td>GL-10</td><td>Operations improvement / preparation for exit</td><td>Comprehensive data collection and implementation of the recommendations</td><td>Tomer Lex + the team</td><td>Under examination</td></tr>
+    <tr><td>GL-11</td><td>Subcontractors in defence</td><td>Connection to supply chains abroad</td><td>Not yet set</td><td>Not to be offered until a decision</td></tr>
+  </tbody></table></div>
+  <h4>6. What has to be completed</h4>
+  <p>The questions that block the pricing stage are marked first.</p>
+  <p><strong>Pricing blockers</strong></p>
+  <ul>
+    <li>IL-2: how many documents come out of the assessment, within how many days, and how many team hours it really takes (Shir + Tom)</li>
+    <li>IL-2: is the assessment price offset from the support for those who continue?</li>
+    <li>IL-3: what is included in the retainer and what is priced separately? Are specialist hours included?</li>
+    <li>IL-3: what is the pilot price, and for how many months?</li>
+    <li>IL-4: exact duration and product for each of the three projects.</li>
+    <li>IL-6 to IL-8: price estimate for each specialist's product.</li>
+  </ul>
+  <p><strong>Agreement blockers</strong></p>
+  <ul>
+    <li>IL-7: do we work with the IT specialist "behind the scenes" until a successor business owner is found?</li>
+    <li>IL-9: the lead fee amount, and what happens with a client who leaves within two years (the pricing meeting).</li>
+    <li>IL-10: who carries out financing and grants, and are they registered as preferred financing consultants?</li>
+    <li>IL-11 + GL-5: the payment model with the sourcing group, and the 5 overlapping areas.</li>
+  </ul>
+  <p><strong>For a later decision</strong></p>
+  <ul>
+    <li>GL-1 and GL-10: does Tomer Lex's platform fit the target market, and what is the split with him?</li>
+    <li>GL-8: the outcome of the conversation with Craig (a consortium of 2–3 companies, a quantum model).</li>
+    <li>GL-11: does defence enter as a central sector?</li>
+    <li>Is the split between a public price list and a tailored proposal by service (a public entry gate, tailored support)?</li>
+  </ul>
+</section>
+</main>
+
+<footer><span data-l="he">YMT · משימות אמיתי לשבוע 22.11.2026 · הוכן מאפיון סוכן איתור הלידים, מסמך עיצוב השירותים והאפליקציה הקיימת</span><span data-l="en">YMT · Amitai's missions for the week of 22.11.2026 · prepared from the lead-finding agent spec, the services design document and the existing app</span></footer>
+
+<script>
+  // Language: ?lang=he|en, else the last choice, else Hebrew. The choice is a per-viewer convenience only.
+  (function () {
+    var KEY = 'ymt.week2211.lang';
+    function stored() { try { return window.localStorage.getItem(KEY); } catch (error) { return null; } }
+    function remember(value) { try { window.localStorage.setItem(KEY, value); } catch (error) { /* storage unavailable */ } }
+    var fromUrl = new URLSearchParams(window.location.search).get('lang');
+    function apply(lang) {
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+    }
+    apply(fromUrl === 'en' || fromUrl === 'he' ? fromUrl : (stored() === 'en' ? 'en' : 'he'));
+    document.getElementById('lang').addEventListener('click', function () {
+      var next = document.documentElement.lang === 'he' ? 'en' : 'he';
+      apply(next);
+      remember(next);
+    });
+
+    // Wide tables scroll inside their own box: make each box reachable by keyboard and named after its heading.
+    document.querySelectorAll('.scroll').forEach(function (box) {
+      var heading = box.previousElementSibling;
+      while (heading && !/^H[2-4]$/.test(heading.tagName)) heading = heading.previousElementSibling;
+      var section = box.closest('section');
+      var label = heading ? heading.textContent : (section && section.querySelector('h2') ? section.querySelector('h2').textContent : 'Table');
+      box.setAttribute('tabindex', '0');
+      box.setAttribute('role', 'region');
+      box.setAttribute('aria-label', label.replace(/\s+/g, ' ').trim());
+    });
+
+    // The 20-company test sheet as a CSV download (UTF-8 with BOM so Excel shows Hebrew correctly).
+    var header = ['#', 'Company', 'Website', 'Mandate', 'Known right person', 'Known role', 'Known email', 'Known phone',
+      'A free: person', 'A free: role current (1/0)', 'A free: email ok (1/0)', 'A free: phone ok (1/0)', 'A free: minutes',
+      'B Apollo: person', 'B Apollo: role current (1/0)', 'B Apollo: email ok (1/0)', 'B Apollo: phone ok (1/0)', 'B Apollo: credits',
+      'C Lusha: person', 'C Lusha: role current (1/0)', 'C Lusha: email ok (1/0)', 'C Lusha: phone ok (1/0)', 'C Lusha: credits',
+      'D email check result', 'Notes'];
+    var rows = [header.join(',')];
+    for (var i = 1; i <= 20; i += 1) rows.push([i].concat(new Array(header.length - 1).fill('')).join(','));
+    var csv = '﻿' + rows.join('\r\n') + '\r\n';
+    document.getElementById('csv').href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  })();
+</script>
+</body>
+</html>
