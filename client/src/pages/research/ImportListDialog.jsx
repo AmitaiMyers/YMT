@@ -1,4 +1,5 @@
-// Import a company list from a CSV file: choose the encoding, map the columns, preview, import.
+// Import a company list from an Excel (.xlsx) or CSV file – including a company export from Apollo or Lusha:
+// choose the encoding (CSV only), map the columns, preview, import.
 // Creates a new watch list, or adds to an existing one when `list` is given. Duplicates are skipped by the server.
 
 import { useMemo, useState } from 'react';
@@ -8,13 +9,21 @@ import { useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
 import { Dialog, Button, ErrorBox, Table, Notice } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
-import { detectDelimiter, parseCsv } from '../../lib/csv.js';
+import { readRows, isExcel, SPREADSHEET_ACCEPT } from '../../lib/spreadsheet.js';
 
 const ENCODINGS = ['utf-8', 'windows-1255'];
 const TARGETS = ['name', 'website', 'country', 'notes'];
-// Header words that suggest a column, in English and Hebrew.
+// Header words that suggest a column, in English and Hebrew. Exact headers of Apollo and Lusha company exports
+// ("Company", "Company Name", "Website", "Company Domain", "Company Country") are tried first, so a person's
+// "First Name" or "Country" column is not picked by mistake.
+const EXACT = {
+  name: /^(company|company name|organization( name)?|account name|שם החברה|חברה)$/i,
+  website: /^(website|company website|company domain|domain|אתר)$/i,
+  country: /^(company country|country|מדינה)$/i,
+  notes: /^(notes?|הערות?)$/i,
+};
 const GUESSES = {
-  name: /name|company|שם|חברה/i,
+  name: /^(?!.*(first|last) name).*(name|company|שם|חברה)/i,
   website: /web|site|url|domain|אתר/i,
   country: /country|מדינה/i,
   notes: /note|remark|comment|הערה|הערות|תיאור/i,
@@ -24,7 +33,9 @@ const PREVIEW_ROWS = 5;
 function guessMapping(header) {
   const used = new Set();
   return Object.fromEntries(TARGETS.map((target) => {
-    const index = header.findIndex((title, i) => !used.has(i) && GUESSES[target].test(title));
+    const free = (i) => !used.has(i);
+    const exact = header.findIndex((title, i) => free(i) && EXACT[target].test(title.trim()));
+    const index = exact !== -1 ? exact : header.findIndex((title, i) => free(i) && GUESSES[target].test(title));
     if (index !== -1) used.add(index);
     return [target, index === -1 ? '' : String(index)];
   }));
@@ -34,23 +45,22 @@ export function ImportListDialog({ open, list = null, onClose, onImported }) {
   const { t } = useI18n();
   const [file, setFile] = useState(null);
   const [encoding, setEncoding] = useState('utf-8');
-  const [text, setText] = useState('');
+  const [rows, setRows] = useState([]);
   const [mapping, setMapping] = useState(null);
   const [name, setName] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [sourceNote, setSourceNote] = useState('');
 
-  async function readFile(nextFile, nextEncoding) {
+  const read = useAction(async (nextFile, nextEncoding) => {
     setFile(nextFile);
     if (!nextFile) return;
-    const decoded = new TextDecoder(nextEncoding).decode(await nextFile.arrayBuffer());
-    setText(decoded);
-    const [header] = parseCsv(decoded, detectDelimiter(decoded));
-    setMapping(guessMapping(header ?? []));
+    const nextRows = await readRows(nextFile, nextEncoding);
+    setRows(nextRows);
+    setMapping(guessMapping(nextRows[0] ?? []));
     if (!list && name === '') setName(nextFile.name.replace(/\.[^.]+$/, ''));
-  }
+  });
+  const readFile = (nextFile, nextEncoding) => read.run(nextFile, nextEncoding);
 
-  const rows = useMemo(() => (text ? parseCsv(text, detectDelimiter(text)) : []), [text]);
   const header = rows[0] ?? [];
   const body = rows.slice(1);
   const entries = useMemo(() => (mapping && mapping.name !== '' ? body.map((row) => Object.fromEntries(
@@ -71,15 +81,15 @@ export function ImportListDialog({ open, list = null, onClose, onImported }) {
       <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); submit.run(); }}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FieldRow field={{ name: 'file', label: t('watch.file'), required: true }} inputId="watch-file">
-            <input id="watch-file" type="file" accept=".csv,text/csv" className="block w-full text-sm" onChange={(event) => readFile(event.target.files[0] ?? null, encoding)} />
+            <input id="watch-file" type="file" accept={SPREADSHEET_ACCEPT} className="block w-full text-sm" onChange={(event) => readFile(event.target.files[0] ?? null, encoding)} />
           </FieldRow>
-          <FieldRow field={{ name: 'encoding', label: t('watch.encoding'), help: t('watch.encodingHelp') }} inputId="watch-encoding" errorId="watch-encoding-hint">
+          {(file === null || !isExcel(file)) && <FieldRow field={{ name: 'encoding', label: t('watch.encoding'), help: t('watch.encodingHelp') }} inputId="watch-encoding" errorId="watch-encoding-hint">
             <FieldInput
               field={{ name: 'encoding', type: 'select', required: true, options: ENCODINGS.map((value) => ({ value, label: t(`watch.encoding.${value}`) })) }}
               inputId="watch-encoding" errorId="watch-encoding-hint" value={encoding}
               onChange={(value) => { setEncoding(value); readFile(file, value); }}
             />
-          </FieldRow>
+          </FieldRow>}
           {!list && (
             <>
               <FieldRow field={{ name: 'list-name', label: t('watch.listName'), required: true }} inputId="watch-name">
@@ -122,6 +132,7 @@ export function ImportListDialog({ open, list = null, onClose, onImported }) {
             />
           </div>
         )}
+        {read.error && <ErrorBox message={read.error} />}
         {submit.error && <ErrorBox message={submit.error} />}
         <div className="flex flex-wrap gap-2">
           <Button type="submit" icon={Upload} loading={submit.busy} disabled={!ready} disabledReason={t('watch.notReady')}>{t('watch.importCount', { count: entries.length })}</Button>

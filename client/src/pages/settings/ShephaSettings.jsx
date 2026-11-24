@@ -3,13 +3,13 @@
 // before any AI cost, and the list is never sent to the AI. Admins only: the list is confidential.
 
 import { useState } from 'react';
-import { readSheet } from 'read-excel-file/browser';
 import { FileSpreadsheet, Upload } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useLoad, useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
 import { Card, Loaded, SkeletonRows, Button, ErrorBox, Notice, Table, useToast } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
+import { readRows, cellText, SPREADSHEET_ACCEPT } from '../../lib/spreadsheet.js';
 
 const TARGETS = ['name', 'website', 'registry_number', 'note'];
 // Header words that suggest a column, in English and Hebrew.
@@ -30,11 +30,6 @@ function guessMapping(header) {
   }));
 }
 
-function cellText(value) {
-  if (value === null || value === undefined) return '';
-  return String(value).trim();
-}
-
 function toRows(sheet, mapping) {
   return sheet.slice(1)
     .map((cells) => Object.fromEntries(TARGETS.filter((target) => mapping[target] !== '')
@@ -48,7 +43,7 @@ function ImportForm({ onImported }) {
   const [sheet, setSheet] = useState(null);
   const [mapping, setMapping] = useState(null);
   const read = useAction(async (file) => {
-    const data = await readSheet(file);
+    const data = await readRows(file);
     if (data.length < 2) throw new Error(t('shepha.emptyFile'));
     const header = data[0].map(cellText);
     setSheet(data);
@@ -72,7 +67,7 @@ function ImportForm({ onImported }) {
         <input
           id="shepha-file"
           type="file"
-          accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          accept={SPREADSHEET_ACCEPT}
           className="block w-full text-sm"
           onChange={(event) => { if (event.target.files[0]) read.run(event.target.files[0]); }}
         />
