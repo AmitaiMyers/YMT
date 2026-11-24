@@ -7,7 +7,7 @@ import { parseBody } from '../validate.js';
 import { getSettings, count, audit } from '../db.js';
 import { requireAdmin } from '../auth.js';
 import { badRequest } from '../http.js';
-import { MAX_FOLLOWUPS_HARD_LIMIT } from '../constants.js';
+import { MAX_FOLLOWUPS_HARD_LIMIT, VIEW_MODES } from '../constants.js';
 
 const SETTINGS_SPEC = {
   company_name: { type: 'string', max: 120 },
@@ -19,6 +19,8 @@ const SETTINGS_SPEC = {
   share_link_days: { type: 'int', min: 1, max: 90 },
   followup_after_days: { type: 'int', min: 1, max: 60 },
 };
+
+const VIEW_MODE_SPEC = { view_mode: { type: 'string', required: true, enum: VIEW_MODES } };
 
 const COUNTED_TABLES = ['users', 'companies', 'contacts', 'triggers', 'deals', 'interactions', 'approvals',
   'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'suppressions', 'replies', 'approved_answers', 'discovery_requests', 'audit_log'];
@@ -45,6 +47,14 @@ export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled, aiP
       upsert.run(key, String(value));
     }
     audit(db, req.user.id, 'settings.updated', 'settings', null, Object.keys(changes).join(','));
+    res.json(getSettings(db));
+  });
+
+  /** Focus or full view for everyone: an organisation-wide choice, so admins only. */
+  router.put('/settings/view-mode', requireAdmin, (req, res) => {
+    const { view_mode: mode } = parseBody(VIEW_MODE_SPEC, req.body);
+    db.prepare("UPDATE settings SET value = ? WHERE key = 'view_mode'").run(mode);
+    audit(db, req.user.id, 'settings.view_mode', 'settings', null, mode);
     res.json(getSettings(db));
   });
 

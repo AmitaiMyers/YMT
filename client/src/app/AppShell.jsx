@@ -7,7 +7,8 @@ import { Search, Sun, Moon, Monitor, LogOut, Menu as MenuIcon, WifiOff, Keyboard
 import { CountBadge, Dialog, Skeleton, Tooltip, useHotkeys, useOnline, useTheme } from '../ui/index.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { useAuth } from '../auth/AuthProvider.jsx';
-import { NAV_GROUPS, NAV_ITEMS } from './navigation.js';
+import { visibleNavGroups, visibleNavItems } from './navigation.js';
+import { useViewMode } from './viewMode.jsx';
 import { useCounts } from './CountsProvider.jsx';
 import { CommandPalette } from './CommandPalette.jsx';
 import { ShortcutsDialog } from './ShortcutsDialog.jsx';
@@ -48,9 +49,10 @@ function NavItem({ item, compact, onNavigate }) {
 
 function NavGroups({ compact, onNavigate }) {
   const { t } = useI18n();
+  const { shows } = useViewMode();
   return (
     <nav aria-label={t('nav.main')} className="flex flex-col gap-5">
-      {NAV_GROUPS.map((group) => (
+      {visibleNavGroups(shows).map((group) => (
         <div key={group.key}>
           {!compact && <div className="mb-1 px-3 text-xs font-semibold tracking-wide text-sidebar-muted/80">{t(`navGroup.${group.key}`)}</div>}
           <ul className="flex flex-col gap-0.5">
@@ -147,7 +149,8 @@ function MobileBars({ onSearch }) {
   const { t } = useI18n();
   const { counts } = useCounts();
   const [moreOpen, setMoreOpen] = useState(false);
-  const mobileItems = NAV_ITEMS.filter((item) => item.mobile);
+  const { shows } = useViewMode();
+  const mobileItems = visibleNavItems(shows).filter((item) => item.mobile);
   return (
     <>
       <header className="no-print sticky top-0 z-30 flex items-center justify-between bg-sidebar px-4 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sidebar-fg md:hidden">
@@ -157,7 +160,7 @@ function MobileBars({ onSearch }) {
           <LanguageButton />
         </div>
       </header>
-      <nav aria-label={t('nav.main')} className="no-print fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav aria-label={t('nav.main')} style={{ gridTemplateColumns: `repeat(${mobileItems.length + 1}, minmax(0, 1fr))` }} className="no-print fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
         {mobileItems.map((item) => {
           const Icon = item.icon;
           const count = item.count ? counts[item.count] : 0;
@@ -187,6 +190,7 @@ export function AppShell() {
   const { t } = useI18n();
   const online = useOnline();
   const navigate = useNavigate();
+  const { shows } = useViewMode();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
@@ -204,7 +208,7 @@ export function AppShell() {
   useHotkeys({
     '/': () => setPaletteOpen(true),
     '?': () => setShortcutsOpen(true),
-    ...Object.fromEntries(NAV_ITEMS.map((item) => [item.hotkey, () => navigate(item.to)])),
+    ...Object.fromEntries(visibleNavItems(shows).filter((item) => item.hotkey).map((item) => [item.hotkey, () => navigate(item.to)])),
   });
 
   return (

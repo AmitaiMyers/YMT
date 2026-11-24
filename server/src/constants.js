@@ -26,6 +26,8 @@ export const DEFAULT_SETTINGS = {
   }),
   // Which version of YMT's mandate wording the database was moved to (see applySpec2211).
   mandate_spec: '',
+  // Focus mode hides the screens this week's tasks do not use (see client/src/app/viewMode.js); admins switch it.
+  view_mode: 'focus',
   // Release 4: a first approach with no reply after this many days shows "Follow up".
   followup_after_days: '7',
   // Release 3 legal gate. Countries are names as used on companies ("Israel"). Israel is cleared by default because

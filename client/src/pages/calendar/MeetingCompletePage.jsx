@@ -14,6 +14,7 @@ import { post } from '../../api.js';
 import { Card, Loaded, PageHeader, Button, IconButton, ErrorBox, Notice, Stepper, useToast, useConfirm } from '../../ui/index.js';
 import { FieldInput, FieldRow, INPUT_CLASS } from '../../components/EntityForm.jsx';
 import { useCounts } from '../../app/CountsProvider.jsx';
+import { useViewMode } from '../../app/viewMode.jsx';
 import { useEnumOptions } from '../../enumOptions.js';
 import { LANGUAGES } from '../../../../shared/enums.js';
 
@@ -119,6 +120,7 @@ function Outcome({ outcome, companyId }) {
 }
 
 function CompleteWizard({ prep, workflows }) {
+  const { shows } = useViewMode();
   const { t, language } = useI18n();
   const toast = useToast();
   const { refresh } = useCounts();
@@ -238,7 +240,7 @@ function CompleteWizard({ prep, workflows }) {
         <div key={step} className="animate-rise">
           {step === 0 && (
             <>
-              <AiDraftBox
+              {shows('meetingAi') && <AiDraftBox
                 meetingId={meetingId}
                 aiProblem={prep.ai_problem}
                 notes={form.notes}
@@ -247,7 +249,7 @@ function CompleteWizard({ prep, workflows }) {
                 onLanguage={(value) => setForm('language', value)}
                 hasContent={Boolean(form.summary.trim() || form.decisions.trim() || tasks.length > 0)}
                 onDraft={applyAiDraft}
-              />
+              />}
               {renderFields(happenedFields)}
             </>
           )}

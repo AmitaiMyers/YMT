@@ -6,6 +6,7 @@ import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
 import { Button, ErrorBox } from '../../ui/index.js';
+import { useViewMode } from '../../app/viewMode.jsx';
 
 const MAX_STEPS = 3;
 
@@ -34,7 +35,10 @@ const ICONS = { review: ClipboardCheck, summarize: NotebookPen, prep: CalendarCl
 export function NextStepPanel({ data, flow, onTab, onChanged }) {
   const { t, language } = useI18n();
   const navigate = useNavigate();
-  const steps = suggestNextSteps(data);
+  const { shows } = useViewMode();
+  // Focus mode: no link to the hidden prep sheet, and no old brief/template-email generators.
+  const steps = suggestNextSteps(data).filter((step) => (step.kind === 'prep' ? shows('meetingPrep')
+    : ['brief', 'outreach'].includes(step.kind) ? shows('companyGenerators') : true));
   const generate = useAction(async (step) => {
     const body = step.kind === 'brief'
       ? { path: `/companies/${data.company.id}/brief`, payload: { language } }

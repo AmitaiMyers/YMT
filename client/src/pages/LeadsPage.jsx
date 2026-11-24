@@ -157,6 +157,17 @@ function NewCompany() {
   );
 }
 
+/** "New company" as its own screen (Clients → New company), available in both view modes. */
+export function NewCompanyPage() {
+  const { t } = useI18n();
+  return (
+    <>
+      <PageHeader title={t('leads.newCompany')} />
+      <NewCompany />
+    </>
+  );
+}
+
 export function LeadsPage() {
   const { t } = useI18n();
   const [params, setParams] = useSearchParams();

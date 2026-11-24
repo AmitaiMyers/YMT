@@ -290,3 +290,11 @@ test('Defer: 90 days by default with a come-back task; Accept opens the deal', a
   assert.deepEqual(row.review_minutes_by_version.map((v) => [v.version, v.reviewed]), [[1, 2]]); // a new database starts with the spec as version 1
   assert.deepEqual([row.contacts_decided, row.contacts_wrong], [0, 0]);
 });
+
+test('view mode: focus by default; only admins switch it', async () => {
+  assert.equal((await call('shir', 'GET', '/settings')).data.view_mode, 'focus');
+  assert.equal((await call('shir', 'PUT', '/settings/view-mode', { view_mode: 'full' })).status, 403);
+  assert.equal((await call('tom', 'PUT', '/settings/view-mode', { view_mode: 'simple' })).status, 400);
+  assert.equal((await call('tom', 'PUT', '/settings/view-mode', { view_mode: 'full' })).data.view_mode, 'full');
+  assert.equal((await call('shir', 'GET', '/settings')).data.view_mode, 'full');
+});

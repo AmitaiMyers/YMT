@@ -53,6 +53,8 @@ Research agents find **Israeli companies with a dated business initiative** that
 3. **Research → Mandates** (admin): open each mandate, choose its **owner** and set it **Active**. Mandates start paused and without an owner.
 4. **AI settings** (same screen, admins): the monthly cap (default **$20**), and the provider and model per task (default Claude Sonnet 5.5). Prices per model are listed there; add a price before using a new model.
 
+**View (Settings → General → View):** the app opens in the **Focused** view, which shows only what YMT works on now: lead research (review, mandates, watch lists, metrics, SHEPHA list, services), clients and contacts, deals and pipeline, outreach (approvals, conversations) and the calendar with meeting scheduling. It hides the Inbox, the old lead search, Documents, Suppliers & experts, the old Dashboard, the meeting prep sheet, the AI meeting-summary draft, the company brief and template email, and the company tabs Triggers, Documents, Matches, Sharing and Discovery; the home screen is Research review. Nothing is deleted: an admin switches to **Full** and every screen is back for everyone. The list of hidden features is in `client/src/app/viewMode.jsx`.
+
 **Daily use:**
 
 - **Run** a mandate and choose how many cards (1–20), or set it to run weekly on a chosen day. A run takes a few minutes; each card costs roughly $0.08–0.13.

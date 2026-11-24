@@ -7,13 +7,15 @@ import { Button, Card, StatusBadge, statusTone, Table, EmptyState } from '../../
 import { ScheduleMeetingDialog } from '../../components/ScheduleMeetingDialog.jsx';
 import { EntityForm } from '../../components/EntityForm.jsx';
 import { TaskList, useTaskFields } from '../../components/TaskList.jsx';
+import { useViewMode } from '../../app/viewMode.jsx';
 
 export function MeetingActions({ meeting }) {
   const { t } = useI18n();
+  const { shows } = useViewMode();
   const past = meeting.scheduled_at < new Date().toISOString();
   return (
     <div className="flex flex-wrap gap-3 text-sm">
-      <Link className="inline-flex items-center gap-1 text-link underline" to={`/meetings/${meeting.id}/prep`}><ClipboardList aria-hidden="true" size={14} />{t('meetings.prep')}</Link>
+      {shows('meetingPrep') && <Link className="inline-flex items-center gap-1 text-link underline" to={`/meetings/${meeting.id}/prep`}><ClipboardList aria-hidden="true" size={14} />{t('meetings.prep')}</Link>}
       {meeting.status === 'scheduled' && (
         <Link className={`inline-flex items-center gap-1 underline ${past ? 'font-semibold text-signal-fg' : 'text-link'}`} to={`/meetings/${meeting.id}/complete`}>
           <NotebookPen aria-hidden="true" size={14} />{t('meetings.complete')}

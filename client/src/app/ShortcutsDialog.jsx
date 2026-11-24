@@ -1,6 +1,7 @@
 import { Dialog } from '../ui/index.js';
 import { useI18n } from '../i18n/I18nProvider.jsx';
-import { NAV_ITEMS } from './navigation.js';
+import { visibleNavItems } from './navigation.js';
+import { useViewMode } from './viewMode.jsx';
 
 function Keys({ combo }) {
   return (
@@ -12,11 +13,12 @@ function Keys({ combo }) {
 
 export function ShortcutsDialog({ open, onClose }) {
   const { t } = useI18n();
+  const { shows } = useViewMode();
   const rows = [
     ['Ctrl K', t('shortcuts.palette')],
     ['/', t('shortcuts.palette')],
     ['?', t('shortcuts.help')],
-    ...NAV_ITEMS.map((item) => [item.hotkey, t(item.key)]),
+    ...visibleNavItems(shows).filter((item) => item.hotkey).map((item) => [item.hotkey, t(item.key)]),
   ];
   return (
     <Dialog open={open} onClose={onClose} title={t('shortcuts.title')} description={t('shortcuts.note')}>

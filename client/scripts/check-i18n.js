@@ -60,6 +60,8 @@ const DYNAMIC_KEYS = {
   dropReason: enums.DROP_REASONS, 'score.part': enums.SCORE_PARTS, 'score.dm': enums.DECISION_MAKER_LEVELS,
   'score.service': enums.SERVICE_FIT_LEVELS, 'score.evidence': enums.EVIDENCE_LEVELS,
   'shepha.field': ['name', 'website', 'registry_number', 'note'],
+  // View mode (24.11.2026)
+  viewMode: enums.VIEW_MODES, viewModeHelp: enums.VIEW_MODES,
 };
 
 function sourceFiles(dir) {

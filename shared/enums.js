@@ -126,3 +126,7 @@ export const PROPOSAL_DISMISS_REASONS = ['not_relevant', 'wrong_or_outdated'];
 export const DROP_REASONS = ['shepha_exclusion', 'no_israeli_connection', 'no_export', 'already_established', 'below_floor', 'below_minimum',
   'not_a_match', 'stale', 'unverifiable_source', 'invalid_result'];
 
+// ---------------------------------------------------------------- View mode (24.11.2026)
+// focus = only what this week's tasks need (lead-finding pilot, CRM, deals, outreach, calendar); full = every screen.
+// Nothing is removed: switching back to full shows everything again (Settings → General, admins).
+export const VIEW_MODES = ['focus', 'full'];

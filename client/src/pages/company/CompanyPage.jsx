@@ -8,6 +8,7 @@ import { useLoad } from '../../hooks/useApi.js';
 import { Loaded, PageHeader, Tabs, Badge, Skeleton } from '../../ui/index.js';
 import { useDraftFlow } from '../../components/useDraftFlow.jsx';
 import { useCounts } from '../../app/CountsProvider.jsx';
+import { useViewMode } from '../../app/viewMode.jsx';
 import { NextStepPanel } from './NextStepPanel.jsx';
 import { OverviewTab } from './OverviewTab.jsx';
 import { ContactsTab } from './ContactsTab.jsx';
@@ -71,6 +72,8 @@ export function CompanyPage() {
   const { id } = useParams();
   const { t } = useI18n();
   const { refresh } = useCounts();
+  const { shows } = useViewMode();
+  const tabs = TABS.filter(([key]) => shows(`companyTab.${key}`));
   const [tab, setTab] = useState('overview');
   const result = useLoad(`/companies/${id}/overview`);
   const reload = () => {
@@ -78,7 +81,7 @@ export function CompanyPage() {
     refresh();
   };
   const flow = useDraftFlow(reload);
-  const ActiveTab = TABS.find(([key]) => key === tab)[1];
+  const ActiveTab = tabs.find(([key]) => key === tab)[1];
 
   return (
     <Loaded result={result} skeleton={<CompanySkeleton />}>
@@ -97,7 +100,7 @@ export function CompanyPage() {
           />
           <CompanySummary data={data} />
           <NextStepPanel data={data} flow={flow} onTab={setTab} onChanged={reload} />
-          <Tabs sticky tabs={TABS.map(([key]) => ({ key, label: t(`companyTab.${key}`) }))} active={tab} onChange={setTab} label={t('company.sections')}>
+          <Tabs sticky tabs={tabs.map(([key]) => ({ key, label: t(`companyTab.${key}`) }))} active={tab} onChange={setTab} label={t('company.sections')}>
             <ActiveTab data={data} reload={reload} flow={flow} />
           </Tabs>
           {flow.elements}

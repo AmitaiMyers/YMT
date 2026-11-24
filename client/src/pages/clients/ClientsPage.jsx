@@ -17,7 +17,7 @@ export function ClientsPage() {
   const columns = useCompanyColumns();
   return (
     <>
-      <PageHeader title={t('nav.clients')} subtitle={t('clients.subtitle')} actions={<ButtonLink to="/leads?tab=new" variant="primary" icon={Plus}>{t('leads.newCompany')}</ButtonLink>} />
+      <PageHeader title={t('nav.clients')} subtitle={t('clients.subtitle')} actions={<ButtonLink to="/clients/new" variant="primary" icon={Plus}>{t('leads.newCompany')}</ButtonLink>} />
       <Card>
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <div className="relative min-w-60 flex-1">

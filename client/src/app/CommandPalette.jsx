@@ -8,7 +8,8 @@ import { Dialog } from '../ui/index.js';
 import { useTheme } from '../ui/theme.jsx';
 import { useI18n } from '../i18n/I18nProvider.jsx';
 import { get, toQuery } from '../api.js';
-import { NAV_ITEMS } from './navigation.js';
+import { visibleNavItems } from './navigation.js';
+import { useViewMode } from './viewMode.jsx';
 
 const SEARCH_DELAY_MS = 200;
 
@@ -35,6 +36,7 @@ function useRemoteSearch(query) {
 export function CommandPalette({ open, onClose }) {
   const { t, language, setLanguage } = useI18n();
   const { resolved, choose } = useTheme();
+  const { shows } = useViewMode();
   const navigate = useNavigate();
   const listId = useId();
   const [query, setQuery] = useState('');
@@ -51,8 +53,8 @@ export function CommandPalette({ open, onClose }) {
   const items = useMemo(() => {
     const go = (to) => () => navigate(to);
     const local = [
-      ...NAV_ITEMS.map((item) => ({ id: `nav-${item.to}`, icon: item.icon, label: t(item.key), hint: t('palette.screen'), run: go(item.to) })),
-      { id: 'new-company', icon: Plus, label: t('palette.newCompany'), hint: t('palette.action'), run: go('/leads?tab=new') },
+      ...visibleNavItems(shows).map((item) => ({ id: `nav-${item.to}`, icon: item.icon, label: t(item.key), hint: t('palette.screen'), run: go(item.to) })),
+      { id: 'new-company', icon: Plus, label: t('palette.newCompany'), hint: t('palette.action'), run: go('/clients/new') },
       { id: 'schedule', icon: CalendarPlus, label: t('meetings.schedule'), hint: t('palette.action'), run: go('/calendar#schedule') },
       { id: 'theme', icon: SunMoon, label: resolved === 'dark' ? t('theme.switchLight') : t('theme.switchDark'), hint: t('palette.action'), run: () => choose(resolved === 'dark' ? 'light' : 'dark') },
       { id: 'language', icon: Languages, label: language === 'he' ? 'Switch to English' : 'מעבר לעברית', hint: t('palette.action'), run: () => setLanguage(language === 'he' ? 'en' : 'he') },
@@ -64,7 +66,7 @@ export function CommandPalette({ open, onClose }) {
       ...remote.deals.map((d) => ({ id: `d-${d.id}`, icon: SquareKanban, label: d.title, hint: d.company_name, run: go(`/deals/${d.id}`) })),
       ...filtered,
     ];
-  }, [query, remote, t, navigate, resolved, choose, language, setLanguage]);
+  }, [query, remote, t, navigate, resolved, choose, language, setLanguage, shows]);
 
   const activeIndex = Math.min(active, Math.max(0, items.length - 1));
 

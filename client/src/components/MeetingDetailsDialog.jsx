@@ -9,6 +9,7 @@ import { patch } from '../api.js';
 import { Button, ButtonLink, Dialog, ErrorBox, StatusBadge, useConfirm, useToast } from '../ui/index.js';
 import { INPUT_CLASS, isoToLocalInput } from './EntityForm.jsx';
 import { meetingState } from '../lib/calendar.js';
+import { useViewMode } from '../app/viewMode.jsx';
 
 const FIELD = `${INPUT_CLASS} border-line-strong mt-1.5`;
 const DURATIONS = [15, 30, 45, 60, 90, 120];
@@ -70,6 +71,7 @@ function EditMeetingForm({ meeting, onSaved, onCancel }) {
 
 function YmtMeetingDetails({ meeting, onChanged, onClose }) {
   const { t } = useI18n();
+  const { shows } = useViewMode();
   const format = useFormat();
   const toast = useToast();
   const confirm = useConfirm();
@@ -134,7 +136,7 @@ function YmtMeetingDetails({ meeting, onChanged, onClose }) {
         {meeting.invite_sent_to && <Row icon={Mail}>{t('meetingDetails.invited', { email: meeting.invite_sent_to, date: format.dateTime(meeting.invite_sent_at) })}</Row>}
       </div>
       <div className="flex flex-wrap gap-2 border-t border-line pt-4">
-        {state !== 'cancelled' && <ButtonLink size="sm" icon={ClipboardList} to={`/meetings/${meeting.id}/prep`}>{t('meetings.prep')}</ButtonLink>}
+        {state !== 'cancelled' && shows('meetingPrep') && <ButtonLink size="sm" icon={ClipboardList} to={`/meetings/${meeting.id}/prep`}>{t('meetings.prep')}</ButtonLink>}
         {(state === 'scheduled' || state === 'needsSummary') && (
           <ButtonLink size="sm" variant={state === 'needsSummary' ? 'primary' : 'secondary'} icon={NotebookPen} to={`/meetings/${meeting.id}/complete`}>{t('meetings.complete')}</ButtonLink>
         )}

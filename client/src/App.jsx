@@ -5,12 +5,14 @@ import { useAuth } from './auth/AuthProvider.jsx';
 import { ConfirmProvider, ToastProvider, Skeleton } from './ui/index.js';
 import { AppShell } from './app/AppShell.jsx';
 import { CountsProvider } from './app/CountsProvider.jsx';
+import { ViewModeProvider, useViewMode, useHomePath } from './app/viewMode.jsx';
 import { LoginPage } from './pages/LoginPage.jsx';
 
 // Route-level code splitting: each screen downloads on first visit (fast first load on phones).
 const InboxPage = lazy(() => import('./pages/inbox/InboxPage.jsx').then((module) => ({ default: module.InboxPage })));
 const DashboardPage = lazy(() => import('./pages/DashboardPage.jsx').then((module) => ({ default: module.DashboardPage })));
 const LeadsPage = lazy(() => import('./pages/LeadsPage.jsx').then((module) => ({ default: module.LeadsPage })));
+const NewCompanyPage = lazy(() => import('./pages/LeadsPage.jsx').then((module) => ({ default: module.NewCompanyPage })));
 const ClientsPage = lazy(() => import('./pages/clients/ClientsPage.jsx').then((module) => ({ default: module.ClientsPage })));
 const CompanyPage = lazy(() => import('./pages/company/CompanyPage.jsx').then((module) => ({ default: module.CompanyPage })));
 const ApprovalsPage = lazy(() => import('./pages/ApprovalsPage.jsx').then((module) => ({ default: module.ApprovalsPage })));
@@ -40,45 +42,55 @@ function Splash() {
   return <div className="flex min-h-dvh items-center justify-center bg-sidebar"><Skeleton className="h-11 w-11 rounded-[10px] opacity-40" /></div>;
 }
 
+/** A screen Focus mode hides: its address leads to `fallback` (default: the home screen) instead. */
+function Gated({ feature, fallback, children }) {
+  const { shows } = useViewMode();
+  const home = useHomePath();
+  return shows(feature) ? children : <Navigate to={fallback ?? home} replace />;
+}
+
 function StaffApp() {
   const { user, checked } = useAuth();
   if (!checked) return <Splash />;
   if (!user) return <LoginPage />;
   return (
     <CountsProvider>
-      <Routes>
-        <Route element={<AppShell />}>
-          <Route index element={<InboxPage />} />
-          <Route path="approvals" element={<ApprovalsPage />} />
-          <Route path="calendar" element={<CalendarPage />} />
-          <Route path="meetings/:id/prep" element={<MeetingPrepPage />} />
-          <Route path="meetings/:id/complete" element={<MeetingCompletePage />} />
-          <Route path="research" element={<ReviewPage />} />
-          <Route path="research/cards/:id" element={<CardPage />} />
-          <Route path="research/mandates" element={<MandatesPage />} />
-          <Route path="research/mandates/:id" element={<MandatePage />} />
-          <Route path="research/metrics" element={<MetricsPage />} />
-          <Route path="research/watch-lists" element={<WatchListsPage />} />
-          <Route path="research/watch-lists/:id" element={<WatchListPage />} />
-          <Route path="conversations" element={<ConversationsPage />} />
-          <Route path="conversations/:contactId" element={<ConversationPage />} />
-          <Route path="leads" element={<LeadsPage />} />
-          <Route path="pipeline" element={<PipelinePage />} />
-          <Route path="deals/:id" element={<DealPage />} />
-          <Route path="clients" element={<ClientsPage />} />
-          <Route path="companies/:id" element={<CompanyPage />} />
-          <Route path="documents" element={<DocumentsPage />} />
-          <Route path="documents/:id" element={<DocumentPage />} />
-          <Route path="network" element={<NetworkPage />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          {/* Old addresses from the first release keep working. */}
-          <Route path="reminders" element={<Navigate to="/" replace />} />
-          <Route path="meetings" element={<Navigate to="/calendar" replace />} />
-          <Route path="directory" element={<Navigate to="/network" replace />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
+      <ViewModeProvider>
+        <Routes>
+          <Route element={<AppShell />}>
+            <Route index element={<Gated feature="inbox" fallback="/research"><InboxPage /></Gated>} />
+            <Route path="approvals" element={<ApprovalsPage />} />
+            <Route path="calendar" element={<CalendarPage />} />
+            <Route path="meetings/:id/prep" element={<Gated feature="meetingPrep" fallback="/calendar"><MeetingPrepPage /></Gated>} />
+            <Route path="meetings/:id/complete" element={<MeetingCompletePage />} />
+            <Route path="research" element={<ReviewPage />} />
+            <Route path="research/cards/:id" element={<CardPage />} />
+            <Route path="research/mandates" element={<MandatesPage />} />
+            <Route path="research/mandates/:id" element={<MandatePage />} />
+            <Route path="research/metrics" element={<MetricsPage />} />
+            <Route path="research/watch-lists" element={<WatchListsPage />} />
+            <Route path="research/watch-lists/:id" element={<WatchListPage />} />
+            <Route path="conversations" element={<ConversationsPage />} />
+            <Route path="conversations/:contactId" element={<ConversationPage />} />
+            <Route path="leads" element={<Gated feature="leads"><LeadsPage /></Gated>} />
+            <Route path="pipeline" element={<PipelinePage />} />
+            <Route path="deals/:id" element={<DealPage />} />
+            <Route path="clients" element={<ClientsPage />} />
+            <Route path="clients/new" element={<NewCompanyPage />} />
+            <Route path="companies/:id" element={<CompanyPage />} />
+            <Route path="documents" element={<Gated feature="documents"><DocumentsPage /></Gated>} />
+            <Route path="documents/:id" element={<Gated feature="documents"><DocumentPage /></Gated>} />
+            <Route path="network" element={<Gated feature="network"><NetworkPage /></Gated>} />
+            <Route path="dashboard" element={<Gated feature="dashboard"><DashboardPage /></Gated>} />
+            <Route path="settings" element={<SettingsPage />} />
+            {/* Old addresses from the first release keep working. */}
+            <Route path="reminders" element={<Navigate to="/" replace />} />
+            <Route path="meetings" element={<Navigate to="/calendar" replace />} />
+            <Route path="directory" element={<Navigate to="/network" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </ViewModeProvider>
     </CountsProvider>
   );
 }

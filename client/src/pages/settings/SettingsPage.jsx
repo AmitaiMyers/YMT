@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { useAuth } from '../../auth/AuthProvider.jsx';
-import { useLoad } from '../../hooks/useApi.js';
+import { useLoad, useAction } from '../../hooks/useApi.js';
 import { patch } from '../../api.js';
-import { Card, Loaded, PageHeader, Tabs, useTheme, SkeletonRows } from '../../ui/index.js';
+import { Card, Loaded, PageHeader, Tabs, useTheme, SkeletonRows, ErrorBox } from '../../ui/index.js';
 import { EntityForm } from '../../components/EntityForm.jsx';
 import { WorkflowsSettings } from './WorkflowsSettings.jsx';
 import { TemplatesSettings } from './TemplatesSettings.jsx';
@@ -17,9 +17,10 @@ import { ApprovedAnswersSettings } from './ApprovedAnswersSettings.jsx';
 import { DiscoverySettings } from './DiscoverySettings.jsx';
 import { ServicesSettings } from './ServicesSettings.jsx';
 import { ShephaSettings } from './ShephaSettings.jsx';
-import { MAX_FOLLOWUPS_HARD_LIMIT } from '../../../../shared/enums.js';
+import { MAX_FOLLOWUPS_HARD_LIMIT, VIEW_MODES } from '../../../../shared/enums.js';
 import { InstallButton } from '../../app/InstallButton.jsx';
 import { useInstallPrompt } from '../../app/pwa.js';
+import { useViewMode } from '../../app/viewMode.jsx';
 
 const THEME_ICONS = { system: Monitor, light: Sun, dark: Moon };
 
@@ -69,6 +70,24 @@ function AppearanceSettings() {
   );
 }
 
+/** Focus or Full view for everyone (admins switch it; nothing is deleted, hidden screens come back in Full). */
+function ViewModeSettings() {
+  const { t } = useI18n();
+  const { user } = useAuth();
+  const { mode, setMode } = useViewMode();
+  const change = useAction(setMode);
+  return (
+    <Card title={t('viewMode.title')}>
+      <p className="mb-4 text-sm text-muted">{t('viewMode.help')}</p>
+      {user.role === 'admin'
+        ? <ChoiceGroup label={t('viewMode.label')} value={mode} onChange={(next) => change.run(next)} options={VIEW_MODES.map((key) => ({ value: key, label: t(`viewMode.${key}`) }))} />
+        : <p className="text-sm">{t('viewMode.current', { mode: t(`viewMode.${mode}`) })}</p>}
+      <p className="mt-3 text-[13px] text-subtle">{t(`viewModeHelp.${mode}`)}</p>
+      <ErrorBox message={change.error} />
+    </Card>
+  );
+}
+
 function GeneralSettings() {
   const { t } = useI18n();
   const result = useLoad('/settings');
@@ -84,6 +103,7 @@ function GeneralSettings() {
   ];
   return (
     <div className="space-y-6">
+      <ViewModeSettings />
       <AppearanceSettings />
       <Card title={t('settings.business')}>
         <Loaded result={result} skeleton={<SkeletonRows rows={5} />}>
@@ -109,13 +129,14 @@ export function SettingsPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState('general');
   const isAdmin = user.role === 'admin';
+  const { shows } = useViewMode();
   const tabs = [
     { key: 'general', label: t('settings.general'), Component: GeneralSettings },
     { key: 'workflows', label: t('settings.workflows'), Component: WorkflowsSettings },
-    { key: 'templates', label: t('settings.templates'), Component: TemplatesSettings },
+    ...(shows('settings.templates') ? [{ key: 'templates', label: t('settings.templates'), Component: TemplatesSettings }] : []),
     { key: 'outreach', label: t('settings.outreach'), Component: OutreachSettings },
     { key: 'answers', label: t('settings.answers'), Component: ApprovedAnswersSettings },
-    { key: 'discovery', label: t('settings.discovery'), Component: DiscoverySettings },
+    ...(shows('settings.discovery') ? [{ key: 'discovery', label: t('settings.discovery'), Component: DiscoverySettings }] : []),
     { key: 'services', label: t('settings.services'), Component: ServicesSettings },
     ...(isAdmin ? [{ key: 'shepha', label: t('settings.shepha'), Component: ShephaSettings }] : []),
     ...(isAdmin ? [{ key: 'users', label: t('settings.users'), Component: UsersSettings }] : []),
