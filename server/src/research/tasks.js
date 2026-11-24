@@ -161,6 +161,8 @@ export function discoverRequest({ mandate, version, batchSize, knownCompanies, p
       '',
       `Only use sources published on or after ${publishedAfter}. Each candidate needs one source page that states the initiative,`,
       'with its publication date. Job postings count when the page shows the posting date. Do not use LinkedIn pages.',
+      'Search widely before answering: run several different searches using the helpful search terms, in English and in Hebrew,',
+      'including Israeli business news (Globes, Calcalist, TheMarker), the target market\'s business press and trade-show exhibitor lists.',
       ...(watchCompanies ? [] : [`Skip these companies, which YMT already has: ${knownCompanies.length ? knownCompanies.join('; ') : 'none'}.`]),
       'Quote the sentence that states the initiative, and sum up the need in one short sentence (business_need, at most 300 characters).',
       'When done, call submit_candidates (an empty list is a valid answer).',

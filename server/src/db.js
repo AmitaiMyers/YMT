@@ -6,7 +6,7 @@ import path from 'node:path';
 import { DEFAULT_SETTINGS, DEFAULT_WORKFLOWS, DEFAULT_DISCOVERY_QUESTIONS, MANDATE_SPEC } from './constants.js';
 import { DEFAULT_TEMPLATES } from './defaultTemplates.js';
 import { notFound } from './http.js';
-import { seedMandates, applySpec2211 } from './research/mandates.js';
+import { seedMandates, applySpec2211, applySearchTerms2511 } from './research/mandates.js';
 import { seedServices } from './research/catalogue.js';
 
 const SCHEMA_PATH = new URL('./schema.sql', import.meta.url);
@@ -112,10 +112,12 @@ function seedDefaults(db) {
   }
   seedServices(db);
   const seeded = seedMandates(db);
-  // One-time move of an existing database onto the lead-finding agent spec of 22.11.2026.
+  // One-time moves of an existing database onto newer default mandate wording (a fresh database already has the latest).
+  // Before the spec (''): the spec of 22.11 (which includes the latest search terms). On the spec: the search terms of 25.11.
   const marker = db.prepare("SELECT value FROM settings WHERE key = 'mandate_spec'").get();
   if (marker.value !== MANDATE_SPEC) {
-    if (!seeded) applySpec2211(db);
+    if (!seeded && marker.value === '') applySpec2211(db);
+    if (!seeded && marker.value === '2026-11-22') applySearchTerms2511(db);
     db.prepare("UPDATE settings SET value = ? WHERE key = 'mandate_spec'").run(MANDATE_SPEC);
   }
 }

@@ -1,6 +1,8 @@
 // YMT's six mandates as worded in the lead-finding agent specification (22.11.2026, Tom's mandate table), plus GE1
 // (kept by decision 6). Seeded into an empty database, paused and without an owner until an admin assigns one; an
-// existing database receives them as a new version (see applySpec2211 in mandates.js).
+// existing database receives them as a new version (see applyDefaultMandates in mandates.js).
+// Search terms (25.11.2026): specific phrasings in English and Hebrew, trade shows and Israeli business news sites, so the
+// search agent finds more dated initiatives; the accept rules, false positives and sizes are the team's approved wording.
 
 const M = 1_000_000;
 
@@ -24,7 +26,13 @@ export const DEFAULT_MANDATES = [
       ...COMMON_FALSE_POSITIVES,
     ],
     employees_min: 50, employees_max: 249, revenue_min_usd: 10 * M, revenue_max_usd: 100 * M, revenue_floor_usd: 30 * M,
-    search_terms: ['India distributor', 'Indian market entry', 'India partner', 'expands to India', 'India trade show', 'BIS certification', 'CDSCO registration'],
+    search_terms: [
+      'Israeli company India distributor', 'Israeli company enters Indian market', 'appoints distributor in India', 'India partnership Israeli company',
+      'India expansion Israeli exporter', 'Israeli company India office', 'Israeli company hiring India business development', 'BIS certification Israeli',
+      'CDSCO registration Israeli', 'Make in India Israeli company', 'India-Israel business forum', 'Israel Export Institute India delegation',
+      'Israel pavilion India trade show', 'Plastindia Israel', 'Aero India Israeli companies', 'DefExpo Israel',
+      'מפיץ בהודו', 'כניסה לשוק ההודי', 'משלחת עסקית להודו', 'שותף אסטרטגי בהודו', 'site:globes.co.il הודו', 'site:calcalist.co.il הודו',
+    ],
     proposed_service: 'Connection to a distributor or local partner in India, with SHEPHA',
     service_codes: ['GL-2', 'GL-3', 'GL-4', 'GL-6', 'GL-7'],
   },
@@ -34,7 +42,12 @@ export const DEFAULT_MANDATES = [
     accept_rule: 'A proven B2B vendor names a launch in Japan or a search for a Japanese partner or systems integrator.',
     false_positives: ['A translated or Japanese website alone, with no dated partner initiative', ...COMMON_FALSE_POSITIVES],
     employees_min: 10, employees_max: 249, revenue_min_usd: 1 * M, revenue_max_usd: 100 * M, revenue_floor_usd: 1 * M,
-    search_terms: ['Japan launch', 'Japanese partner', 'systems integrator Japan', 'Japan rollout'],
+    search_terms: [
+      'Israeli company Japan distributor', 'Israeli company Japanese partner', 'Israeli startup launches in Japan', 'Japan rollout Israeli',
+      'systems integrator Japan Israeli', 'Japanese reseller agreement Israeli', 'JETRO Israel', 'Japan Israel business forum',
+      'Israel pavilion Japan IT Week', 'Israel pavilion Tokyo exhibition', 'Israeli company Japan office',
+      'כניסה לשוק היפני', 'שותף יפני', 'מפיץ ביפן', 'הסכם הפצה ביפן', 'site:globes.co.il יפן',
+    ],
     proposed_service: 'Check local integration and build a partner list in Japan',
     service_codes: ['GL-12', 'GL-2', 'GL-3'],
   },
@@ -44,7 +57,12 @@ export const DEFAULT_MANDATES = [
     accept_rule: 'A product owner names a manufacturing, contract-production or joint-venture initiative in India or Japan.',
     false_positives: ['A sales-channel request (belongs to SH1 or SH2)', 'The company already has a JV or plant in that country (Reject)', ...COMMON_FALSE_POSITIVES],
     employees_min: 50, employees_max: 999, revenue_min_usd: 10 * M, revenue_max_usd: 500 * M, revenue_floor_usd: 30 * M,
-    search_terms: ['manufacturing partner India', 'joint venture Japan', 'contract manufacturing India', 'production facility India'],
+    search_terms: [
+      'Israeli company contract manufacturing India', 'manufacturing partner India Israeli', 'joint venture India Israeli company',
+      'Make in India manufacturing Israeli', 'production line in India Israeli', 'local production India defence Israeli',
+      'joint venture Japan Israeli company', 'Japanese manufacturing partner Israeli',
+      'ייצור בהודו', 'מיזם משותף בהודו', 'קו ייצור בהודו', 'מיזם משותף ביפן',
+    ],
     proposed_service: 'Compare production models and find partners',
     service_codes: ['GL-13'],
   },
@@ -54,7 +72,11 @@ export const DEFAULT_MANDATES = [
     accept_rule: 'Local management names an examination of its operating model: restructuring, integration or an operating review in Israel.',
     false_positives: ['A new CEO alone, with no announced review (Verify)'],
     employees_min: 10, employees_max: 249, revenue_min_usd: 1 * M, revenue_max_usd: 100 * M, revenue_floor_usd: null,
-    search_terms: ['restructuring', 'operational review', 'merger integration', 'reorganisation'],
+    search_terms: [
+      'Israeli company restructuring', 'reorganisation Israeli company', 'efficiency plan Israeli company', 'operational review Israel',
+      'merger integration Israel', 'new CEO turnaround plan Israel', 'cost reduction plan Israeli industrial company',
+      'התייעלות', 'רה-ארגון', 'תוכנית הבראה', 'שינוי מבנה ארגוני', 'מיזוג חברות', 'site:globes.co.il התייעלות',
+    ],
     proposed_service: 'A focused business diagnosis',
     service_codes: ['IL-2'],
   },
@@ -64,7 +86,11 @@ export const DEFAULT_MANDATES = [
     accept_rule: 'An established Israeli B2B company has a channel, sales or customer-retention goal in Israel.',
     false_positives: ['A sales goal abroad (belongs to an international mandate)', 'A routine product launch with no channel or retention goal'],
     employees_min: 50, employees_max: 249, revenue_min_usd: 10 * M, revenue_max_usd: 100 * M, revenue_floor_usd: null,
-    search_terms: ['new sales channel Israel', 'distribution change', 'customer retention programme'],
+    search_terms: [
+      'new sales channel Israel', 'distribution agreement Israel', 'Israeli company new distributor Israel', 'customer retention programme Israel',
+      'sales growth plan Israeli company', 'new VP Sales Israel',
+      'הרחבת ערוצי מכירה', 'הסכם הפצה בישראל', 'מעבר להפצה עצמית', 'שימור לקוחות', 'תוכנית צמיחה במכירות', 'מונה לסמנכ"ל מכירות',
+    ],
     proposed_service: 'A pipeline and channel review',
     service_codes: ['IL-13'],
   },
@@ -74,7 +100,10 @@ export const DEFAULT_MANDATES = [
     accept_rule: 'A current official vacancy or succession search for a VP or C-suite role in Israel (Elad joins for assessment).',
     false_positives: ['A role already filled', 'A role abroad (country manager)'],
     employees_min: 50, employees_max: 999, revenue_min_usd: 10 * M, revenue_max_usd: 500 * M, revenue_floor_usd: null,
-    search_terms: ['VP Operations', 'Chief Executive Officer', 'VP Sales', 'CFO vacancy'],
+    search_terms: [
+      'VP Operations job Israel', 'VP Sales job Israel', 'CFO job Israel', 'CEO search Israel', 'COO vacancy Israel', 'VP HR job Israel',
+      'דרוש סמנכ"ל תפעול', 'דרוש סמנכ"ל מכירות', 'דרוש סמנכ"ל כספים', 'דרוש מנכ"ל', 'דרוש סמנכ"ל משאבי אנוש', 'site:alljobs.co.il סמנכ"ל',
+    ],
     proposed_service: 'Defining the role',
     service_codes: ['IL-8'],
   },
@@ -84,7 +113,11 @@ export const DEFAULT_MANDATES = [
     accept_rule: 'An Israeli company announces an acquisition search, an alliance or joint venture, an investment round, or preparation for sale.',
     false_positives: ['A completed deal with no next step'],
     employees_min: 50, employees_max: 999, revenue_min_usd: 10 * M, revenue_max_usd: 500 * M, revenue_floor_usd: null,
-    search_terms: ['acquisition strategy', 'strategic alternatives', 'investment round', 'preparing for sale'],
+    search_terms: [
+      'Israeli company acquisition strategy', 'strategic alternatives Israeli company', 'Israeli company exploring sale', 'investment round Israeli industrial company',
+      'IPO TASE preparation', 'strategic partner Israeli company', 'Israeli company acquires',
+      'בוחנת מכירה', 'מגייסת הון', 'משקיע אסטרטגי', 'הנפקה בבורסה בתל אביב', 'רכישת חברה', 'site:themarker.com מכירת החברה',
+    ],
     proposed_service: 'A growth and exit assessment',
     service_codes: ['GL-10'],
   },

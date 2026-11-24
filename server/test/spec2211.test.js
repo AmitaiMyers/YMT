@@ -342,3 +342,25 @@ test('an over-long AI summary is shortened, not a reason to drop the company; qu
   assert.equal(parseCandidate({ ...base, business_need: 'Short need.' }, NOW).businessNeed, 'Short need.');
   assert.throws(() => parseCandidate({ ...base, business_need: 'x', initiative_quote: 'q'.repeat(1001) }, NOW), /initiative_quote is longer/);
 });
+
+test('a database on the 22.11 wording gets the wider search terms as a new version; owner and schedule are kept', async () => {
+  const { mkdtempSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const path = await import('node:path');
+  const dir = mkdtempSync(path.join(tmpdir(), 'ymt-'));
+  const file = path.join(dir, 'test.db');
+  const first = openDatabase(file);
+  const owner = createUser(first, { username: 'owner', display_name: 'Owner', password: 'correct-horse', role: 'admin' });
+  first.prepare("UPDATE mandates SET owner_id = ?, status = 'active', schedule = 'off' WHERE code = 'SH1'").run(owner);
+  first.prepare("UPDATE settings SET value = '2026-11-22' WHERE key = 'mandate_spec'").run();
+  first.close();
+  const second = openDatabase(file);
+  const sh1 = second.prepare("SELECT * FROM mandates WHERE code = 'SH1'").get();
+  const version = second.prepare('SELECT * FROM mandate_versions WHERE id = ?').get(sh1.current_version_id);
+  assert.deepEqual([sh1.owner_id, sh1.status, sh1.schedule, version.version], [owner, 'active', 'off', 2]);
+  assert.match(version.change_note, /Wider search terms/);
+  assert.ok(JSON.parse(version.search_terms).includes('מפיץ בהודו'));
+  assert.equal(second.prepare("SELECT value FROM settings WHERE key = 'mandate_spec'").get().value, '2026-11-25');
+  second.close();
+  rmSync(dir, { recursive: true });
+});

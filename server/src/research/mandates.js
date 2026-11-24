@@ -69,10 +69,11 @@ export function seedMandates(db) {
 }
 
 /**
- * Existing database (once): every mandate gets the spec's wording as a new version, so earlier cards keep the version
- * they were judged with; missing mandates are created. Owners, status and the run day stay as the admin set them.
+ * Existing database (once per change of the default wording): every mandate gets the default wording as a new version, so
+ * earlier cards keep the version they were judged with; missing mandates are created. Owners and status stay as the admin
+ * set them. `mandateFields` are the mandate columns this change also sets (e.g. the spec's weekly schedule).
  */
-export function applySpec2211(db) {
+export function applyDefaultMandates(db, { note, mandateFields }) {
   for (const mandate of DEFAULT_MANDATES) {
     const existing = db.prepare('SELECT id FROM mandates WHERE code = ?').get(mandate.code);
     if (!existing) {
@@ -80,8 +81,18 @@ export function applySpec2211(db) {
       continue;
     }
     transaction(db, () => {
-      createVersion(db, existing.id, specCriteria(mandate), { userId: null, changeNote: SPEC_NOTE });
-      update(db, 'mandates', existing.id, { name: mandate.name, schedule: SPEC_SCHEDULE, freshness_days: SPEC_FRESHNESS_DAYS });
+      createVersion(db, existing.id, specCriteria(mandate), { userId: null, changeNote: note });
+      update(db, 'mandates', existing.id, { name: mandate.name, ...mandateFields });
     });
   }
+}
+
+/** Spec of 22.11.2026: the spec's wording, weekly runs and a 12-month window. */
+export function applySpec2211(db) {
+  applyDefaultMandates(db, { note: SPEC_NOTE, mandateFields: { schedule: SPEC_SCHEDULE, freshness_days: SPEC_FRESHNESS_DAYS } });
+}
+
+/** 25.11.2026: wider search terms only; schedule and window stay as the admin set them. */
+export function applySearchTerms2511(db) {
+  applyDefaultMandates(db, { note: 'Wider search terms (English and Hebrew, trade shows, business news) – 25.11.2026', mandateFields: {} });
 }

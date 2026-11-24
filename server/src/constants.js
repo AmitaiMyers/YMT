@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS = {
     reply: { provider: 'claude', model: 'claude-sonnet-5-5' },
     meeting: { provider: 'claude', model: 'claude-sonnet-5-5' },
   }),
-  // Which version of YMT's mandate wording the database was moved to (see applySpec2211).
+  // Which version of YMT's mandate wording the database was moved to (see the steps in seedDefaults, db.js).
   mandate_spec: '',
   // Focus mode hides the screens this week's tasks do not use (see client/src/app/viewMode.js); admins switch it.
   view_mode: 'focus',
@@ -43,7 +43,7 @@ export const DEFAULT_SETTINGS = {
   }),
 };
 
-export const MANDATE_SPEC = '2026-11-22';
+export const MANDATE_SPEC = '2026-11-25';
 
 // Release 5: the standard discovery questions YMT starts from (an admin edits them under Settings → Discovery form).
 export const DEFAULT_DISCOVERY_QUESTIONS = [
