@@ -74,6 +74,26 @@ function SettingsCard({ mandate, onSaved }) {
   );
 }
 
+/** Companies a run did not turn into cards, each with the rule that dropped it (spec: every drop is logged). */
+function RunDrops({ run }) {
+  const { t } = useI18n();
+  if (run.drops.length === 0) return <span className="tabular">{run.filtered}</span>;
+  return (
+    <details>
+      <summary className="tabular cursor-pointer text-link">{t('research.dropsSummary', { count: run.drops.length })}</summary>
+      <ul className="mt-2 min-w-56 space-y-1.5 text-[13px]">
+        {run.drops.map((drop, index) => (
+          <li key={`${drop.company_name}-${index}`}>
+            <span className="font-medium"><bdi>{drop.company_name}</bdi></span>
+            <span className="text-muted"> · {t(`dropReason.${drop.reason}`)}</span>
+            {drop.detail && <span className="block text-subtle"><bdi>{drop.detail}</bdi></span>}
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 function CriteriaCard({ mandate, canEdit, onEdit }) {
   const { t } = useI18n();
   const format = useFormat();
@@ -95,6 +115,8 @@ function CriteriaCard({ mandate, canEdit, onEdit }) {
         [t('criteria.false_positives'), v.false_positives.join(' · ') || null],
         [t('research.preferredEmployees'), range(v.employees_min, v.employees_max, false)],
         [t('research.preferredRevenue'), range(v.revenue_min_usd, v.revenue_max_usd, true)],
+        [t('criteria.revenue_floor_usd'), v.revenue_floor_usd === null ? null : t('research.floorValue', { floor: format.usd(v.revenue_floor_usd) })],
+        [t('criteria.service_codes'), v.service_codes.join(', ') || null],
         [t('criteria.sectors'), v.sectors.length ? v.sectors.map((sector) => t(`sector.${sector}`)).join(', ') : t('research.anySector')],
         [t('criteria.search_terms'), v.search_terms.join(', ') || null],
         [t('criteria.exclusions'), v.exclusions.join(', ') || null],
@@ -242,7 +264,7 @@ export function MandatePage() {
           { key: 'batch_size', label: t('research.batch'), numeric: true },
           { key: 'cards_created', label: t('research.cards'), numeric: true },
           { key: 'duplicates', label: t('research.duplicates'), numeric: true },
-          { key: 'filtered', label: t('research.filtered'), numeric: true },
+          { key: 'filtered', label: t('research.filtered'), render: (r) => <RunDrops run={r} /> },
           { key: 'cost_usd', label: t('research.cost'), render: (r) => cost(r.cost_usd) },
         ];
         return (

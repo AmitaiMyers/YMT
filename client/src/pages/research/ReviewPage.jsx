@@ -10,7 +10,7 @@ import { toQuery } from '../../api.js';
 import { useAuth } from '../../auth/AuthProvider.jsx';
 import { Card, Loaded, PageHeader, Tabs, Table, EmptyState, SkeletonRows, Button, Badge } from '../../ui/index.js';
 import { useCounts } from '../../app/CountsProvider.jsx';
-import { OpportunityStatus, VerdictBadge, FlagBadges, useEmployeesText } from './researchUi.jsx';
+import { OpportunityStatus, VerdictBadge, FlagBadges, ScoreBadge, useEmployeesText } from './researchUi.jsx';
 import { AddOpportunityDialog } from './AddOpportunityDialog.jsx';
 
 const VIEWS = ['queue', 'manual', 'followup', 'accepted', 'rejected'];
@@ -34,6 +34,12 @@ export function ReviewPage() {
       <div className="min-w-48">
         <Link className="font-medium text-link hover:underline" to={`/research/cards/${card.id}`}><bdi>{card.company_name}</bdi></Link>
         <div className="mt-0.5 text-[13px] text-subtle"><bdi>{card.business_need}</bdi></div>
+      </div>
+    ) },
+    { key: 'score', label: t('score.title'), render: (card) => (
+      <div className="space-y-1">
+        <ScoreBadge score={card.score} tier={card.tier} />
+        {!card.has_trigger && <div className="text-[13px] text-subtle">{t('score.noTrigger')}</div>}
       </div>
     ) },
     { key: 'mandate_code', label: t('research.mandate'), render: (card) => card.mandate_code ?? '—' },

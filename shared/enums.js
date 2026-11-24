@@ -111,8 +111,14 @@ export const TRIGGER_KINDS = ['distributor_search', 'mou', 'market_office_or_hir
 export const LIVE_TRIGGER_KINDS = ['job_posting', 'distributor_search'];
 export const SUBSECTOR_FITS = ['priority', 'shepha_sector', 'accepted_model', 'distributor_or_service', 'unknown'];
 export const SCORE_TIERS = ['A', 'B', 'C'];
+// The score's parts and the levels the server reports for them (points per level: server/src/research/score.js).
+export const SCORE_PARTS = ['subsector', 'trigger', 'decision_maker', 'service', 'evidence'];
+export const DECISION_MAKER_LEVELS = ['verified_route', 'route_unverified', 'named_no_route', 'general_route', 'none'];
+export const EVIDENCE_LEVELS = ['two_sources', 'primary_source', 'secondary_only', 'contradicting_or_missing'];
 export const SERVICE_LINES = ['IL', 'GL'];
 export const SERVICE_STATUSES = ['ready', 'in_build', 'in_review', 'not_offered'];
+// Service-fit level of a card: the mandate's own service (by its status), another mandate's service, or none.
+export const SERVICE_FIT_LEVELS = [...SERVICE_STATUSES, 'other_mandate', 'none'];
 export const ORIGINATOR_KINDS = ['agent', 'staff', 'partner', 'referral', 'web'];
 export const PREFERRED_CHANNELS = ['email', 'linkedin', 'phone', 'whatsapp', 'switchboard'];
 export const PROPOSAL_DISMISS_REASONS = ['not_relevant', 'wrong_or_outdated'];

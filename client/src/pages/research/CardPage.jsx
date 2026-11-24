@@ -16,6 +16,7 @@ import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { useEnumOptions } from '../../enumOptions.js';
 import { OpportunityStatus, VerdictBadge, FlagBadges, useEmployeesText } from './researchUi.jsx';
 import { PipelinePanel, DecisionMakersPanel } from './AcceptedPanels.jsx';
+import { ScorePanel, MarketsPanel } from './ScorePanels.jsx';
 import { FirstApproachPanel } from './ApproachPanel.jsx';
 import { usePolling } from './MandatesPage.jsx';
 import { REJECT_REASONS, EXAMPLE_LABELS, CUSTOMER_TYPES } from '../../../../shared/enums.js';
@@ -26,7 +27,15 @@ const DECISION_ICONS = { accept: Check, verify: SearchCheck, defer: Clock, rejec
 const FACT_LABEL_PREFIX = { israel_connection: 'israelConnection', sector: 'sector', model_primary: 'businessModel', model_secondary: 'businessModel' };
 // Field codes the server lists under "missing facts"; anything else there is free text written by the AI.
 const FIELD_CODES = ['parent_company', 'business_unit', 'israel_connection', 'incorporation_country', 'hq_country', 'model_primary',
-  'model_secondary', 'sector', 'subsector', 'customer_types', 'customer_markets', 'employees', 'revenue', 'ownership'];
+  'model_secondary', 'sector', 'subsector', 'customer_types', 'customer_markets', 'employees', 'revenue', 'ownership',
+  'export_proof', 'registry_number', 'other_names'];
+const DEFER_DEFAULT_DAYS = 90; // decision 9 (24.11); the server applies the same default
+const DAY_MS = 86_400_000;
+// Lead originator as stored ("agent:SH1", "staff:shir", "partner:Name"): kind label plus the name.
+function originatorParts(originator) {
+  const [kind, ...rest] = originator.split(':');
+  return { kind, name: rest.join(':') };
+}
 
 function useCodeLabel() {
   const { t } = useI18n();
@@ -39,6 +48,7 @@ function DecisionPanel({ card, onDecided }) {
   const [mode, setMode] = useState(null);
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
+  const [deferUntil, setDeferUntil] = useState(new Date(Date.now() + DEFER_DEFAULT_DAYS * DAY_MS).toISOString().slice(0, 10));
   const decide = useAction(async (decision, body) => onDecided(await post(`/opportunities/${card.id}/decision`, { decision, ...body })));
 
   useHotkeys({
@@ -49,7 +59,7 @@ function DecisionPanel({ card, onDecided }) {
   });
 
   const needsNote = mode === 'verify' || mode === 'defer' || reason === 'other';
-  const ready = mode !== null && (mode !== 'reject' || reason !== '') && (!needsNote || note.trim() !== '');
+  const ready = mode !== null && (mode !== 'reject' || reason !== '') && (!needsNote || note.trim() !== '') && (mode !== 'defer' || deferUntil !== '');
   return (
     <Card title={t('research.decide')}>
       <p className="mb-3 text-[13px] text-subtle">{t('research.decideHint')}</p>
@@ -65,7 +75,7 @@ function DecisionPanel({ card, onDecided }) {
           className="mt-4 space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
-            decide.run(mode, { reason: mode === 'reject' ? reason : null, note: note.trim() || null });
+            decide.run(mode, { reason: mode === 'reject' ? reason : null, note: note.trim() || null, ...(mode === 'defer' ? { defer_until: deferUntil } : {}) });
           }}
         >
           {mode === 'reject' && (
@@ -77,6 +87,12 @@ function DecisionPanel({ card, onDecided }) {
             <FieldInput field={{ name: 'note', type: 'textarea', rows: 3 }} inputId="decision-note" value={note} onChange={setNote} />
           </FieldRow>
           {mode === 'verify' && <p className="text-[13px] text-subtle">{t('research.verifyCreatesTask')}</p>}
+          {mode === 'defer' && (
+            <FieldRow field={{ name: 'defer_until', label: t('research.deferUntil'), required: true, help: t('research.deferHint') }} inputId="decision-defer">
+              <FieldInput field={{ name: 'defer_until', type: 'date', required: true }} inputId="decision-defer" value={deferUntil} onChange={setDeferUntil} />
+            </FieldRow>
+          )}
+          {mode === 'accept' && <p className="text-[13px] text-subtle">{t('research.acceptOpensDeal')}</p>}
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant={{ accept: 'success', reject: 'danger' }[mode] ?? 'primary'} loading={decide.busy} disabled={!ready} disabledReason={t('research.completeDecision')}>
               {t(`decision.confirm.${mode}`)}
@@ -149,7 +165,7 @@ function ExamplePanel({ card, onSaved }) {
   );
 }
 
-function CompanyCard({ company }) {
+function CompanyCard({ company, aliases }) {
   const { t } = useI18n();
   const format = useFormat();
   const label = useCodeLabel();
@@ -181,6 +197,9 @@ function CompanyCard({ company }) {
         [t('research.field.employees'), employees],
         [t('research.field.revenue'), revenue],
         [t('research.field.ownership'), company.ownership],
+        [t('research.field.export_proof'), t(`exportProof.${company.export_proof ?? 'unknown'}`)],
+        [t('research.field.registry_number'), company.registry_number],
+        [t('research.field.other_names'), aliases.map((alias) => alias.name).join(', ') || null],
         [t('common.website'), company.website ? <ExternalLink href={company.website} /> : null],
       ]} />
     </Card>
@@ -189,7 +208,7 @@ function CompanyCard({ company }) {
 
 export function CardPage() {
   const { id } = useParams();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const format = useFormat();
   const navigate = useNavigate();
   const toast = useToast();
@@ -254,6 +273,10 @@ export function CardPage() {
                     <span className="text-subtle">{t(`sourceKind.${card.evidence_kind}`)}</span>
                   </div>
                 </Card>
+                {card.flags.includes('below_floor') && card.mandate_floor_usd !== null && (
+                  <Notice tone="signal">{t('research.belowFloorNotice', { floor: format.usd(card.mandate_floor_usd) })}</Notice>
+                )}
+                {card.flags.includes('rejected_before') && <Notice tone="signal">{t('research.rejectedBeforeNotice')}</Notice>}
                 <Card title={t('research.opportunityTitle')}>
                   <DefinitionList items={[
                     [t('research.businessNeed'), card.business_need],
@@ -261,7 +284,11 @@ export function CardPage() {
                     [t('research.relationshipRole'), t(`relationshipRole.${card.relationship_role}`)],
                     [t('research.verdictReason'), card.verdict_reason],
                     [t('research.reasonToAct'), card.reason_to_act],
+                    [t('research.trigger'), card.trigger_kind ? [t(`triggerKind.${card.trigger_kind}`), card.trigger_strength].filter(Boolean).join(' · ') : null],
+                    [t('research.subsectorFit'), card.subsector_fit ? t(`subsectorFit.${card.subsector_fit}`) : null],
+                    [t('research.service'), card.service ? `${card.service.code} · ${language === 'he' ? card.service.name_he : card.service.name_en} (${t(`serviceStatus.${card.service.status}`)})` : null],
                     [t('research.proposedService'), card.proposed_service],
+                    [t('research.originator'), card.originator ? [t(`originator.${originatorParts(card.originator).kind}`), originatorParts(card.originator).name].filter(Boolean).join(' · ') : null],
                     [t('research.mandate'), card.mandate_code ? `${card.mandate_code} · ${card.mandate_name} (v${card.mandate_version})` : null],
                     [t('research.foundOn'), format.dateTime(card.created_at)],
                     [t('research.foundVia'), card.watch_list_name ? t('research.foundViaList', { name: card.watch_list_name }) : null],
@@ -276,7 +303,8 @@ export function CardPage() {
                   )}
                 </Card>
                 {card.outreach && canAct && <FirstApproachPanel card={card} onChanged={result.reload} />}
-                <CompanyCard company={card.company} />
+                <CompanyCard company={card.company} aliases={card.aliases} />
+                <MarketsPanel markets={card.markets} />
                 <Card title={t('research.factsTitle')} padded>
                   <Table caption={t('research.factsTitle')} columns={factColumns} rows={card.facts} empty={t('research.noFacts')} />
                 </Card>
@@ -288,6 +316,12 @@ export function CardPage() {
                           <OpportunityStatus status={other.status} />
                           <Link className="text-link hover:underline" to={`/research/cards/${other.id}`}><bdi>{other.business_need}</bdi></Link>
                           <span className="text-subtle">{other.mandate_code ?? '—'} · {format.date(other.evidence_date)}</span>
+                          {other.status === 'rejected' && (
+                            <span className="w-full text-[13px] text-muted">
+                              {t('research.rejectedFor', { reason: other.decision_reason ? t(`rejectReason.${other.decision_reason}`) : '—', by: other.decided_by_name ?? '—' })}
+                              {other.decision_note ? <> · <bdi>{other.decision_note}</bdi></> : null}
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -296,6 +330,7 @@ export function CardPage() {
               </div>
               <div className="space-y-6">
                 {card.status === 'manual_assignment' && <Notice>{t('research.manualNotice')}</Notice>}
+                <ScorePanel card={card} canAct={canAct} onChanged={result.reload} />
                 {canAssign && <AssignPanel card={card} onAssigned={() => { refresh(); result.reload(); }} />}
                 {canDecide && <DecisionPanel card={card} onDecided={openNext} />}
                 {!DECIDABLE.includes(card.status) && card.status !== 'manual_assignment' && (
@@ -305,15 +340,13 @@ export function CardPage() {
                       [t('research.decidedBy'), card.decided_by_name ? `${card.decided_by_name} · ${format.dateTime(card.decided_at)}` : null],
                       [t('research.rejectReason'), card.decision_reason ? t(`rejectReason.${card.decision_reason}`) : null],
                       [t('research.note'), card.decision_note],
+                      [t('research.deferUntil'), card.defer_until ? format.date(card.defer_until) : null],
                     ]} />
                   </Card>
                 )}
-                {card.status === 'accepted' && canAct && (
-                  <>
-                    <PipelinePanel card={card} onChanged={result.reload} />
-                    <DecisionMakersPanel card={card} onChanged={result.reload} />
-                  </>
-                )}
+                {card.status === 'accepted' && canAct && <PipelinePanel card={card} onChanged={result.reload} />}
+                {/* Spec step 5: decision makers are searched before the review, so the owner sees them while deciding. */}
+                {!['rejected', 'manual_assignment'].includes(card.status) && canAct && <DecisionMakersPanel card={card} onChanged={result.reload} />}
                 {card.mandate_id !== null && canAct && <ExamplePanel card={card} onSaved={result.reload} />}
               </div>
             </div>

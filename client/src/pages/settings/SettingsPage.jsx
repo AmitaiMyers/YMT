@@ -15,6 +15,8 @@ import { PrivacySettings, AuditLog } from './PrivacySettings.jsx';
 import { OutreachSettings } from './OutreachSettings.jsx';
 import { ApprovedAnswersSettings } from './ApprovedAnswersSettings.jsx';
 import { DiscoverySettings } from './DiscoverySettings.jsx';
+import { ServicesSettings } from './ServicesSettings.jsx';
+import { ShephaSettings } from './ShephaSettings.jsx';
 import { MAX_FOLLOWUPS_HARD_LIMIT } from '../../../../shared/enums.js';
 import { InstallButton } from '../../app/InstallButton.jsx';
 import { useInstallPrompt } from '../../app/pwa.js';
@@ -114,6 +116,8 @@ export function SettingsPage() {
     { key: 'outreach', label: t('settings.outreach'), Component: OutreachSettings },
     { key: 'answers', label: t('settings.answers'), Component: ApprovedAnswersSettings },
     { key: 'discovery', label: t('settings.discovery'), Component: DiscoverySettings },
+    { key: 'services', label: t('settings.services'), Component: ServicesSettings },
+    ...(isAdmin ? [{ key: 'shepha', label: t('settings.shepha'), Component: ShephaSettings }] : []),
     ...(isAdmin ? [{ key: 'users', label: t('settings.users'), Component: UsersSettings }] : []),
     { key: 'privacy', label: t('settings.privacy'), Component: PrivacySettings },
     ...(isAdmin ? [{ key: 'audit', label: t('settings.audit'), Component: AuditLog }] : []),

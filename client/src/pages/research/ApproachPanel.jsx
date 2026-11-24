@@ -4,8 +4,8 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, PenLine, Send } from 'lucide-react';
-import { useI18n } from '../../i18n/I18nProvider.jsx';
+import { Sparkles, PenLine, Send, UserCheck } from 'lucide-react';
+import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
 import { Card, Button, ErrorBox, Badge, StatusBadge, statusTone, Notice } from '../../ui/index.js';
@@ -37,6 +37,32 @@ function ChannelChoice({ contact, channel, onChange }) {
         })}
       </div>
     </fieldset>
+  );
+}
+
+/** Decision 19: before a first approach the owner checks the person's current role on LinkedIn or the company website. */
+function RoleCheck({ contact, onChecked }) {
+  const { t } = useI18n();
+  const format = useFormat();
+  const [source, setSource] = useState(contact.linkedin_url ?? contact.verified_source ?? '');
+  const check = useAction(async () => {
+    await post(`/contacts/${contact.id}/role-check`, { source: source.trim() });
+    onChecked();
+  });
+  const inputId = `role-check-${contact.id}`;
+  return (
+    <Notice tone="signal" icon={UserCheck}>
+      <p>{contact.verified_at ? t('outreach.roleCheckOld', { date: format.date(contact.verified_at) }) : t('outreach.roleCheckMissing')}</p>
+      <form className="mt-2 space-y-2" onSubmit={(event) => { event.preventDefault(); check.run(); }}>
+        <FieldRow field={{ name: 'source', label: t('outreach.roleCheckSource'), required: true }} inputId={inputId}>
+          <FieldInput field={{ name: 'source', type: 'text', required: true }} inputId={inputId} value={source} onChange={setSource} />
+        </FieldRow>
+        <Button type="submit" size="sm" variant="secondary" icon={UserCheck} loading={check.busy} disabled={source.trim() === ''} disabledReason={t('outreach.roleCheckSourceNeeded')}>
+          {t('outreach.roleChecked')}
+        </Button>
+        <ErrorBox message={check.error} />
+      </form>
+    </Notice>
   );
 }
 
@@ -78,6 +104,7 @@ function DraftForm({ card, onDrafted }) {
       <p className="text-[13px] text-subtle">
         {t('outreach.personFacts', { language: t(`language.${contact.preferred_language}`), country: contact.recipient_country ?? '—' })}
       </p>
+      {Object.values(contact.channels).includes('role_unchecked') && <RoleCheck key={contact.id} contact={contact} onChecked={onDrafted} />}
       <ChannelChoice contact={contact} channel={channel} onChange={setChannel} />
       <ErrorBox message={draft.error} />
       <div className="flex flex-wrap gap-2">
@@ -123,7 +150,7 @@ export function FirstApproachPanel({ card, onChanged }) {
       <Notice>{t('outreach.hint')}</Notice>
       <div className="mt-4">
         {/* A new approach or a new contact resets the form so it never points at a person who is no longer offered. */}
-        <DraftForm key={`${card.outreach.approaches.length}:${card.outreach.contacts.map((contact) => contact.id).join(',')}`} card={card} onDrafted={onChanged} />
+        <DraftForm key={`${card.outreach.approaches.length}:${card.outreach.contacts.map((contact) => `${contact.id}@${contact.verified_at}`).join(',')}`} card={card} onDrafted={onChanged} />
       </div>
       <p className="mt-4 text-[13px] text-subtle">
         {t('outreach.peopleHint')} <Link className="text-link underline" to={`/companies/${card.company.id}`}>{t('outreach.editPeople')}</Link>

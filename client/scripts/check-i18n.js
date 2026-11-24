@@ -39,7 +39,8 @@ const DYNAMIC_KEYS = {
   aiProvider: ['claude', 'openai'], aiTask: enums.AI_TASKS, weekday: enums.WEEKDAYS.map(String),
   'research.view': ['queue', 'manual', 'followup', 'accepted', 'rejected'],
   'research.field': ['entity_name', 'parent_company', 'business_unit', 'israel_connection', 'incorporation_country', 'hq_country',
-    'model_primary', 'model_secondary', 'sector', 'subsector', 'customer_types', 'customer_markets', 'employees', 'revenue', 'ownership'],
+    'model_primary', 'model_secondary', 'sector', 'subsector', 'customer_types', 'customer_markets', 'employees', 'revenue', 'ownership',
+    'export_proof', 'registry_number', 'other_names'],
   decision: enums.REVIEW_DECISIONS, 'decision.confirm': enums.REVIEW_DECISIONS,
   'decision.done': ['accepted', 'verify', 'deferred', 'rejected'],
   contactProposal: enums.CONTACT_PROPOSAL_STATUSES,
@@ -48,10 +49,17 @@ const DYNAMIC_KEYS = {
   replyClass: enums.REPLY_CLASSES, replySource: enums.REPLY_SOURCES, 'conversation.view': enums.CONVERSATION_VIEWS,
   'conversation.empty': enums.CONVERSATION_VIEWS, followupBlocker: ['replied', 'in_queue', 'limit', 'waiting'],
   'approval.manualSend': enums.OUTREACH_CHANNELS, 'approval.recipientOf': enums.OUTREACH_CHANNELS, suppressionKind: enums.SUPPRESSION_KINDS,
-  outreachBlock: ['opted_out', 'opt_out_pending', 'suppressed', 'no_country', 'country_not_cleared', 'no_email', 'no_linkedin', 'no_phone', 'phone_format', 'no_whatsapp_consent'],
+  outreachBlock: ['opted_out', 'opt_out_pending', 'suppressed', 'no_country', 'country_not_cleared', 'role_unchecked', 'no_email', 'no_linkedin', 'no_phone', 'phone_format', 'no_whatsapp_consent'],
   'watch.field': ['name', 'website', 'country', 'notes'], 'watch.encoding': ['utf-8', 'windows-1255'],
   criteria: ['code', 'name', 'target_countries', 'proposed_service', 'accept_rule', 'false_positives', 'employees_min', 'employees_max',
-    'revenue_min_usd', 'revenue_max_usd', 'search_terms', 'exclusions', 'change_note'],
+    'revenue_min_usd', 'revenue_max_usd', 'search_terms', 'exclusions', 'change_note', 'revenue_floor_usd', 'service_codes'],
+  // Lead-finding agent spec (22.11.2026)
+  market: enums.MARKETS, marketStatus: enums.MARKET_STATUSES, marketFit: enums.MARKET_FITS, exportProof: enums.EXPORT_PROOFS,
+  triggerKind: enums.TRIGGER_KINDS, subsectorFit: enums.SUBSECTOR_FITS, serviceStatus: enums.SERVICE_STATUSES,
+  originator: enums.ORIGINATOR_KINDS, preferredChannel: enums.PREFERRED_CHANNELS, dismissReason: enums.PROPOSAL_DISMISS_REASONS,
+  dropReason: enums.DROP_REASONS, 'score.part': enums.SCORE_PARTS, 'score.dm': enums.DECISION_MAKER_LEVELS,
+  'score.service': enums.SERVICE_FIT_LEVELS, 'score.evidence': enums.EVIDENCE_LEVELS,
+  'shepha.field': ['name', 'website', 'registry_number', 'note'],
 };
 
 function sourceFiles(dir) {

@@ -20,6 +20,12 @@ export function MetricsPage() {
   const [to, setTo] = useState(isoDay(new Date()));
   const result = useLoad(`/research/metrics${toQuery({ from, to })}`);
   const percent = (value) => (value === null ? '—' : `${Math.round(value * 100)}%`);
+  const minutes = (value) => (value === null ? '—' : format.number(Math.round(value * 10) / 10));
+  // "Label 3 · Label 1" from a { code: count } object.
+  const counts = (byCode, prefix) => {
+    const entries = Object.entries(byCode);
+    return entries.length === 0 ? '—' : <span className="text-[13px]">{entries.map(([code, n]) => `${t(`${prefix}.${code}`)} ${n}`).join(' · ')}</span>;
+  };
 
   const columns = [
     { key: 'code', label: t('research.mandate'), render: (row) => (row.code
@@ -30,14 +36,15 @@ export function MetricsPage() {
     { key: 'acceptance_rate', label: t('metrics.acceptanceRate'), numeric: true, render: (row) => percent(row.acceptance_rate) },
     { key: 'duplicates', label: t('metrics.duplicates'), numeric: true },
     { key: 'wrong_market', label: t('metrics.wrongMarket'), numeric: true },
-    { key: 'avg_review_minutes', label: t('metrics.minutesPerCard'), numeric: true, render: (row) => (row.avg_review_minutes === null ? '—' : format.number(Math.round(row.avg_review_minutes * 10) / 10)) },
+    { key: 'avg_review_minutes', label: t('metrics.minutesPerCard'), numeric: true, render: (row) => minutes(row.avg_review_minutes) },
+    { key: 'review_minutes_by_version', label: t('metrics.minutesByVersion'), render: (row) => (row.review_minutes_by_version.length === 0 ? '—'
+      : <span className="text-[13px]">{row.review_minutes_by_version.map((v) => t('metrics.versionMinutes', { version: v.version, minutes: minutes(v.avg_review_minutes), count: v.reviewed })).join(' · ')}</span>) },
+    { key: 'contacts_wrong', label: t('metrics.wrongContacts'), numeric: true, render: (row) => (row.contacts_decided === 0 ? '—' : t('metrics.ofDecided', { n: row.contacts_wrong, total: row.contacts_decided })) },
     { key: 'pending', label: t('research.pending'), numeric: true },
     { key: 'cost_usd', label: t('research.cost'), numeric: true, render: (row) => cost(row.cost_usd) },
     { key: 'cost_per_accepted', label: t('metrics.costPerAccepted'), numeric: true, render: (row) => (row.cost_per_accepted === null ? '—' : cost(row.cost_per_accepted)) },
-    { key: 'reject_reasons', label: t('metrics.rejectReasons'), render: (row) => {
-      const entries = Object.entries(row.reject_reasons);
-      return entries.length === 0 ? '—' : <span className="text-[13px]">{entries.map(([reason, n]) => `${t(`rejectReason.${reason}`)} ${n}`).join(' · ')}</span>;
-    } },
+    { key: 'reject_reasons', label: t('metrics.rejectReasons'), render: (row) => counts(row.reject_reasons, 'rejectReason') },
+    { key: 'drop_reasons', label: t('metrics.dropReasons'), render: (row) => counts(row.drop_reasons, 'dropReason') },
   ];
 
   return (

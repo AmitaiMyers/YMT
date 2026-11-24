@@ -3,7 +3,7 @@
 import { useI18n } from './i18n/I18nProvider.jsx';
 import { useEnumOptions } from './enumOptions.js';
 import {
-  INDIA_ACTIVITY, TRIGGER_TYPES, DEPARTMENTS, LANGUAGES, DEAL_MODELS, RESOURCE_TYPES, CHANNELS, DIRECTIONS,
+  INDIA_ACTIVITY, TRIGGER_TYPES, DEPARTMENTS, LANGUAGES, DEAL_MODELS, RESOURCE_TYPES, CHANNELS, DIRECTIONS, PREFERRED_CHANNELS,
 } from '../../shared/enums.js';
 
 export function useCompanyFields() {
@@ -45,12 +45,13 @@ export function useContactFields() {
     { name: 'job_title', label: t('contact.jobTitle'), type: 'text' },
     { name: 'department', label: t('contact.department'), type: 'select', required: true, options: options('department', DEPARTMENTS) },
     { name: 'preferred_language', label: t('contact.language'), type: 'select', required: true, options: options('language', LANGUAGES) },
+    { name: 'preferred_channel', label: t('contact.preferredChannel'), type: 'select', options: options('preferredChannel', PREFERRED_CHANNELS) },
     { name: 'email', label: t('contact.email'), type: 'email' },
     { name: 'phone', label: t('contact.phone'), type: 'text', help: t('contact.phoneHelp') },
     { name: 'country', label: t('contact.country'), type: 'text', help: t('contact.countryHelp') },
     { name: 'linkedin_url', label: t('contact.linkedin'), type: 'url', wide: true, advanced: true },
     { name: 'whatsapp_consent', label: t('contact.whatsappConsent'), type: 'checkbox', help: t('contact.whatsappConsentHelp') },
-    { name: 'verified', label: t('contact.verified'), type: 'checkbox' },
+    { name: 'verified', label: t('contact.verified'), type: 'checkbox', help: t('contact.verifiedRoleHelp') },
     { name: 'verified_source', label: t('contact.verifiedSource'), type: 'text', help: t('contact.verifiedHelp') },
   ];
 }
@@ -96,6 +97,7 @@ export function useResourceFields() {
     { name: 'certifications', label: t('resource.certifications'), type: 'text' },
     { name: 'capabilities', label: t('resource.capabilities'), type: 'textarea', wide: true, rows: 3 },
     { name: 'contact_name', label: t('resource.contactName'), type: 'text' },
+    { name: 'preferred_channel', label: t('contact.preferredChannel'), type: 'select', options: options('preferredChannel', PREFERRED_CHANNELS) },
     { name: 'email', label: t('contact.email'), type: 'email' },
     { name: 'phone', label: t('contact.phone'), type: 'text' },
     { name: 'website', label: t('company.website'), type: 'url', advanced: true },

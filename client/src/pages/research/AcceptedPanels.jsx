@@ -11,7 +11,7 @@ import { Card, Loaded, Button, ErrorBox, SkeletonRows, StatusBadge, statusTone, 
 import { EntityForm, FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { useEnumOptions } from '../../enumOptions.js';
 import { RunStatus, useCost } from './researchUi.jsx';
-import { DEAL_MODELS, DEPARTMENTS, LANGUAGES } from '../../../../shared/enums.js';
+import { DEAL_MODELS, DEPARTMENTS, LANGUAGES, PREFERRED_CHANNELS, PROPOSAL_DISMISS_REASONS } from '../../../../shared/enums.js';
 
 const TITLE_MAX = 120;
 
@@ -74,12 +74,14 @@ function Proposal({ proposal, onChanged }) {
   const options = useEnumOptions();
   const [department, setDepartment] = useState('management');
   const [language, setLanguage] = useState('he');
+  const [channel, setChannel] = useState(proposal.email ? 'email' : proposal.linkedin_url ? 'linkedin' : 'switchboard');
   const confirm = useAction(async () => {
-    await post(`/contact-proposals/${proposal.id}/confirm`, { department, preferred_language: language });
+    await post(`/contact-proposals/${proposal.id}/confirm`, { department, preferred_language: language, preferred_channel: channel });
     onChanged();
   });
-  const dismiss = useAction(async () => {
-    await post(`/contact-proposals/${proposal.id}/dismiss`);
+  // "Wrong or outdated" is counted in the metrics (the spec's contact-quality measure); "not relevant" is not.
+  const dismiss = useAction(async (reason) => {
+    await post(`/contact-proposals/${proposal.id}/dismiss`, { reason });
     onChanged();
   });
   const idBase = `proposal-${proposal.id}`;
@@ -104,9 +106,14 @@ function Proposal({ proposal, onChanged }) {
           <FieldRow field={{ name: 'language', label: t('contact.language') }} inputId={`${idBase}-lang`}>
             <FieldInput field={{ name: 'language', type: 'select', required: true, options: options('language', LANGUAGES) }} inputId={`${idBase}-lang`} value={language} onChange={setLanguage} />
           </FieldRow>
+          <FieldRow field={{ name: 'channel', label: t('contact.preferredChannel') }} inputId={`${idBase}-channel`}>
+            <FieldInput field={{ name: 'channel', type: 'select', required: true, options: options('preferredChannel', PREFERRED_CHANNELS) }} inputId={`${idBase}-channel`} value={channel} onChange={setChannel} />
+          </FieldRow>
           <div className="flex flex-wrap gap-2 sm:col-span-2">
             <Button size="sm" variant="success" icon={UserCheck} loading={confirm.busy} onClick={() => confirm.run()}>{t('research.confirmContact')}</Button>
-            <Button size="sm" variant="ghost" icon={UserX} loading={dismiss.busy} onClick={() => dismiss.run()}>{t('research.dismissContact')}</Button>
+            {PROPOSAL_DISMISS_REASONS.map((reason) => (
+              <Button key={reason} size="sm" variant="ghost" icon={UserX} loading={dismiss.busy} onClick={() => dismiss.run(reason)}>{t(`dismissReason.${reason}`)}</Button>
+            ))}
           </div>
         </div>
       )}

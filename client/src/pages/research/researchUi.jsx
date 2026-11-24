@@ -20,6 +20,12 @@ export function RunStatus({ status }) {
   return <StatusBadge tone={statusTone('run', status)}>{t(`runStatus.${status}`)}</StatusBadge>;
 }
 
+/** "74 · B": the 0–100 score and its tier (A ≥ 80, B ≥ 65); text carries the meaning, the tone only supports it. */
+export function ScoreBadge({ score, tier }) {
+  const { t } = useI18n();
+  return <StatusBadge tone={statusTone('tier', tier)}><span className="tabular whitespace-nowrap" dir="ltr">{t('score.badge', { score, tier })}</span></StatusBadge>;
+}
+
 export function FlagBadges({ flags }) {
   const { t } = useI18n();
   return flags.map((flag) => <Badge key={flag} tone="signal">{t(`flag.${flag}`)}</Badge>);

@@ -3,31 +3,31 @@
 
 import { useState } from 'react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
-import { useAction } from '../../hooks/useApi.js';
-import { Button, ErrorBox } from '../../ui/index.js';
+import { useAction, useLoad } from '../../hooks/useApi.js';
+import { Button, ErrorBox, Loaded, SkeletonRows } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { NEED_TYPES, SECTORS } from '../../../../shared/enums.js';
 
 const LIST_FIELDS = ['target_countries', 'false_positives', 'search_terms', 'exclusions'];
-const NUMBER_FIELDS = ['employees_min', 'employees_max', 'revenue_min_usd', 'revenue_max_usd'];
+const NUMBER_FIELDS = ['employees_min', 'employees_max', 'revenue_min_usd', 'revenue_max_usd', 'revenue_floor_usd'];
 
 function toState(version) {
-  const state = { need_types: version.need_types ?? [], sectors: version.sectors ?? [], accept_rule: version.accept_rule ?? '', proposed_service: version.proposed_service ?? '', change_note: '', code: '', name: '' };
+  const state = { need_types: version.need_types ?? [], sectors: version.sectors ?? [], service_codes: version.service_codes ?? [], accept_rule: version.accept_rule ?? '', proposed_service: version.proposed_service ?? '', change_note: '', code: '', name: '' };
   for (const field of LIST_FIELDS) state[field] = (version[field] ?? []).join('\n');
   for (const field of NUMBER_FIELDS) state[field] = version[field] === null || version[field] === undefined ? '' : String(version[field]);
   return state;
 }
 
 function toPayload(state, mode) {
-  const payload = { need_types: state.need_types, sectors: state.sectors, accept_rule: state.accept_rule, proposed_service: state.proposed_service };
+  const payload = { need_types: state.need_types, sectors: state.sectors, service_codes: state.service_codes, accept_rule: state.accept_rule, proposed_service: state.proposed_service };
   for (const field of LIST_FIELDS) payload[field] = state[field].split('\n').map((line) => line.trim()).filter(Boolean);
   for (const field of NUMBER_FIELDS) payload[field] = state[field] === '' ? null : Number(state[field]);
   if (mode === 'create') return { ...payload, code: state.code.trim().toUpperCase(), name: state.name };
   return { ...payload, change_note: state.change_note };
 }
 
-function CheckboxGroup({ legend, values, selected, labelPrefix, onChange, required }) {
-  const { t } = useI18n();
+/** @param {{ labelOf: (value: string) => string }} props labels come from the caller (translated codes or catalogue names) */
+function CheckboxGroup({ legend, values, selected, labelOf, onChange, required }) {
   return (
     <fieldset className="sm:col-span-2">
       <legend className="mb-1.5 text-sm font-medium text-fg">{legend}{required && <span className="text-danger-fg" aria-hidden="true"> *</span>}</legend>
@@ -40,7 +40,7 @@ function CheckboxGroup({ legend, values, selected, labelPrefix, onChange, requir
               checked={selected.includes(value)}
               onChange={(event) => onChange(event.target.checked ? [...selected, value] : selected.filter((item) => item !== value))}
             />
-            {t(`${labelPrefix}.${value}`)}
+            {labelOf(value)}
           </label>
         ))}
       </div>
@@ -50,7 +50,8 @@ function CheckboxGroup({ legend, values, selected, labelPrefix, onChange, requir
 
 /** @param {{ mode: 'create' | 'version', initial: object, onSubmit: (payload: object) => Promise<void>, onCancel: () => void }} props */
 export function CriteriaForm({ mode, initial, onSubmit, onCancel }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const services = useLoad('/services');
   const [state, setState] = useState(() => toState(initial));
   const submit = useAction(async () => onSubmit(toPayload(state, mode)));
   const set = (field) => (value) => setState((previous) => ({ ...previous, [field]: value }));
@@ -66,14 +67,24 @@ export function CriteriaForm({ mode, initial, onSubmit, onCancel }) {
         {mode === 'create' && field('name', 'text', { required: true })}
         {field('target_countries', 'textarea', { required: true, rows: 2, help: t('criteria.onePerLine') })}
         {field('proposed_service', 'text', { required: true })}
-        <CheckboxGroup legend={t('criteria.need_types')} values={NEED_TYPES} selected={state.need_types} labelPrefix="needType" onChange={set('need_types')} required />
+        <CheckboxGroup legend={t('criteria.need_types')} values={NEED_TYPES} selected={state.need_types} labelOf={(value) => t(`needType.${value}`)} onChange={set('need_types')} required />
         {field('accept_rule', 'textarea', { required: true, rows: 3, wide: true })}
         {field('false_positives', 'textarea', { rows: 3, wide: true, help: t('criteria.onePerLine') })}
         {field('employees_min', 'number')}
         {field('employees_max', 'number')}
         {field('revenue_min_usd', 'number', { help: t('criteria.usdHelp') })}
         {field('revenue_max_usd', 'number', { help: t('criteria.usdHelp') })}
-        <CheckboxGroup legend={t('criteria.sectors')} values={SECTORS.filter((s) => s !== 'unknown')} selected={state.sectors} labelPrefix="sector" onChange={set('sectors')} />
+        {field('revenue_floor_usd', 'number', { help: t('criteria.floorHelp') })}
+        <Loaded result={services} skeleton={<SkeletonRows rows={2} />}>
+          {(catalogue) => {
+            const names = new Map(catalogue.map((service) => [service.code, language === 'he' ? service.name_he : service.name_en]));
+            return (
+              <CheckboxGroup legend={t('criteria.service_codes')} values={catalogue.map((service) => service.code)} selected={state.service_codes}
+                labelOf={(code) => `${code} · ${names.get(code)}`} onChange={set('service_codes')} />
+            );
+          }}
+        </Loaded>
+        <CheckboxGroup legend={t('criteria.sectors')} values={SECTORS.filter((s) => s !== 'unknown')} selected={state.sectors} labelOf={(value) => t(`sector.${value}`)} onChange={set('sectors')} />
         {field('search_terms', 'textarea', { rows: 3, help: t('criteria.onePerLine') })}
         {field('exclusions', 'textarea', { rows: 3, help: t('criteria.exclusionsHelp') })}
         {mode === 'version' && field('change_note', 'textarea', { required: true, rows: 2, wide: true, help: t('criteria.changeNoteHelp') })}
