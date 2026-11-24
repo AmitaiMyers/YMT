@@ -24,6 +24,8 @@ export const DEFAULT_SETTINGS = {
     reply: { provider: 'claude', model: 'claude-sonnet-5-5' },
     meeting: { provider: 'claude', model: 'claude-sonnet-5-5' },
   }),
+  // Which version of YMT's mandate wording the database was moved to (see applySpec2211).
+  mandate_spec: '',
   // Release 4: a first approach with no reply after this many days shows "Follow up".
   followup_after_days: '7',
   // Release 3 legal gate. Countries are names as used on companies ("Israel"). Israel is cleared by default because
@@ -38,6 +40,8 @@ export const DEFAULT_SETTINGS = {
     'claude-haiku-5-5': { input: 0.1, output: 0.5, cache_read: 0.01, search: 0.01 },
   }),
 };
+
+export const MANDATE_SPEC = '2026-11-22';
 
 // Release 5: the standard discovery questions YMT starts from (an admin edits them under Settings → Discovery form).
 export const DEFAULT_DISCOVERY_QUESTIONS = [

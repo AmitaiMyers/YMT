@@ -6,7 +6,7 @@ import { parseBody, parseId, parseOptionalInt, parseOptionalEnum } from '../vali
 import { insert, update, findById, removeById, audit, nowIso } from '../db.js';
 import { badRequest } from '../http.js';
 import { requireAdmin } from '../auth.js';
-import { LANGUAGES, INDIA_ACTIVITY, TRIGGER_TYPES, DEPARTMENTS } from '../constants.js';
+import { LANGUAGES, INDIA_ACTIVITY, TRIGGER_TYPES, DEPARTMENTS, PREFERRED_CHANNELS } from '../constants.js';
 import { generateCompanyBrief, generateOutreachEmail } from '../generators.js';
 import { enqueueApproval } from '../approvalQueue.js';
 import { assertMayContact, composeMessage } from '../outreachRules.js';
@@ -42,6 +42,7 @@ const CONTACT_SPEC = {
   preferred_language: { type: 'string', enum: LANGUAGES },
   country: { type: 'string', max: 80 },
   whatsapp_consent: { type: 'bool' },
+  preferred_channel: { type: 'string', enum: PREFERRED_CHANNELS },
   verified: { type: 'bool' },
   verified_source: { type: 'string', max: 300 },
 };
@@ -58,15 +59,22 @@ function withDefaults(values, defaults) {
   return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value ?? defaults[key] ?? null]));
 }
 
-/** Verification metadata is set by the server, never trusted from the client. */
-function contactVerificationFields(contact, userId) {
+/**
+ * Verification metadata is set by the server, never trusted from the client. The check date moves only when the
+ * verification is new or its source changed: re-saving an edit form must not count as a fresh role check (decision 19).
+ * @param {object|null} current the stored contact (null when creating)
+ */
+function contactVerificationFields(current, contact, userId) {
   if (contact.verified === 1) {
     if (!contact.verified_source) throw badRequest('verified_source is required when marking a contact as verified');
-    return { verified_by: userId, verified_at: nowIso() };
+    const unchanged = current !== null && current.verified === 1 && current.verified_source === contact.verified_source;
+    return unchanged ? {} : { verified_by: userId, verified_at: nowIso() };
   }
   if (contact.verified === 0) return { verified_by: null, verified_at: null, verified_source: null };
   return {};
 }
+
+const ROLE_CHECK_SPEC = { source: { type: 'string', required: true, max: 300 } };
 
 function buildCompanyFilter(query) {
   const conditions = [];
@@ -179,7 +187,7 @@ export function companyRoutes(db) {
     const companyId = parseId(req.params.id);
     findById(db, 'companies', companyId);
     const contact = withDefaults(parseBody(CONTACT_SPEC, req.body), { verified: 0, preferred_language: 'he', whatsapp_consent: 0 });
-    const id = insert(db, 'contacts', { ...contact, ...contactVerificationFields(contact, req.user.id), company_id: companyId });
+    const id = insert(db, 'contacts', { ...contact, ...contactVerificationFields(null, contact, req.user.id), company_id: companyId });
     res.status(201).json({ id });
   });
 
@@ -201,9 +209,20 @@ export function companyRoutes(db) {
   router.patch('/contacts/:id', (req, res) => {
     const id = parseId(req.params.id);
     const changes = parseBody(CONTACT_SPEC, req.body, { partial: true });
-    const merged = { ...findById(db, 'contacts', id), ...changes };
-    const verification = 'verified' in changes ? contactVerificationFields(merged, req.user.id) : {};
+    const current = findById(db, 'contacts', id);
+    const merged = { ...current, ...changes };
+    const verification = 'verified' in changes || 'verified_source' in changes ? contactVerificationFields(current, merged, req.user.id) : {};
     update(db, 'contacts', id, { ...changes, ...verification });
+    res.json({ ok: true });
+  });
+
+  /** "Role checked today": the owner confirmed the person's current role on LinkedIn or the company website (decision 19). */
+  router.post('/contacts/:id/role-check', (req, res) => {
+    const id = parseId(req.params.id);
+    findById(db, 'contacts', id);
+    const { source } = parseBody(ROLE_CHECK_SPEC, req.body);
+    update(db, 'contacts', id, { verified: 1, verified_source: source, verified_by: req.user.id, verified_at: nowIso() });
+    audit(db, req.user.id, 'contact.role_checked', 'contacts', id, source);
     res.json({ ok: true });
   });
 

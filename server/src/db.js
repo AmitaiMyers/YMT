@@ -3,10 +3,11 @@
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { DEFAULT_SETTINGS, DEFAULT_WORKFLOWS, DEFAULT_DISCOVERY_QUESTIONS } from './constants.js';
+import { DEFAULT_SETTINGS, DEFAULT_WORKFLOWS, DEFAULT_DISCOVERY_QUESTIONS, MANDATE_SPEC } from './constants.js';
 import { DEFAULT_TEMPLATES } from './defaultTemplates.js';
 import { notFound } from './http.js';
-import { seedMandates } from './research/mandates.js';
+import { seedMandates, applySpec2211 } from './research/mandates.js';
+import { seedServices } from './research/catalogue.js';
 
 const SCHEMA_PATH = new URL('./schema.sql', import.meta.url);
 
@@ -109,7 +110,14 @@ function seedDefaults(db) {
   if (count(db, 'discovery_questions') === 0) {
     DEFAULT_DISCOVERY_QUESTIONS.forEach((question, index) => insert(db, 'discovery_questions', { ...question, position: index + 1 }));
   }
-  seedMandates(db);
+  seedServices(db);
+  const seeded = seedMandates(db);
+  // One-time move of an existing database onto the lead-finding agent spec of 22.11.2026.
+  const marker = db.prepare("SELECT value FROM settings WHERE key = 'mandate_spec'").get();
+  if (marker.value !== MANDATE_SPEC) {
+    if (!seeded) applySpec2211(db);
+    db.prepare("UPDATE settings SET value = ? WHERE key = 'mandate_spec'").run(MANDATE_SPEC);
+  }
 }
 
 // ------------------------------------------------------------------ generic helpers

@@ -3,8 +3,9 @@
 
 import {
   NEED_TYPES, RELATIONSHIP_ROLES, ISRAEL_CONNECTIONS, BUSINESS_MODELS, SECTORS, CUSTOMER_TYPES, REVENUE_BASES,
-  JUDGE_VERDICTS, REPLY_CLASSES,
+  JUDGE_VERDICTS, REPLY_CLASSES, MARKETS, MARKET_STATUSES, MARKET_FITS, EXPORT_PROOFS, TRIGGER_KINDS, SUBSECTOR_FITS,
 } from '../constants.js';
+import { FOCUS_AREAS, PRIORITY_SUBSECTORS, SHEPHA_SECTORS } from './spec.js';
 
 export const NEED_LABELS = {
   market_entry_distribution: 'market entry, distribution or a commercial partnership',
@@ -88,6 +89,8 @@ function describeVersion(mandate, version) {
     `Accept for review when: ${version.accept_rule}`,
     `Not a match (false positives): ${version.false_positives.join('; ') || 'none listed'}`,
     `Preferred size: ${range(version.employees_min, version.employees_max, 'employees')}, ${range(version.revenue_min_usd, version.revenue_max_usd, 'USD annual revenue')} (a preference, not a filter)`,
+    ...(version.revenue_floor_usd ? [`Revenue floor for new companies: USD ${version.revenue_floor_usd.toLocaleString('en-US')} (below it only with a strong trigger)`] : []),
+    `Search focus: ${FOCUS_AREAS.join('; ')} come first; other fields stay open at lower priority`,
     `Sectors: ${version.sectors.length ? version.sectors.join(', ') : 'any'}`,
     `Helpful search terms: ${version.search_terms.join(', ') || 'none'}`,
     `Exclude: ${version.exclusions.join(', ') || 'none'}`,
@@ -182,7 +185,14 @@ export function parseCandidates(input) {
 // Company columns the classifier may fill. Each needs at least one cited fact, or it is discarded.
 export const CLASSIFIED_FIELDS = ['entity_name', 'parent_company', 'business_unit', 'israel_connection', 'incorporation_country',
   'hq_country', 'model_primary', 'model_secondary', 'sector', 'subsector', 'customer_types', 'customer_markets',
-  'employees', 'revenue', 'ownership'];
+  'employees', 'revenue', 'ownership', 'export_proof', 'registry_number', 'other_names'];
+
+const MARKET_SCHEMA = {
+  type: 'object',
+  properties: { market: enumOf(MARKETS), status: enumOf(MARKET_STATUSES), fit: enumOf(MARKET_FITS), note: str, source_url: str },
+  required: ['market', 'status', 'fit', 'note', 'source_url'],
+  additionalProperties: false,
+};
 
 const FACT_SCHEMA = {
   type: 'object',
@@ -202,13 +212,15 @@ const CLASSIFY_SCHEMA = {
     employees_min: nullableInt, employees_max: nullableInt, employees_as_of: str,
     revenue_usd_min: nullableInt, revenue_usd_max: nullableInt, revenue_fiscal_year: nullableInt,
     revenue_basis: enumOf([...REVENUE_BASES, 'unknown']), revenue_original: str, ownership: str,
+    export_proof: enumOf(EXPORT_PROOFS), registry_number: str, other_names: strArray, description: str,
+    markets: { type: 'array', items: MARKET_SCHEMA },
     facts: { type: 'array', items: FACT_SCHEMA },
     unknowns: strArray,
   },
   required: ['entity_name', 'website', 'parent_company', 'business_unit', 'israel_connection', 'incorporation_country', 'hq_country',
     'model_primary', 'model_secondary', 'sector', 'subsector', 'customer_types', 'customer_markets', 'employees_min', 'employees_max',
     'employees_as_of', 'revenue_usd_min', 'revenue_usd_max', 'revenue_fiscal_year', 'revenue_basis', 'revenue_original', 'ownership',
-    'facts', 'unknowns'],
+    'export_proof', 'registry_number', 'other_names', 'description', 'markets', 'facts', 'unknowns'],
   additionalProperties: false,
 };
 
@@ -227,12 +239,23 @@ export function classifyRequest(candidate) {
       '- One primary sector; the specific activity is the subsector; industries the company serves are customer_markets.',
       '- Headcount and revenue are separate measures: give numbers (a range when the source gives a range), the date of the headcount,',
       '  the fiscal year, revenue in USD with the original amount and currency in revenue_original, and whether it was reported or estimated.',
+      '- export_proof: proven when a source shows sales outside Israel (foreign customers or distributors on the company site, the Israel',
+      '  Export Institute, stock-exchange reports, customs or shipment data; SaaS sold to customers abroad counts); none when a source shows',
+      '  the company sells only in Israel; unknown otherwise. Give the fact for it under field "export_proof".',
+      '- registry_number: the Israeli company number (ח.פ.) or another official registry id when a registry or report states it.',
+      '- other_names: the Hebrew name, former names and group names a source states (cite them under field "other_names").',
+      '- description: two sentences on what the company sells and what sets it apart, from the sources you used.',
+      `- markets: one entry for each of ${MARKETS.join(', ')} (thailand_vietnam = Thailand and Vietnam together).`,
+      '  status: not_active; exploring (a stated interest or a first step); distributor (a distributor, agent or MoU there);',
+      '  established (its own subsidiary, office, plant or joint venture there); main_market (already its largest market); unknown.',
+      `  fit: fit / possible / no_fit / unknown for YMT to help there; in India, sectors where SHEPHA has experience (${SHEPHA_SECTORS.join(', ')}) fit well.`,
+      '  Give the source_url that shows the status (empty when unknown) and a short note.',
       '- Use empty strings, null or "unknown" when a value is not stated by a source.',
       '- Add one fact per value you filled: the field, the value, the source URL, a short quote, and the entity the source covers.',
       'Search the web if you need the company website, an about page, a registry or a reliable profile. Then call submit_classification.',
     ].join('\n'),
     tool: { name: 'submit_classification', description: 'Submit the classification with one cited fact per filled value.', schema: CLASSIFY_SCHEMA },
-    webSearch: { maxUses: 3 },
+    webSearch: { maxUses: 5 },
     maxTokens: 8000,
   };
 }
@@ -299,55 +322,111 @@ export function parseClassification(raw, isAllowedSource) {
     revenue_basis: hasRevenue && basis !== 'unknown' ? basis : null,
     revenue_original: hasRevenue ? text(raw.revenue_original, 'revenue_original', { max: 100, optional: true }) : null,
     ownership: keep('ownership', text(raw.ownership, 'ownership', { max: 200, optional: true })),
+    export_proof: keep('export_proof', oneOf(raw.export_proof, 'export_proof', EXPORT_PROOFS)) ?? 'unknown',
+    registry_number: keep('registry_number', text(raw.registry_number, 'registry_number', { max: 40, optional: true })),
+    description: text(raw.description, 'description', { max: 600, optional: true }),
   };
+  const otherNames = keep('other_names', list(raw.other_names, 'other_names').map((n) => text(n, 'other_names[]', { max: 200 }))) ?? [];
+  const markets = list(raw.markets, 'markets').map((entry, index) => {
+    if (typeof entry !== 'object' || entry === null) fail(`markets[${index}] must be an object`);
+    const sourceText = text(entry.source_url, `markets[${index}].source_url`, { max: 2000, optional: true });
+    const cited = sourceText !== null && URL.canParse(sourceText) && isAllowedSource(sourceText);
+    return {
+      market: oneOf(entry.market, `markets[${index}].market`, MARKETS),
+      // A status without a usable source is not a fact: it becomes unknown (the fit is a judgement and is kept).
+      status: cited ? oneOf(entry.status, `markets[${index}].status`, MARKET_STATUSES) : 'unknown',
+      fit: oneOf(entry.fit, `markets[${index}].fit`, MARKET_FITS),
+      note: text(entry.note, `markets[${index}].note`, { max: 300, optional: true }),
+      sourceUrl: cited ? sourceText : null,
+    };
+  });
+  const uniqueMarkets = MARKETS.map((market) => markets.find((entry) => entry.market === market)).filter(Boolean);
   if (!hasEmployees) unknowns.push('employees');
   if (!hasRevenue) unknowns.push('revenue');
-  return { company, facts, unknowns: [...new Set(unknowns)] };
+  if (company.export_proof === 'unknown') unknowns.push('export_proof');
+  return { company, facts, otherNames, markets: uniqueMarkets, unknowns: [...new Set(unknowns)] };
 }
 
 // ------------------------------------------------------------------ judge
 
-const JUDGE_SCHEMA = {
-  type: 'object',
-  properties: {
-    verdict: enumOf(JUDGE_VERDICTS),
-    reason: str,
-    reason_to_act: str,
-    proposed_service: str,
-    unknowns: strArray,
-  },
-  required: ['verdict', 'reason', 'reason_to_act', 'proposed_service', 'unknowns'],
-  additionalProperties: false,
-};
+function judgeSchema(serviceCodes) {
+  return {
+    type: 'object',
+    properties: {
+      verdict: enumOf(JUDGE_VERDICTS),
+      reason: str,
+      reason_to_act: str,
+      trigger_kind: enumOf(TRIGGER_KINDS),
+      trigger_strength: str,
+      subsector_fit: enumOf(SUBSECTOR_FITS),
+      service_code: enumOf([...serviceCodes, 'none']),
+      proposed_service: str,
+      unknowns: strArray,
+    },
+    required: ['verdict', 'reason', 'reason_to_act', 'trigger_kind', 'trigger_strength', 'subsector_fit', 'service_code', 'proposed_service', 'unknowns'],
+    additionalProperties: false,
+  };
+}
 
-/** Judge one initiative against one mandate version (also used to compare versions during calibration). */
-export function judgeRequest({ mandate, version, evidence, company }) {
+function describeMarkets(markets) {
+  return markets.length === 0 ? 'unknown' : markets.map((m) => `${m.market}: ${m.status} (fit ${m.fit})`).join('; ');
+}
+
+/**
+ * Judge one initiative against one mandate version (also used to compare versions during calibration).
+ * `services` is the catalogue ({ code, name_en, status }); the mandate's own codes come first in the version.
+ */
+export function judgeRequest({ mandate, version, evidence, company, services }) {
+  const own = version.service_codes ?? [];
+  const serviceLine = (service) => `${service.code} ${service.name_en} (${service.status.replace('_', ' ')})`;
   return {
     system: `You check research results for YMT Group against a mandate's acceptance rule. ${SAFETY}`,
     prompt: [
       describeVersion(mandate, version),
       '',
-      `Company: ${company.name}; Israeli connection: ${company.israel_connection ?? 'unknown'}; sector: ${company.sector ?? 'unknown'};`,
-      `employees: ${company.employees_min ?? '?'}–${company.employees_max ?? '?'}; revenue USD: ${company.revenue_usd_min ?? '?'}–${company.revenue_usd_max ?? '?'}.`,
+      `Company: ${company.name}; Israeli connection: ${company.israel_connection ?? 'unknown'}; sector: ${company.sector ?? 'unknown'}; subsector: ${company.subsector ?? 'unknown'};`,
+      `business model: ${company.model_primary ?? 'unknown'}; proof of export: ${company.export_proof ?? 'unknown'};`,
+      `employees: ${company.employees_min ?? '?'}–${company.employees_max ?? '?'}; revenue USD: ${company.revenue_usd_min ?? '?'}–${company.revenue_usd_max ?? '?'};`,
+      `status per market: ${describeMarkets(company.markets ?? [])}.`,
       `Evidence (${evidence.date}, ${evidence.url}): "${evidence.quote}"`,
       `Stated initiative: ${evidence.businessNeed} (target country: ${evidence.targetCountry}).`,
       '',
-      'verdict = match when the dated evidence satisfies the acceptance rule; weak when it is promising but decisive evidence is missing;',
-      'no_match when it is a listed false positive, the wrong buyer or the wrong market. Size alone never makes it no_match.',
-      'Give a one-sentence reason, a one-sentence reason to act now, the first YMT offer, and any missing facts. Call submit_judgement.',
+      'verdict: match when the dated evidence satisfies the acceptance rule; weak when it is promising but decisive evidence is missing',
+      '(e.g. general interest in Asia); defer when the company already signed a distributor or MoU covering the target market and states',
+      'no wish to expand (a distributor covering only part of the market is not a reason to defer); no_match for a listed false positive,',
+      'the wrong buyer or the wrong market, or when the company already has its own subsidiary, office, plant or JV in the target market',
+      'or it is already its largest market. Size alone never makes it no_match.',
+      'trigger_kind: the verified action of the company itself shown by the evidence: distributor_search, mou, market_office_or_hire,',
+      'regulatory (a registration in the target market), trade_show or delegation (only if the company itself confirmed it), job_posting,',
+      'statement (names the market without an action), or none (an industry trend, a "vision", an unconfirmed event).',
+      'trigger_strength: one sentence on why the trigger is strong (empty if it is not).',
+      `subsector_fit: priority when the company is in a priority subsector or a focus area (${FOCUS_AREAS.join('; ')}); shepha_sector for India`,
+      `in a sector where SHEPHA has experience (${SHEPHA_SECTORS.join(', ')}); accepted_model for another product owner, contract producer or`,
+      'software company; distributor_or_service for distributors, retailers or service providers; unknown.',
+      'Priority subsectors:',
+      ...PRIORITY_SUBSECTORS.map((line) => `- ${line}`),
+      'service_code: the best first offer. Prefer this mandate\'s services; another catalogue service only if the need clearly fits it better:',
+      ...services.filter((service) => own.includes(service.code)).map((service) => `- ${serviceLine(service)} [this mandate]`),
+      ...services.filter((service) => !own.includes(service.code) && service.status !== 'not_offered').map((service) => `- ${serviceLine(service)}`),
+      'Give a one-sentence reason, a one-sentence reason to act now, the first offer in words, and any missing facts. Call submit_judgement.',
     ].join('\n'),
-    tool: { name: 'submit_judgement', description: 'Submit the verdict for this initiative.', schema: JUDGE_SCHEMA },
+    tool: { name: 'submit_judgement', description: 'Submit the verdict for this initiative.', schema: judgeSchema(services.map((service) => service.code)) },
     webSearch: null,
     maxTokens: 4000,
   };
 }
 
-export function parseJudgement(raw) {
+export function parseJudgement(raw, serviceCodes) {
   if (typeof raw !== 'object' || raw === null) fail('judgement must be an object');
+  const serviceCode = oneOf(raw.service_code, 'service_code', [...serviceCodes, 'none']);
   return {
     verdict: oneOf(raw.verdict, 'verdict', JUDGE_VERDICTS),
     reason: text(raw.reason, 'reason', { max: 600 }),
     reasonToAct: text(raw.reason_to_act, 'reason_to_act', { max: 600, optional: true }),
+    triggerKind: oneOf(raw.trigger_kind, 'trigger_kind', TRIGGER_KINDS),
+    triggerStrength: text(raw.trigger_strength, 'trigger_strength', { max: 400, optional: true }),
+    subsectorFit: oneOf(raw.subsector_fit, 'subsector_fit', SUBSECTOR_FITS),
+    serviceCode: serviceCode === 'none' ? null : serviceCode,
     proposedService: text(raw.proposed_service, 'proposed_service', { max: 300, optional: true }),
     unknowns: list(raw.unknowns, 'unknowns').map((u) => text(u, 'unknowns[]', { max: 200 })),
   };
@@ -367,7 +446,7 @@ const PERSONAL_EMAIL_DOMAINS = ['gmail.com', 'googlemail.com', 'yahoo.com', 'hot
 const LINKEDIN_PROFILE_RE = /^https:\/\/([a-z]{2,3}\.)?(www\.)?linkedin\.com\/in\/[^/?#]+\/?$/i;
 export const MAX_CONTACTS = 3;
 
-export function contactsRequest({ company, opportunity, proposedService }) {
+export function contactsRequest({ company, opportunity, proposedService, keywords }) {
   return {
     system: `You find business decision makers for YMT Group. Business contact details only. ${SAFETY}`,
     prompt: [
@@ -375,8 +454,10 @@ export function contactsRequest({ company, opportunity, proposedService }) {
       `Its initiative: ${opportunity.business_need} (target country: ${opportunity.target_country}).`,
       `YMT would offer: ${proposedService ?? 'an introductory conversation'}.`,
       '',
-      `Find up to ${MAX_CONTACTS} people at this company who own this decision (for example the CEO, VP Sales or Business Development,`,
-      'Head of International, VP Operations, or HR for a senior hire). Use the company\'s own website (team, about and press pages),',
+      `Find up to ${MAX_CONTACTS} different people at this company who own this decision. Look for these roles and LinkedIn titles, in`,
+      `this order of preference: ${keywords.join(' · ')}. A title that names B2B sales, revenue growth or business development in the target`,
+      'market comes before a general one; in a small company the CEO or founder is usually right, in a large group not the group president',
+      'unless they own the need. Keep each title exactly as the source states it. Use the company\'s own website (team, about and press pages),',
       'press releases and business news. For each person give the full name, job title and the sentence from the source that names',
       'them in that role. Give a business email only if the source page publishes it, and a LinkedIn profile link only if it appeared',
       'in your search results; otherwise leave them empty. Never give personal phone numbers, home addresses or personal email.',

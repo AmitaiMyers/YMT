@@ -5,6 +5,10 @@ import { insert, update, findById, transaction, nowIso, audit } from '../db.js';
 import { BudgetError } from '../ai/service.js';
 import { findExistingCompany, normalizeDomain, normalizeUrl, normalizeName } from './classification.js';
 import { assignOpportunity, isStale } from './assign.js';
+import { findExclusion } from './exclusions.js';
+import { isStrongTrigger } from './score.js';
+import { loadServices } from './catalogue.js';
+import { contactKeywordsFor, marketOf } from './spec.js';
 import { loadMandates, findVersion } from './mandates.js';
 import { entriesPerRun, pickEntries, recordChecks, matchEntry } from './watchLists.js';
 import {
@@ -19,7 +23,11 @@ const EXTRA_CANDIDATES = 3;
 
 const COMPANY_COLUMNS = ['parent_company', 'business_unit', 'israel_connection', 'incorporation_country', 'hq_country', 'model_primary',
   'model_secondary', 'sector', 'subsector', 'employees_min', 'employees_max', 'employees_as_of', 'revenue_usd_min', 'revenue_usd_max',
-  'revenue_fiscal_year', 'revenue_basis', 'revenue_original', 'ownership'];
+  'revenue_fiscal_year', 'revenue_basis', 'revenue_original', 'ownership', 'export_proof', 'registry_number', 'description'];
+// Decision 3 (24.11): "enters from 10 employees when revenue is unknown" applies to mandates without an employee range.
+const MIN_EMPLOYEES_WITHOUT_RANGE = 10;
+// Market statuses that make the company the wrong buyer for an entry mandate (decision 5).
+const ESTABLISHED_STATUSES = ['established', 'main_market'];
 
 function knownCompanyNames(db) {
   return db.prepare('SELECT name, website FROM companies ORDER BY id DESC LIMIT ?').all(KNOWN_COMPANIES_IN_PROMPT)
@@ -73,49 +81,165 @@ function isKnownInitiative(db, companyId, candidate) {
     AND status IN ('draft', 'needs_review', 'manual_assignment', 'accepted', 'verify')`).get(companyId, candidate.needType, candidate.targetCountry));
 }
 
+/** Queue (or re-queue) the decision-maker search for a card. Spec step 5: it runs before the review, for every new card. */
+export function queueContactSearch(db, opportunityId, userId) {
+  const existing = db.prepare('SELECT id, status FROM contact_searches WHERE opportunity_id = ?').get(opportunityId);
+  if (!existing) {
+    insert(db, 'contact_searches', { opportunity_id: opportunityId, requested_by: userId });
+    return;
+  }
+  if (existing.status === 'queued' || existing.status === 'running') return;
+  update(db, 'contact_searches', existing.id, { status: 'queued', error: null, requested_by: userId, finished_at: null });
+}
+
+/** The run log of a company that did not become a card. */
+function recordDrop(db, runId, candidate, reason, detail = null) {
+  insert(db, 'run_drops', {
+    run_id: runId, company_name: candidate.companyName, website: candidate.website ?? null, reason, detail, source_url: candidate.sourceUrl ?? null,
+  });
+  return 'filtered';
+}
+
+function knownSize(min, max) {
+  return max ?? min;
+}
+
+/**
+ * New companies only (the bank keeps its companies whatever the threshold): below the mandate's minimum they do not enter;
+ * between the minimum and the revenue floor they enter only with a strong trigger, flagged "below floor".
+ * Returns { drop: reason | null, belowFloor: boolean }.
+ */
+export function sizeGate(version, company, judgement, evidenceDate, now) {
+  const revenue = knownSize(company.revenue_usd_min, company.revenue_usd_max);
+  if (revenue !== null) {
+    if (version.revenue_min_usd !== null && revenue < version.revenue_min_usd) return { drop: 'below_minimum', belowFloor: false };
+    if (version.revenue_floor_usd !== null && revenue < version.revenue_floor_usd) {
+      const strong = isStrongTrigger({ trigger_kind: judgement.triggerKind, trigger_live: null, evidence_date: evidenceDate }, now);
+      return strong ? { drop: null, belowFloor: true } : { drop: 'below_floor', belowFloor: false };
+    }
+    return { drop: null, belowFloor: false };
+  }
+  const employees = knownSize(company.employees_min, company.employees_max);
+  const minimum = version.employees_min ?? MIN_EMPLOYEES_WITHOUT_RANGE;
+  if (employees !== null && employees < minimum) return { drop: 'below_minimum', belowFloor: false };
+  return { drop: null, belowFloor: false };
+}
+
+function targetMarketEntry(markets, targetCountry) {
+  const market = marketOf(targetCountry);
+  return market ? markets.find((entry) => entry.market === market) : undefined;
+}
+
+/**
+ * The disqualifiers of the spec (no Israeli connection, no proven export) and the market rule of decision 5
+ * (own presence or largest market in the target country). Returns { reason, detail } or null.
+ */
+export function disqualify(profile, markets, targetCountry) {
+  if (profile.israel_connection === 'none') return { reason: 'no_israeli_connection', detail: null };
+  if (profile.export_proof === 'none') return { reason: 'no_export', detail: null };
+  const entry = targetMarketEntry(markets, targetCountry);
+  if (entry && ESTABLISHED_STATUSES.includes(entry.status)) {
+    return { reason: 'already_established', detail: `${entry.market}: ${entry.status}${entry.note ? ` – ${entry.note}` : ''}` };
+  }
+  return null;
+}
+
+function hasRejection(db, companyId) {
+  return Boolean(db.prepare("SELECT 1 FROM opportunities WHERE company_id = ? AND status = 'rejected'").get(companyId));
+}
+
+function saveMarkets(db, companyId, markets) {
+  const existing = db.prepare('SELECT id, status FROM company_markets WHERE company_id = ? AND market = ?');
+  for (const entry of markets) {
+    const row = existing.get(companyId, entry.market);
+    if (row && entry.status === 'unknown' && row.status !== 'unknown') continue; // never replace a sourced status with "unknown"
+    const sourceId = entry.sourceUrl ? upsertSource(db, { url: entry.sourceUrl, title: null, publishedOn: null, kind: 'web' }) : null;
+    const values = { status: entry.status, fit: entry.fit, note: entry.note, source_id: sourceId, checked_at: nowIso() };
+    if (row) update(db, 'company_markets', row.id, values);
+    else insert(db, 'company_markets', { company_id: companyId, market: entry.market, ...values });
+  }
+}
+
+function saveAliases(db, companyId, names, sourceUrl) {
+  const add = db.prepare('INSERT OR IGNORE INTO company_aliases (company_id, name, name_key, source_url) VALUES (?, ?, ?, ?)');
+  for (const name of names) {
+    const key = normalizeName(name);
+    if (key) add.run(companyId, name, key, sourceUrl);
+  }
+}
+
 /**
  * Classify, judge and store one candidate. Returns 'created' | 'duplicate' | 'filtered'.
  * AI calls happen before the database transaction, so a failed call never leaves half a card.
  */
-async function processCandidate(db, ai, { run, runMandate, mandates, candidate, searchSources, now }) {
-  const found = findExistingCompany(db, { website: candidate.website, name: candidate.companyName, hqCountry: 'Israel' });
-  if (found && isKnownInitiative(db, found.company.id, candidate)) return 'duplicate';
+async function processCandidate(db, ai, { run, runMandate, mandates, candidate, searchSources, services, now }) {
+  // Step 2, before any AI cost: SHEPHA's exclusion list and the company bank.
+  if (findExclusion(db, { name: candidate.companyName, website: candidate.website })) return recordDrop(db, run.id, candidate, 'shepha_exclusion');
+  const foundFirst = findExistingCompany(db, { website: candidate.website, name: candidate.companyName, hqCountry: 'Israel' });
+  if (foundFirst && isKnownInitiative(db, foundFirst.company.id, candidate)) return 'duplicate';
 
+  // Steps 3–4: classify and verify, with a cited source for every value.
   const classifyResult = await ai.call('classify', classifyRequest(candidate), { runId: run.id, now });
   const allowed = new Set([...searchSources, ...classifyResult.sources.map((s) => normalizeUrl(s.url)), normalizeUrl(candidate.sourceUrl)]);
   const classified = parseClassification(classifyResult.input, (url) => URL.canParse(url) && allowed.has(normalizeUrl(url)));
+  const profile = classified.company;
+  const identity = {
+    name: profile.entity_name ?? candidate.companyName, website: candidate.website ?? profile.website,
+    registryNumber: profile.registry_number, otherNames: classified.otherNames,
+  };
 
-  const companyForJudge = { name: classified.company.entity_name ?? candidate.companyName, ...classified.company };
+  if (findExclusion(db, identity)) return recordDrop(db, run.id, candidate, 'shepha_exclusion');
+  const disqualified = disqualify(profile, classified.markets, candidate.targetCountry);
+  if (disqualified) return recordDrop(db, run.id, candidate, disqualified.reason, disqualified.detail);
+  const marketEntry = targetMarketEntry(classified.markets, candidate.targetCountry);
+  const found = foundFirst ?? findExistingCompany(db, { ...identity, hqCountry: profile.hq_country ?? 'Israel' });
+  if (found && isKnownInitiative(db, found.company.id, candidate)) return 'duplicate';
+
+  // Step 6: recommendation against the mandate.
+  const companyForJudge = { name: identity.name, ...profile, markets: classified.markets };
   const judgeResult = await ai.call('judge', judgeRequest({
-    mandate: runMandate, version: runMandate.version, company: companyForJudge,
+    mandate: runMandate, version: runMandate.version, company: companyForJudge, services,
     evidence: { url: candidate.sourceUrl, date: candidate.publishedOn, quote: candidate.quote, businessNeed: candidate.businessNeed, targetCountry: candidate.targetCountry },
   }), { runId: run.id, now });
-  const judgement = parseJudgement(judgeResult.input);
-  if (judgement.verdict === 'no_match') return 'filtered';
+  const judgement = parseJudgement(judgeResult.input, services.map((service) => service.code));
+  if (judgement.verdict === 'no_match') return recordDrop(db, run.id, candidate, 'not_a_match', judgement.reason);
+  const size = found ? { drop: null, belowFloor: false } : sizeGate(runMandate.version, profile, judgement, candidate.publishedOn, now);
+  if (size.drop) return recordDrop(db, run.id, candidate, size.drop);
 
   const assignment = assignOpportunity({
-    runMandate, mandates, company: classified.company, verdict: judgement.verdict,
+    runMandate, mandates, company: profile, verdict: judgement.verdict,
     opportunity: { targetCountry: candidate.targetCountry, needType: candidate.needType },
   });
   const sourceTitles = new Map(classifyResult.sources.map((s) => [normalizeUrl(s.url), s.title]));
+  const flags = [
+    ...assignment.flags,
+    ...(found && found.match === 'name' ? ['possible_duplicate'] : []),
+    ...(size.belowFloor ? ['below_floor'] : []),
+    ...(marketEntry && marketEntry.status === 'distributor' && judgement.verdict !== 'defer' ? ['lower_priority'] : []),
+    ...(found && hasRejection(db, found.company.id) ? ['rejected_before'] : []),
+  ];
 
   transaction(db, () => {
-    const companyId = saveCompany(db, found ? found.company : null, candidate, classified.company);
+    const companyId = saveCompany(db, found ? found.company : null, candidate, profile);
     const evidenceSourceId = upsertSource(db, { url: candidate.sourceUrl, title: candidate.sourceTitle, publishedOn: candidate.publishedOn, kind: candidate.sourceKind });
     for (const fact of classified.facts) {
       const sourceId = upsertSource(db, { url: fact.sourceUrl, title: sourceTitles.get(normalizeUrl(fact.sourceUrl)) ?? null, publishedOn: null, kind: 'web' });
       insert(db, 'facts', { company_id: companyId, field: fact.field, value: fact.value, source_id: sourceId, quote: fact.quote, entity_covered: fact.entityCovered, run_id: run.id });
     }
-    const flags = found && found.match === 'name' ? [...assignment.flags, 'possible_duplicate'] : assignment.flags;
-    insert(db, 'opportunities', {
+    saveAliases(db, companyId, classified.otherNames, (classified.facts.find((fact) => fact.field === 'other_names') ?? { sourceUrl: null }).sourceUrl);
+    saveMarkets(db, companyId, classified.markets);
+    const id = insert(db, 'opportunities', {
       company_id: companyId, mandate_id: assignment.mandateId, mandate_version_id: assignment.versionId, run_id: run.id,
       owner_id: assignment.ownerId, relationship_role: candidate.relationshipRole, target_country: candidate.targetCountry,
       need_type: candidate.needType, business_need: candidate.businessNeed, evidence_source_id: evidenceSourceId,
       evidence_date: candidate.publishedOn, evidence_quote: candidate.quote, verdict: judgement.verdict, verdict_reason: judgement.reason,
       reason_to_act: judgement.reasonToAct, proposed_service: judgement.proposedService ?? runMandate.version.proposed_service,
+      trigger_kind: judgement.triggerKind, trigger_strength: judgement.triggerStrength, subsector_fit: judgement.subsectorFit,
+      service_code: judgement.serviceCode, originator: `agent:${runMandate.code}`,
       unknowns: JSON.stringify([...new Set([...classified.unknowns, ...judgement.unknowns])]), flags: JSON.stringify(flags),
       status: assignment.status,
     });
+    queueContactSearch(db, id, run.requested_by);
   });
   return 'created';
 }
@@ -136,6 +260,7 @@ export async function executeRun(db, ai, runId, now = new Date()) {
     const base = mandates.find((m) => m.id === run.mandate_id);
     if (!base) throw new Error(`Mandate #${run.mandate_id} not found`);
     const runMandate = { ...base, version: findVersion(db, run.mandate_version_id) };
+    const services = loadServices(db);
     const publishedAfter = new Date(now.getTime() - base.freshness_days * DAY_MS).toISOString().slice(0, 10);
 
     const watched = run.watch_list_id === null ? null : pickEntries(db, run.watch_list_id, base.id, entriesPerRun(run.batch_size));
@@ -164,12 +289,13 @@ export async function executeRun(db, ai, runId, now = new Date()) {
         const candidate = entry && !parsed.website ? { ...parsed, website: entry.website } : parsed;
         const listed = watched === null || entry !== null;
         const verifiable = searchSources.has(normalizeUrl(candidate.sourceUrl)); // else the URL may be invented
-        outcome = verifiable && listed && !isStale(candidate.publishedOn, base.freshness_days, now)
-          ? await processCandidate(db, ai, { run, runMandate, mandates, candidate, searchSources, now })
-          : 'filtered';
+        if (!listed) outcome = 'filtered';
+        else if (!verifiable) outcome = recordDrop(db, runId, candidate, 'unverifiable_source');
+        else if (isStale(candidate.publishedOn, base.freshness_days, now)) outcome = recordDrop(db, runId, candidate, 'stale', candidate.publishedOn);
+        else outcome = await processCandidate(db, ai, { run, runMandate, mandates, candidate, searchSources, services, now });
       } catch (error) {
         if (!(error instanceof InvalidResultError)) throw error;
-        outcome = 'filtered';
+        outcome = recordDrop(db, runId, { companyName: typeof raw.company_name === 'string' ? raw.company_name : 'unknown', website: null, sourceUrl: null }, 'invalid_result', error.message);
       }
       if (outcome === 'created') stats.cards_created += 1;
       if (outcome === 'duplicate') stats.duplicates += 1;
@@ -202,6 +328,7 @@ export async function executeCalibration(db, ai, calibrationId, now = new Date()
   try {
     const mandate = findById(db, 'mandates', calibration.mandate_id);
     const versions = { before: findVersion(db, calibration.from_version_id), after: findVersion(db, calibration.to_version_id) };
+    const services = loadServices(db);
     const examples = db.prepare(`SELECT e.label, e.note, o.*, c.name AS company_name, c.israel_connection, c.sector, c.employees_min,
         c.employees_max, c.revenue_usd_min, c.revenue_usd_max, s.url AS evidence_url
       FROM calibration_examples e JOIN opportunities o ON o.id = e.opportunity_id
@@ -216,10 +343,10 @@ export async function executeCalibration(db, ai, calibrationId, now = new Date()
         let verdict = example.verdict;
         if (!reuse) {
           const judged = await ai.call('judge', judgeRequest({
-            mandate, version, company: { name: example.company_name, ...example },
+            mandate, version, services, company: { name: example.company_name, ...example },
             evidence: { url: example.evidence_url, date: example.evidence_date, quote: example.evidence_quote, businessNeed: example.business_need, targetCountry: example.target_country },
           }), { calibrationId, now });
-          verdict = parseJudgement(judged.input).verdict;
+          verdict = parseJudgement(judged.input, services.map((service) => service.code)).verdict;
         }
         result[side] = { verdict, inScope: inScope(version, example) };
       }
@@ -247,7 +374,9 @@ export async function executeContactSearch(db, ai, searchId, now = new Date()) {
     const opportunity = findById(db, 'opportunities', search.opportunity_id);
     const company = findById(db, 'companies', opportunity.company_id);
     const evidence = findById(db, 'sources', opportunity.evidence_source_id);
-    const result = await ai.call('contacts', contactsRequest({ company, opportunity, proposedService: opportunity.proposed_service }), { contactSearchId: searchId, now });
+    const mandate = opportunity.mandate_id ? findById(db, 'mandates', opportunity.mandate_id) : null;
+    const keywords = contactKeywordsFor(mandate ? mandate.code : null);
+    const result = await ai.call('contacts', contactsRequest({ company, opportunity, proposedService: opportunity.proposed_service, keywords }), { contactSearchId: searchId, now });
     const allowed = new Set([...result.sources.map((s) => normalizeUrl(s.url)), normalizeUrl(evidence.url)]);
     const isAllowed = (url) => URL.canParse(url) && allowed.has(normalizeUrl(url));
     const known = new Set([

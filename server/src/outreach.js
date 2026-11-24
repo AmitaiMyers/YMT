@@ -82,7 +82,7 @@ export async function draftFirstApproach(db, ai, user, { opportunityId, contactI
 /** What the accepted card shows under "First approach": the company's people, per-channel availability, and approaches. */
 export function outreachPanel(db, ai, card) {
   const contacts = db.prepare(`SELECT id, company_id, full_name, job_title, email, phone, linkedin_url, preferred_language, country,
-      whatsapp_consent, opted_out_at FROM contacts WHERE company_id = ? ORDER BY verified DESC, full_name`).all(card.company_id);
+      whatsapp_consent, opted_out_at, verified, verified_at, verified_source FROM contacts WHERE company_id = ? ORDER BY verified DESC, full_name`).all(card.company_id);
   return {
     ai_problem: ai.problem('outreach'),
     contacts: contacts.map((contact) => ({

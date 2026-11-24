@@ -12,40 +12,16 @@ import { openDatabase } from '../src/db.js';
 import { createAiService, spentThisMonth } from '../src/ai/service.js';
 import { createClaudeProvider } from '../src/ai/claude.js';
 import { normalizeUrl } from '../src/research/classification.js';
+import { loadMandates } from '../src/research/mandates.js';
+import { loadServices } from '../src/research/catalogue.js';
+import { disqualify, sizeGate } from '../src/research/runner.js';
 import {
   discoverRequest, parseCandidates, parseCandidate, classifyRequest, parseClassification, judgeRequest, parseJudgement, InvalidResultError,
 } from '../src/research/tasks.js';
 import { repoRoot } from '../src/config.js';
 
-const M = 1_000_000;
 const DAY_MS = 86_400_000;
 const TRIGGER_MONTHS = 12; // the spec: up to 6 months full score, 6–12 half, older is background only
-
-// SH1 as written in the specification of 22.11.2026 (mandate table, foundation definitions, disqualification rules).
-const SH1 = { code: 'SH1', name: 'India: market entry, distribution, commercial partnerships, expansion' };
-const SH1_SPEC_VERSION = {
-  target_countries: ['India'],
-  need_types: ['market_entry_distribution'],
-  accept_rule: 'An Israeli company (HQ in Israel, or an Israeli business unit of a foreign group) with a proven export product names a '
-    + 'current India initiative: a distributor or partner search, an India trade show or delegation it confirmed, an India office or hire, '
-    + 'or an Indian regulatory registration. Companies already in India that want to expand also count, at a lower priority. '
-    + 'New companies start from about USD 30M annual revenue; USD 10–30M only with a strong trigger (mark "below floor"). '
-    + 'Priority areas: software, defence and dual-use, plastics manufacturing.',
-  false_positives: [
-    'General interest in Asia with no named India initiative (Verify, not Reject)',
-    'India is already the company\'s largest market, with its own offices there (no entry need)',
-    'The company already has a joint venture with an Indian (state-owned) company in this field',
-    'The company already signed a distributor or an MoU in India (Defer: fits, but not now)',
-    'An Indian company or factory offering its services or capacity (a supplier, not a client)',
-    'No proven export, the company was sold or closed, or its operations moved abroad',
-    'A trade show the company did not itself confirm, or an industry-level trend',
-  ],
-  employees_min: 50, employees_max: 249, revenue_min_usd: 10 * M, revenue_max_usd: 100 * M,
-  sectors: [],
-  search_terms: ['India distributor', 'Indian market entry', 'India partner', 'expands to India', 'India trade show', 'BIS certification', 'CDSCO registration'],
-  exclusions: ['Companies on the SHEPHA exclusion list'],
-  proposed_service: 'Connection to a distributor or local partner in India (1–3 screened candidates and an introduction meeting), with SHEPHA',
-};
 
 // The 10 test companies and the decision the specification expects.
 const TEST_COMPANIES = [
@@ -62,18 +38,17 @@ const TEST_COMPANIES = [
 ];
 
 // The agent's verdict expressed in the review decisions of the specification.
-const AGENT_DECISION = { match: 'Accept', weak: 'Verify', no_match: 'Reject' };
+const AGENT_DECISION = { match: 'Accept', weak: 'Verify', defer: 'Defer', no_match: 'Reject' };
 
 function agrees(expected, agent) {
   if (agent === 'Needs review') return expected === 'Reject' ? 'safe' : 'no';
-  if (expected === 'Defer') return agent === 'Verify' ? 'close' : 'no';
   return expected === agent ? 'yes' : 'no';
 }
 
-async function testCompany(ai, company, now) {
+async function testCompany(ai, { mandate, services }, company, now) {
   const publishedAfter = new Date(now.getTime() - TRIGGER_MONTHS * 30 * DAY_MS).toISOString().slice(0, 10);
   const discovery = await ai.call('discover', discoverRequest({
-    mandate: SH1, version: SH1_SPEC_VERSION, batchSize: 1, knownCompanies: [], publishedAfter, watchCompanies: [{ name: company.name }],
+    mandate, version: mandate.version, batchSize: 1, knownCompanies: [], publishedAfter, watchCompanies: [{ name: company.name }],
   }));
   const searchSources = new Set(discovery.sources.map((source) => normalizeUrl(source.url)));
   const raw = parseCandidates(discovery.input)[0];
@@ -94,10 +69,18 @@ async function testCompany(ai, company, now) {
   const classifyResult = await ai.call('classify', classifyRequest(candidate));
   const allowed = new Set([...searchSources, ...classifyResult.sources.map((source) => normalizeUrl(source.url)), normalizeUrl(candidate.sourceUrl)]);
   const classified = parseClassification(classifyResult.input, (url) => URL.canParse(url) && allowed.has(normalizeUrl(url)));
-  const judged = parseJudgement((await ai.call('judge', judgeRequest({
-    mandate: SH1, version: SH1_SPEC_VERSION, evidence,
-    company: { name: classified.company.entity_name ?? candidate.companyName, ...classified.company },
-  }))).input);
+  const profile = classified.company;
+  const companyView = { name: profile.entity_name ?? candidate.companyName, ...profile, markets: classified.markets };
+  const disqualified = disqualify(profile, classified.markets, candidate.targetCountry);
+  if (disqualified) {
+    return { agent: 'Reject', stage: 'disqualify', reason: `${disqualified.reason}${disqualified.detail ? ` (${disqualified.detail})` : ''}`, evidence, markets: classified.markets };
+  }
+  const judged = parseJudgement((await ai.call('judge', judgeRequest({ mandate, version: mandate.version, evidence, company: companyView, services }))).input,
+    services.map((service) => service.code));
+  const size = sizeGate(mandate.version, profile, judged, candidate.publishedOn, now);
+  if (size.drop && judged.verdict !== 'no_match') {
+    return { agent: 'Reject', stage: 'size', reason: `${size.drop}: ${judged.reason}`, evidence, verdict: judged.verdict };
+  }
 
   return {
     agent: AGENT_DECISION[judged.verdict],
@@ -106,6 +89,11 @@ async function testCompany(ai, company, now) {
     reason: judged.reason,
     reason_to_act: judged.reasonToAct,
     proposed_service: judged.proposedService,
+    service_code: judged.serviceCode,
+    trigger: { kind: judged.triggerKind, strength: judged.triggerStrength },
+    subsector_fit: judged.subsectorFit,
+    below_floor: size.belowFloor,
+    markets: classified.markets,
     unknowns: [...new Set([...classified.unknowns, ...judged.unknowns])],
     evidence,
     profile: {
@@ -126,16 +114,19 @@ async function main() {
   const db = openDatabase(':memory:');
   const ai = createAiService(db, { claude: createClaudeProvider({ client: new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) }) });
   const now = new Date();
+  // SH1 exactly as seeded from the specification of 22.11.2026 (floor, false positives, services).
+  const mandate = loadMandates(db).find((m) => m.code === 'SH1');
+  const services = loadServices(db);
   const results = [];
   for (const company of TEST_COMPANIES) {
     process.stdout.write(`${company.name} … `);
-    const result = await testCompany(ai, company, now);
+    const result = await testCompany(ai, { mandate, services }, company, now);
     const row = { company: company.name, expected: company.expected, expected_why: company.why, ...result, agrees: agrees(company.expected, result.agent) };
     results.push(row);
     console.log(`${row.agent} (expected ${row.expected}, agrees: ${row.agrees})`);
   }
   const cost = spentThisMonth(db, now);
-  const output = { ran_at: now.toISOString(), mandate: SH1, mandate_version: SH1_SPEC_VERSION, cost_usd: Number(cost.toFixed(3)), results };
+  const output = { ran_at: now.toISOString(), mandate: { code: mandate.code, name: mandate.name }, mandate_version: mandate.version, cost_usd: Number(cost.toFixed(3)), results };
   const file = path.join(repoRoot, 'agent-test-results.json');
   writeFileSync(file, `${JSON.stringify(output, null, 2)}\n`);
   console.table(results.map((row) => ({ company: row.company, expected: row.expected, agent: row.agent, agrees: row.agrees })));

@@ -29,13 +29,21 @@ export function revenueBand(minUsd, maxUsd) {
   return bandForRange(REVENUE_BANDS, minUsd, maxUsd, false);
 }
 
-/** "https://www.Example.co.il/about?x" → "example.co.il". Returns null for empty or unparseable input. */
+// Second-level suffixes under which a company registers its name (example.co.il, example.com.au).
+const SECOND_LEVEL = new Set(['co', 'com', 'org', 'net', 'ac', 'gov', 'muni', 'edu', 'ltd', 'plc', 'or', 'ne', 'go']);
+
+/**
+ * The registrable domain of a website: "https://shop.Example.co.il/about?x" → "example.co.il".
+ * Returns null for empty or unparseable input.
+ */
 export function normalizeDomain(website) {
   if (typeof website !== 'string' || website.trim() === '') return null;
   const withScheme = /^[a-z]+:\/\//i.test(website.trim()) ? website.trim() : `https://${website.trim()}`;
   if (!URL.canParse(withScheme)) return null;
-  const host = new URL(withScheme).hostname.toLowerCase().replace(/^www\./, '');
-  return host.includes('.') ? host : null;
+  const labels = new URL(withScheme).hostname.toLowerCase().replace(/^www\./, '').split('.');
+  if (labels.length < 2) return null;
+  const keep = labels.length >= 3 && labels.at(-1).length === 2 && SECOND_LEVEL.has(labels.at(-2)) ? 3 : 2;
+  return labels.slice(-keep).join('.');
 }
 
 const LEGAL_SUFFIXES = /\b(ltd|limited|inc|incorporated|corp|corporation|llc|plc|gmbh|co|company|group|holdings|bm|b\.m)\b\.?/g;
@@ -59,20 +67,39 @@ export function normalizeUrl(url) {
   return text.endsWith('/') && parsed.pathname !== '/' ? text.slice(0, -1) : text;
 }
 
+/** Digits only: "51-234567-8" and "512345678" are the same company number. */
+export function normalizeRegistry(number) {
+  if (typeof number !== 'string') return null;
+  const digits = number.replace(/\D/g, '');
+  return digits.length >= 6 ? digits : null;
+}
+
 /**
- * Find an existing company: same website domain first, then the same normalised name and HQ country.
- * Returns { company, match: 'domain' | 'name' } or null.
+ * Find an existing company, strongest key first: website domain, company number, then the same normalised name
+ * (or one of its other names) with the same HQ country. Returns { company, match: 'domain' | 'registry' | 'name' } or null.
  */
-export function findExistingCompany(db, { website, name, hqCountry }) {
-  const rows = db.prepare('SELECT id, name, website, hq_country, country FROM companies').all();
+export function findExistingCompany(db, { website, name, hqCountry, registryNumber = null, otherNames = [] }) {
+  const rows = db.prepare('SELECT id, name, website, hq_country, country, registry_number FROM companies').all();
   const domain = normalizeDomain(website);
   if (domain) {
     const byDomain = rows.find((row) => normalizeDomain(row.website) === domain);
     if (byDomain) return { company: byDomain, match: 'domain' };
   }
-  const key = normalizeName(name);
+  const registry = normalizeRegistry(registryNumber);
+  if (registry) {
+    const byRegistry = rows.find((row) => normalizeRegistry(row.registry_number) === registry);
+    if (byRegistry) return { company: byRegistry, match: 'registry' };
+  }
+  const keys = new Set([name, ...otherNames].map(normalizeName).filter(Boolean));
   const country = (hqCountry ?? '').trim().toLowerCase();
-  const byName = rows.find((row) => normalizeName(row.name) === key
-    && (row.hq_country ?? row.country ?? '').trim().toLowerCase() === country);
-  return byName ? { company: byName, match: 'name' } : null;
+  const sameCountry = (row) => (row.hq_country ?? row.country ?? '').trim().toLowerCase() === country;
+  const byName = rows.find((row) => keys.has(normalizeName(row.name)) && sameCountry(row));
+  if (byName) return { company: byName, match: 'name' };
+  const alias = db.prepare(`SELECT c.id, c.name, c.website, c.hq_country, c.country, c.registry_number FROM company_aliases a
+    JOIN companies c ON c.id = a.company_id WHERE a.name_key = ?`);
+  for (const key of keys) {
+    const byAlias = alias.all(key).find(sameCountry);
+    if (byAlias) return { company: byAlias, match: 'name' };
+  }
+  return null;
 }

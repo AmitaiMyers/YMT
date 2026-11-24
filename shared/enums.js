@@ -59,9 +59,10 @@ export const OPPORTUNITY_STATUSES = ['draft', 'needs_review', 'manual_assignment
 export const REVIEWABLE_STATUSES = ['draft', 'needs_review', 'manual_assignment'];
 export const REVIEW_DECISIONS = ['accept', 'verify', 'defer', 'reject'];
 export const REJECT_REASONS = ['duplicate', 'wrong_buyer', 'wrong_market', 'no_current_initiative', 'no_israeli_connection', 'other'];
-export const OPPORTUNITY_FLAGS = ['outside_preferred_size', 'weak_evidence', 'possible_duplicate'];
+export const OPPORTUNITY_FLAGS = ['outside_preferred_size', 'weak_evidence', 'possible_duplicate', 'below_floor', 'lower_priority', 'rejected_before'];
 export const SOURCE_KINDS = ['web', 'job', 'list', 'staff'];
-export const JUDGE_VERDICTS = ['match', 'weak', 'no_match'];
+// 'defer': fits, but not now (a signed distributor or MoU in the market) – spec 22.11.2026.
+export const JUDGE_VERDICTS = ['match', 'weak', 'defer', 'no_match'];
 export const EXAMPLE_LABELS = ['good', 'false_positive'];
 export const CONTACT_PROPOSAL_STATUSES = ['proposed', 'confirmed', 'dismissed'];
 export const JOB_STATUSES = ['queued', 'running', 'done', 'failed', 'waiting_budget'];
@@ -96,3 +97,26 @@ export const REVENUE_BANDS = [
   { band: 'enterprise', min: 500_000_000, max: Infinity },
 ];
 export const MAX_RUN_BATCH = 20;
+
+// ---------------------------------------------------------------- Lead-finding agent spec (22.11.2026)
+
+// Fit and status are kept per market (Thailand and Vietnam together, as in the spec).
+export const MARKETS = ['india', 'japan', 'thailand_vietnam', 'china'];
+// established = own subsidiary, office, plant or JV there; main_market = already the company's largest market.
+export const MARKET_STATUSES = ['not_active', 'exploring', 'distributor', 'established', 'main_market', 'unknown'];
+export const MARKET_FITS = ['fit', 'possible', 'no_fit', 'unknown'];
+export const EXPORT_PROOFS = ['proven', 'none', 'unknown'];
+export const TRIGGER_KINDS = ['distributor_search', 'mou', 'market_office_or_hire', 'regulatory', 'trade_show', 'delegation', 'job_posting', 'statement', 'none'];
+// Triggers that count only while the page is still live on the day of the review.
+export const LIVE_TRIGGER_KINDS = ['job_posting', 'distributor_search'];
+export const SUBSECTOR_FITS = ['priority', 'shepha_sector', 'accepted_model', 'distributor_or_service', 'unknown'];
+export const SCORE_TIERS = ['A', 'B', 'C'];
+export const SERVICE_LINES = ['IL', 'GL'];
+export const SERVICE_STATUSES = ['ready', 'in_build', 'in_review', 'not_offered'];
+export const ORIGINATOR_KINDS = ['agent', 'staff', 'partner', 'referral', 'web'];
+export const PREFERRED_CHANNELS = ['email', 'linkedin', 'phone', 'whatsapp', 'switchboard'];
+export const PROPOSAL_DISMISS_REASONS = ['not_relevant', 'wrong_or_outdated'];
+// Why a found company did not become a card (kept per run, so owners can see what the agent dropped).
+export const DROP_REASONS = ['shepha_exclusion', 'no_israeli_connection', 'no_export', 'already_established', 'below_floor', 'below_minimum',
+  'not_a_match', 'stale', 'unverifiable_source', 'invalid_result'];
+

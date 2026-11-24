@@ -17,6 +17,8 @@ export const RECIPIENT_FIELDS = { email: 'recipient_email', linkedin: 'recipient
 const INTERNATIONAL_PHONE_RE = /^\+[\d\s()-]+$/;
 const PHONE_DIGITS = { min: 8, max: 15 }; // E.164 numbers incl. country code
 const MIN_LISTED_PHONE_DIGITS = 7;          // any number, local or international, on the do-not-contact list
+const ROLE_CHECK_DAYS = 30;                 // decision 19 (24.11): a first approach needs the role checked in the last 30 days
+const DAY_MS = 86_400_000;
 
 const PROBLEM_TEXT = {
   opted_out: 'This person asked not to be contacted',
@@ -24,6 +26,7 @@ const PROBLEM_TEXT = {
   suppressed: 'This recipient is on the do-not-contact list',
   no_country: "Set the person's country first (the company has no HQ country)",
   country_not_cleared: 'Outreach to this country is not cleared. An admin can clear it under Settings → Outreach rules.',
+  role_unchecked: "Check the person's current role on LinkedIn or the company website first (a first approach needs a check from the last 30 days)",
   no_email: 'This person has no email address',
   no_linkedin: 'This person has no LinkedIn profile link',
   no_phone: 'This person has no phone number',
@@ -124,6 +127,12 @@ function isCleared(db, country) {
   return outreachRules(db).cleared_countries.some((cleared) => cleared.trim().toLowerCase() === country.trim().toLowerCase());
 }
 
+/** The person's role was confirmed against a public source (LinkedIn or the company website) in the last 30 days. */
+export function roleCheckedRecently(contact, now = new Date()) {
+  if (contact.verified !== 1 || contact.verified_at === null) return false;
+  return now.getTime() - Date.parse(contact.verified_at) <= ROLE_CHECK_DAYS * DAY_MS;
+}
+
 function channelDetailProblem(channel, { email, phone, linkedin, whatsappConsent }) {
   if (channel === 'email') return email ? null : 'no_email';
   if (channel === 'linkedin') return linkedin ? null : 'no_linkedin';
@@ -142,6 +151,7 @@ function recipientProblem(db, contact, channel, details, { cold }) {
     const country = recipientCountry(db, contact);
     if (!country) return 'no_country';
     if (!isCleared(db, country)) return 'country_not_cleared';
+    if (contact && !roleCheckedRecently(contact)) return 'role_unchecked';
   }
   return channelDetailProblem(channel, { ...details, whatsappConsent: contact ? contact.whatsapp_consent === 1 : false });
 }

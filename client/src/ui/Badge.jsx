@@ -20,7 +20,8 @@ export const STATUS_TONES = {
   share: { active: 'success', expired: 'neutral', revoked: 'danger' },
   opportunity: { draft: 'signal', needs_review: 'signal', manual_assignment: 'signal', accepted: 'success', verify: 'info', deferred: 'neutral', rejected: 'danger' },
   run: { queued: 'neutral', running: 'info', done: 'success', failed: 'danger', waiting_budget: 'signal' },
-  verdict: { match: 'success', weak: 'signal', no_match: 'danger' },
+  verdict: { match: 'success', weak: 'signal', defer: 'neutral', no_match: 'danger' },
+  tier: { A: 'success', B: 'info', C: 'neutral' },
   mandate: { active: 'success', paused: 'neutral' },
   discovery: { open: 'info', answered: 'success', expired: 'neutral', revoked: 'danger' },
 };

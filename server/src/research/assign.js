@@ -36,15 +36,19 @@ export function isStale(evidenceDate, freshnessDays, now) {
 /**
  * Decide status, mandate and owner for a new opportunity.
  * @param {{ runMandate: object, mandates: object[], opportunity: { targetCountry: string, needType: string },
- *   company: object, verdict: 'match' | 'weak' }} input
+ *   company: object, verdict: 'match' | 'weak' | 'defer' }} input
  *   Mandates carry their parsed current version as `mandate.version`.
  * @returns {{ status: string, mandateId: number | null, versionId: number | null, ownerId: number | null, flags: string[] }}
  */
 export function assignOpportunity({ runMandate, mandates, opportunity, company, verdict }) {
   const flags = verdict === 'weak' ? ['weak_evidence'] : [];
 
+  if (company.israel_connection === 'unknown') {
+    // Missing or contradicting sources: "stop and pass" to Tom (decision 11), who assigns it by hand.
+    return { status: 'manual_assignment', mandateId: runMandate.id, versionId: runMandate.version.id, ownerId: null, flags };
+  }
   if (!ISRAEL_TARGET_CONNECTIONS.includes(company.israel_connection)) {
-    // Other connection or unknown: YMT checks contracting authority first; the owner who ran the search reviews it.
+    // Other Israeli connection: YMT checks who may sign first; the owner who ran the search reviews it.
     return { status: 'needs_review', mandateId: runMandate.id, versionId: runMandate.version.id, ownerId: runMandate.owner_id, flags };
   }
 

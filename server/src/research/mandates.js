@@ -3,8 +3,9 @@
 import { insert, update, findById, transaction } from '../db.js';
 import { DEFAULT_MANDATES } from './defaultMandates.js';
 
-const JSON_FIELDS = ['target_countries', 'need_types', 'false_positives', 'sectors', 'search_terms', 'exclusions'];
-export const CRITERIA_FIELDS = [...JSON_FIELDS, 'accept_rule', 'employees_min', 'employees_max', 'revenue_min_usd', 'revenue_max_usd', 'proposed_service'];
+const JSON_FIELDS = ['target_countries', 'need_types', 'false_positives', 'sectors', 'search_terms', 'exclusions', 'service_codes'];
+export const CRITERIA_FIELDS = [...JSON_FIELDS, 'accept_rule', 'employees_min', 'employees_max', 'revenue_min_usd', 'revenue_max_usd',
+  'revenue_floor_usd', 'proposed_service'];
 
 export function parseVersion(row) {
   const version = { ...row };
@@ -40,6 +41,11 @@ export function createVersion(db, mandateId, criteria, { userId, changeNote }) {
   return versionId;
 }
 
+// Spec 22.11.2026: triggers count up to 12 months (half the score after 6), and mandates run weekly (decision 18).
+const SPEC_FRESHNESS_DAYS = 365;
+const SPEC_SCHEDULE = 'weekly';
+const SPEC_NOTE = 'Lead-finding agent specification of 22.11.2026';
+
 /** Create a mandate with version 1 (paused until it has an owner). Returns the mandate id. */
 export function createMandate(db, { code, name, owner_id = null, schedule = 'off', schedule_weekday = 0, default_batch = 5, freshness_days = 183 }, criteria, userId) {
   return transaction(db, () => {
@@ -49,9 +55,33 @@ export function createMandate(db, { code, name, owner_id = null, schedule = 'off
   });
 }
 
+function specCriteria({ code, name, ...criteria }) {
+  return { sectors: [], exclusions: ['Companies on the SHEPHA exclusion list'], ...criteria };
+}
+
+/** Empty database: the spec's mandates as version 1. */
 export function seedMandates(db) {
-  if (db.prepare('SELECT COUNT(*) AS n FROM mandates').get().n > 0) return;
-  for (const { code, name, ...criteria } of DEFAULT_MANDATES) {
-    createMandate(db, { code, name }, { sectors: [], exclusions: [], ...criteria }, null);
+  if (db.prepare('SELECT COUNT(*) AS n FROM mandates').get().n > 0) return false;
+  for (const mandate of DEFAULT_MANDATES) {
+    createMandate(db, { code: mandate.code, name: mandate.name, schedule: SPEC_SCHEDULE, freshness_days: SPEC_FRESHNESS_DAYS }, specCriteria(mandate), null);
+  }
+  return true;
+}
+
+/**
+ * Existing database (once): every mandate gets the spec's wording as a new version, so earlier cards keep the version
+ * they were judged with; missing mandates are created. Owners, status and the run day stay as the admin set them.
+ */
+export function applySpec2211(db) {
+  for (const mandate of DEFAULT_MANDATES) {
+    const existing = db.prepare('SELECT id FROM mandates WHERE code = ?').get(mandate.code);
+    if (!existing) {
+      createMandate(db, { code: mandate.code, name: mandate.name, schedule: SPEC_SCHEDULE, freshness_days: SPEC_FRESHNESS_DAYS }, specCriteria(mandate), null);
+      continue;
+    }
+    transaction(db, () => {
+      createVersion(db, existing.id, specCriteria(mandate), { userId: null, changeNote: SPEC_NOTE });
+      update(db, 'mandates', existing.id, { name: mandate.name, schedule: SPEC_SCHEDULE, freshness_days: SPEC_FRESHNESS_DAYS });
+    });
   }
 }

@@ -235,7 +235,10 @@ function fakeScript() {
             hq_country: 'Israel', model_primary: 'software_ip', model_secondary: 'none', sector: 'tech_comms', subsector: 'B2B software',
             customer_types: ['business'], customer_markets: ['Manufacturing'], employees_min: 95, employees_max: 95, employees_as_of: '2026',
             revenue_usd_min: null, revenue_usd_max: null, revenue_fiscal_year: null, revenue_basis: 'unknown', revenue_original: '', ownership: '',
+            export_proof: 'proven', registry_number: '', other_names: [], description: `${name} sells B2B software.`,
+            markets: [{ market: 'india', status: 'not_active', fit: 'possible', note: '', source_url: url }, { market: 'japan', status: 'exploring', fit: 'fit', note: '', source_url: url }],
             facts: [
+              { field: 'export_proof', value: 'proven', source_url: url, quote: 'customers in Europe and Asia', entity_covered: name },
               { field: 'israel_connection', value: 'hq_israel', source_url: url, quote: 'headquartered in Tel Aviv', entity_covered: name },
               { field: 'employees', value: '95', source_url: url, quote: '95 employees', entity_covered: name },
               { field: 'sector', value: 'tech_comms', source_url: 'https://uncited.example/page', quote: 'x', entity_covered: name },
@@ -249,7 +252,8 @@ function fakeScript() {
       const homepage = prompt.includes('Japanese homepage');
       return {
         input: { verdict: homepage ? 'no_match' : 'match', reason: homepage ? 'A homepage alone is not a partner initiative.' : 'Dated partner call.',
-          reason_to_act: 'Published this month.', proposed_service: 'Shortlist partners', unknowns: [] },
+          reason_to_act: 'Published this month.', trigger_kind: homepage ? 'none' : 'distributor_search', trigger_strength: homepage ? '' : 'A dated, public partner search.',
+          subsector_fit: 'priority', service_code: 'GL-12', proposed_service: 'Shortlist partners', unknowns: [] },
         sources: [],
         usage: { input: 2000, output: 200, cacheRead: 0, cacheWrite: 0, searches: 0 },
       };
@@ -340,7 +344,7 @@ test('a run creates draft cards for the right owners and drops unverifiable or f
   assert.equal(card.company.sector, null);
   assert.ok(card.unknowns.includes('sector'));
   assert.ok(!card.unknowns.includes('entity_name'));
-  assert.deepEqual(card.facts.map((f) => f.field).sort(), ['employees', 'israel_connection']);
+  assert.deepEqual(card.facts.map((f) => f.field).sort(), ['employees', 'export_proof', 'israel_connection']);
   assert.equal(card.evidence_url, SEARCH.good);
   assert.equal((await call('omer', 'GET', `/opportunities/${ids.acme}`)).status, 403);
 
@@ -451,6 +455,8 @@ test('staff can add an opportunity with evidence; merge of research-only duplica
 
 test('weekly runs are queued once per mandate per week; interrupted runs fail', () => {
   const sunday = new Date('2026-11-22T08:00:00Z');
+  // Spec 22.11 seeds every mandate weekly; this test schedules only OM3.
+  db.prepare("UPDATE mandates SET schedule = 'off'").run();
   db.prepare("UPDATE mandates SET schedule = 'weekly', schedule_weekday = 0 WHERE code = 'OM3'").run();
   assert.equal(scheduleWeeklyRuns(db, sunday), 1);
   assert.equal(scheduleWeeklyRuns(db, sunday), 0);
@@ -530,13 +536,13 @@ test('Release 2: accept writes the timeline and finds decision makers; open one 
   while (await processNext(db, ai, TODAY)) { /* run it */ }
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM contact_proposals WHERE opportunity_id = ?').get(ids.acme).n, 2);
 
-  // Deal defaults per mandate, one deal per card, history on the deal and the company timeline.
+  // Accept opened the card's one deal (decision 21); mandate defaults apply to later accepts.
   const workflowId = db.prepare('SELECT id FROM workflows ORDER BY id LIMIT 1').get().id;
   assert.equal((await call('tom', 'PATCH', `/mandates/${mandateId('SH2')}`, { default_workflow_id: workflowId, default_deal_model: 'retainer' })).status, 200);
   assert.deepEqual((await call('shir', 'GET', `/opportunities/${ids.acme}`)).data.deal_defaults, { default_workflow_id: workflowId, default_deal_model: 'retainer' });
   assert.equal((await call('omer', 'POST', `/opportunities/${ids.metal}/deal`, { title: 'x', workflow_id: workflowId, deal_model: 'retainer' })).data.error, 'Accept the card before opening a deal');
-  const deal = await call('shir', 'POST', `/opportunities/${ids.acme}/deal`, { title: 'SH2: Japan integration partners', workflow_id: workflowId, deal_model: 'retainer', expected_value_usd: 40000 });
-  assert.equal(deal.status, 201);
+  const deal = { data: (await call('shir', 'GET', `/opportunities/${ids.acme}`)).data.deal };
+  assert.ok(deal.data.id, 'Accept opens the deal');
   assert.equal((await call('shir', 'POST', `/opportunities/${ids.acme}/deal`, { title: 'again', workflow_id: workflowId, deal_model: 'retainer' })).data.error, `This card already has deal #${deal.data.id}`);
   const dealPage = (await call('shir', 'GET', `/deals/${deal.data.id}`)).data;
   assert.equal(dealPage.research_card.mandate_code, 'SH2');
@@ -592,6 +598,9 @@ test('Release 3: first approach drafted from the card, legal gate, manual channe
   const newRules = { cleared_countries: ['Israel', 'Germany'], opt_out_he: rules.opt_out.he, opt_out_en: rules.opt_out.en };
   assert.equal((await call('shir', 'PUT', '/outreach/rules', newRules)).status, 403);
   assert.equal((await call('tom', 'PUT', '/outreach/rules', newRules)).status, 200);
+  // Decision 19: the role must have been checked against a public source in the last 30 days.
+  assert.match((await call('shir', 'POST', `/opportunities/${ids.acme}/approaches`, { contact_id: hans, channel: 'linkedin', mode: 'blank' })).data.error, /current role/);
+  await call('shir', 'PATCH', `/contacts/${hans}`, { verified: true, verified_source: 'https://de.linkedin.com/in/Hans-Weber/' });
   const linkedin = await call('shir', 'POST', `/opportunities/${ids.acme}/approaches`, { contact_id: hans, channel: 'linkedin', mode: 'blank' });
   assert.equal(linkedin.status, 201, linkedin.data.error);
   const linkedinItem = (await call('shir', 'GET', `/approvals/${linkedin.data.id}`)).data;
@@ -608,6 +617,7 @@ test('Release 3: first approach drafted from the card, legal gate, manual channe
   // WhatsApp: international number and consent; an opt-out after approval still blocks "mark as sent".
   const noa = (await call('shir', 'POST', `/companies/${companyId}/contacts`, {
     full_name: 'Noa Bar', department: 'management', phone: '050-123-4567', email: 'noa@acmesoftware.example',
+    verified: true, verified_source: SEARCH.team,
   })).data.id;
   const channelsOf = async (id) => (await call('shir', 'GET', `/opportunities/${ids.acme}`)).data.outreach.contacts.find((c) => c.id === id).channels;
   assert.equal((await channelsOf(noa)).whatsapp, 'phone_format');

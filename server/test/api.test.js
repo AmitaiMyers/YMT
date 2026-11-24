@@ -41,11 +41,13 @@ after(() => {
   server.close();
 });
 
-async function createCompanyWithContact() {
+/** A company with one person whose role was checked today (a first approach needs that, decision 19). */
+async function createCompanyWithContact({ roleChecked = true } = {}) {
   const company = await call('POST', '/companies', { name: 'Acme', industry: 'Valves', country: 'Israel', india_activity: 'none' });
   assert.equal(company.status, 201);
   const contact = await call('POST', `/companies/${company.data.id}/contacts`, {
     full_name: 'Dana', department: 'sales', email: 'dana@example.com',
+    ...(roleChecked ? { verified: true, verified_source: 'https://example.com/team' } : {}),
   });
   assert.equal(contact.status, 201);
   return { companyId: company.data.id, contactId: contact.data.id };
@@ -68,11 +70,22 @@ test('triggers require a valid source URL', async () => {
 });
 
 test('verifying a contact requires a verification source', async () => {
-  const { contactId } = await createCompanyWithContact();
+  const { contactId } = await createCompanyWithContact({ roleChecked: false });
   const bad = await call('PATCH', `/contacts/${contactId}`, { verified: true });
   assert.equal(bad.status, 400);
   const good = await call('PATCH', `/contacts/${contactId}`, { verified: true, verified_source: 'LinkedIn profile' });
   assert.equal(good.status, 200);
+
+  // Re-saving the form with other changes is not a new role check; "role checked today" is (decision 19).
+  const old = '2026-01-01T00:00:00.000Z';
+  db.prepare('UPDATE contacts SET verified_at = ? WHERE id = ?').run(old, contactId);
+  await call('PATCH', `/contacts/${contactId}`, { verified: true, verified_source: 'LinkedIn profile', phone: '+972 50 000 0000', preferred_channel: 'whatsapp' });
+  assert.equal(db.prepare('SELECT verified_at FROM contacts WHERE id = ?').get(contactId).verified_at, old);
+  assert.equal((await call('POST', `/contacts/${contactId}/role-check`, {})).status, 400);
+  assert.equal((await call('POST', `/contacts/${contactId}/role-check`, { source: 'https://linkedin.com/in/dana' })).status, 200);
+  const checked = db.prepare('SELECT verified_at, verified_source, preferred_channel FROM contacts WHERE id = ?').get(contactId);
+  assert.notEqual(checked.verified_at, old);
+  assert.deepEqual([checked.verified_source, checked.preferred_channel], ['https://linkedin.com/in/dana', 'whatsapp']);
 });
 
 test('outreach drafts cannot be marked sent before human approval', async () => {

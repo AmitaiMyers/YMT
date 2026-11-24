@@ -73,6 +73,9 @@ CREATE TABLE IF NOT EXISTS companies (
   revenue_basis TEXT CHECK (revenue_basis IN ('reported', 'estimated')),
   revenue_original TEXT,                        -- amount and currency as the source states it
   ownership TEXT,
+  export_proof TEXT CHECK (export_proof IN ('proven', 'none', 'unknown')), -- spec 22.11: no proven export disqualifies
+  registry_number TEXT,                         -- Israeli company number (ח.פ.) or other registry id: the strongest duplicate key
+  description TEXT,                             -- short description and differentiators
   outreach_owner_id INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
@@ -99,6 +102,7 @@ CREATE TABLE IF NOT EXISTS contacts (
   phone TEXT,
   linkedin_url TEXT,
   preferred_language TEXT NOT NULL DEFAULT 'he' CHECK (preferred_language IN ('he', 'en')),
+  preferred_channel TEXT CHECK (preferred_channel IN ('email', 'linkedin', 'phone', 'whatsapp', 'switchboard')),
   country TEXT,                                  -- where the person sits; empty = the company's HQ country (outreach legal gate)
   whatsapp_consent INTEGER NOT NULL DEFAULT 0,   -- WhatsApp messages only to people who agreed to them
   opted_out_at TEXT,                             -- asked not to be contacted: blocks every channel
@@ -376,6 +380,8 @@ CREATE TABLE IF NOT EXISTS mandate_versions (
   search_terms TEXT NOT NULL DEFAULT '[]',
   exclusions TEXT NOT NULL DEFAULT '[]',
   proposed_service TEXT NOT NULL,
+  revenue_floor_usd INTEGER,            -- new companies below it enter only with a strong trigger ("below floor")
+  service_codes TEXT NOT NULL DEFAULT '[]', -- JSON array of service codes this mandate offers (first = default)
   change_note TEXT NOT NULL,
   created_by INTEGER REFERENCES users(id),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
@@ -447,7 +453,15 @@ CREATE TABLE IF NOT EXISTS opportunities (
   evidence_source_id INTEGER NOT NULL REFERENCES sources(id),
   evidence_date TEXT NOT NULL,        -- publication date of the evidence (YYYY-MM-DD)
   evidence_quote TEXT NOT NULL,
-  verdict TEXT CHECK (verdict IN ('match', 'weak', 'no_match')),
+  verdict TEXT CHECK (verdict IN ('match', 'weak', 'defer', 'no_match')),
+  trigger_kind TEXT CHECK (trigger_kind IN ('distributor_search', 'mou', 'market_office_or_hire', 'regulatory', 'trade_show', 'delegation', 'job_posting', 'statement', 'none')),
+  trigger_strength TEXT,              -- why the trigger is strong (required for a "below floor" card)
+  trigger_live INTEGER,               -- live-type triggers: 1 still live / 0 gone on the review day; NULL = not checked yet
+  trigger_checked_at TEXT,
+  subsector_fit TEXT CHECK (subsector_fit IN ('priority', 'shepha_sector', 'accepted_model', 'distributor_or_service', 'unknown')),
+  service_code TEXT,                  -- from the services catalogue (IL-1…IL-13, GL-1…GL-13)
+  originator TEXT,                    -- lead originator: agent:SH1 · staff:<username> · partner:<name> · referral:<name> · web:<code>
+  defer_until TEXT,                   -- YYYY-MM-DD: when a deferred card comes back
   verdict_reason TEXT,
   reason_to_act TEXT,
   proposed_service TEXT,
@@ -517,6 +531,7 @@ CREATE TABLE IF NOT EXISTS contact_proposals (
   source_id INTEGER NOT NULL REFERENCES sources(id),
   quote TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed', 'confirmed', 'dismissed')),
+  dismiss_reason TEXT CHECK (dismiss_reason IN ('not_relevant', 'wrong_or_outdated')),
   contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
   decided_by INTEGER REFERENCES users(id),
   decided_at TEXT,
@@ -625,6 +640,70 @@ CREATE TABLE IF NOT EXISTS discovery_requests (
   answers TEXT -- JSON array of { question, answer } as the client saw and wrote them
 );
 CREATE INDEX IF NOT EXISTS idx_discovery_company ON discovery_requests(company_id);
+
+-- Lead-finding agent spec (22.11.2026) ---------------------------------------------------------------
+
+-- Other names of a company (Hebrew name, former names, group name) for duplicate checks.
+CREATE TABLE IF NOT EXISTS company_aliases (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  name_key TEXT NOT NULL,
+  source_url TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (company_id, name_key)
+);
+CREATE INDEX IF NOT EXISTS idx_aliases_key ON company_aliases(name_key);
+
+-- Status and fit of a company per target market, each with its source.
+CREATE TABLE IF NOT EXISTS company_markets (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  market TEXT NOT NULL CHECK (market IN ('india', 'japan', 'thailand_vietnam', 'china')),
+  status TEXT NOT NULL CHECK (status IN ('not_active', 'exploring', 'distributor', 'established', 'main_market', 'unknown')),
+  fit TEXT NOT NULL CHECK (fit IN ('fit', 'possible', 'no_fit', 'unknown')),
+  note TEXT,
+  source_id INTEGER REFERENCES sources(id),
+  checked_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+  UNIQUE (company_id, market)
+);
+
+-- One service catalogue for both lines (YMT Consulting IL-*, YMT Development Partnerships GL-*).
+CREATE TABLE IF NOT EXISTS services (
+  code TEXT PRIMARY KEY,
+  line TEXT NOT NULL CHECK (line IN ('IL', 'GL')),
+  name_en TEXT NOT NULL,
+  name_he TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('ready', 'in_build', 'in_review', 'not_offered')),
+  sort INTEGER NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
+-- SHEPHA's exclusion list (imported from Excel by an admin; never sent to the AI). A match disqualifies a company.
+CREATE TABLE IF NOT EXISTS shepha_exclusions (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  name_key TEXT NOT NULL,
+  domain TEXT,
+  registry_number TEXT,
+  note TEXT,
+  imported_by INTEGER REFERENCES users(id),
+  imported_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_shepha_key ON shepha_exclusions(name_key);
+
+-- Companies a run found but did not turn into a card, with the reason (the run log the owner can read).
+CREATE TABLE IF NOT EXISTS run_drops (
+  id INTEGER PRIMARY KEY,
+  run_id INTEGER NOT NULL REFERENCES research_runs(id) ON DELETE CASCADE,
+  company_name TEXT NOT NULL,
+  website TEXT,
+  reason TEXT NOT NULL CHECK (reason IN ('shepha_exclusion', 'no_israeli_connection', 'no_export', 'already_established', 'below_floor',
+    'below_minimum', 'not_a_match', 'stale', 'unverifiable_source', 'invalid_result')),
+  detail TEXT,
+  source_url TEXT,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
 
 CREATE INDEX IF NOT EXISTS idx_deals_company ON deals(company_id);
 CREATE INDEX IF NOT EXISTS idx_interactions_company ON interactions(company_id, occurred_at);
