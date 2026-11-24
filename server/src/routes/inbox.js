@@ -4,6 +4,7 @@ import { visibleCompanySql } from '../research/visibility.js';
 import { Router } from 'express';
 import { buildReminders } from '../reminders.js';
 import { badRequest } from '../http.js';
+import { parseOptionalEnum } from '../validate.js';
 
 const HOUR_MS = 3600000;
 const SEARCH_LIMIT = 8;
@@ -44,6 +45,32 @@ export function inboxRoutes(db) {
       approvals: inbox.approvals.length,
       inbox: inbox.approvals.length + inbox.overdue_tasks.length + inbox.meetings_to_prep.length
         + inbox.meetings_to_summarize.length + inbox.stale_deals.length,
+    });
+  });
+
+  // "My tasks" (Research review, 24.11.2026): open YMT tasks, plus meetings that ended without a summary and idle deals.
+  // A task's assignee is free text, so "mine" means the assignee equals my display name (ignoring case).
+  // Client commitments are the client's tasks, not YMT's, so they are left out.
+  const openTasks = db.prepare(`SELECT t.id, t.description, t.assignee, t.due_date, t.company_id, t.meeting_id, c.name AS company_name
+    FROM tasks t LEFT JOIN companies c ON c.id = t.company_id
+    WHERE t.done = 0 AND t.is_client_commitment = 0 AND (? = 'all' OR lower(trim(t.assignee)) = lower(trim(?)))
+    ORDER BY t.due_date IS NULL, t.due_date, t.id`);
+  const meetingsToSummarize = db.prepare(`SELECT m.id, m.title, m.scheduled_at, m.company_id, c.name AS company_name
+    FROM meetings m LEFT JOIN companies c ON c.id = m.company_id
+    WHERE m.status = 'scheduled' AND m.scheduled_at < ? AND (? = 'all' OR m.organizer_id = ?) ORDER BY m.scheduled_at`);
+
+  router.get('/my-work', (req, res) => {
+    const scope = parseOptionalEnum(req.query.scope, 'scope', ['me', 'all']) ?? 'me';
+    const today = new Date().toISOString().slice(0, 10);
+    const tasks = openTasks.all(scope, req.user.display_name);
+    const reminders = buildReminders(db);
+    const staleDeals = reminders.stale_deals.filter((deal) => scope === 'all' || deal.owner_id === req.user.id);
+    res.json({
+      tasks,
+      overdue: tasks.filter((task) => task.due_date !== null && task.due_date < today).length,
+      meetings_to_summarize: meetingsToSummarize.all(new Date().toISOString(), scope, req.user.id),
+      stale_deals: staleDeals.map((deal) => ({ id: deal.id, title: deal.title, company_id: deal.company_id, company_name: deal.company_name, owner_name: deal.owner_name, days_idle: deal.days_idle })),
+      stale_days: reminders.stale_days,
     });
   });
 

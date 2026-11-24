@@ -34,7 +34,8 @@ function knownCompanyNames(db) {
     .map((row) => (normalizeDomain(row.website) ? `${row.name} (${normalizeDomain(row.website)})` : row.name));
 }
 
-function upsertSource(db, { url, title, publishedOn, kind }) {
+/** The stored source for a URL (one row per canonical URL). */
+export function upsertSource(db, { url, title, publishedOn, kind }) {
   const canonical = normalizeUrl(url);
   const existing = db.prepare('SELECT id FROM sources WHERE url = ?').get(canonical);
   if (existing) return existing.id;

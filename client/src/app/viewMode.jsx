@@ -19,6 +19,7 @@ export const FOCUS_HIDDEN = new Set([
   'meetingPrep',        // pre-meeting sheet
   'meetingAi',          // AI meeting-summary draft (a meeting is still closed with a written summary)
   'companyGenerators',  // the old company brief and template email (first approaches start from a research card)
+  'oldCompanyFields',   // India activity, export markets, exports (replaced by status per market and proven export)
   'companyTab.triggers',
   'companyTab.documents',
   'companyTab.matches',

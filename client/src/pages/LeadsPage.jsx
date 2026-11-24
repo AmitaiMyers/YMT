@@ -10,6 +10,7 @@ import { Button, Card, Loaded, PageHeader, Table, Tabs, Badge, ExternalLink, Not
 import { EntityForm, FieldInput, FieldRow, INPUT_CLASS } from '../components/EntityForm.jsx';
 import { useCompanyFields, COMPANY_DEFAULTS } from '../fields.js';
 import { useEnumOptions } from '../enumOptions.js';
+import { useViewMode } from '../app/viewMode.jsx';
 import { INDIA_ACTIVITY } from '../../../shared/enums.js';
 
 const EMPTY_FILTERS = { q: '', industry: '', min_employees: '', max_employees: '', min_revenue: '', max_revenue: '', exports: '', india_activity: '', is_client: '' };
@@ -35,15 +36,16 @@ function useFilterFields(industries) {
 export function useCompanyColumns() {
   const { t } = useI18n();
   const format = useFormat();
+  const { shows } = useViewMode();
   return [
     { key: 'name', label: t('company.name'), render: (c) => <Link className="font-medium text-link hover:underline" to={`/companies/${c.id}`}><bdi>{c.name}</bdi></Link> },
     { key: 'industry', label: t('company.industry') },
     { key: 'employee_count', label: t('company.employees'), numeric: true, render: (c) => format.number(c.employee_count) },
     { key: 'annual_revenue_usd', label: t('company.revenue'), numeric: true, render: (c) => format.usd(c.annual_revenue_usd) },
-    { key: 'india_activity', label: t('company.indiaActivity'), render: (c) => <Badge tone={c.india_activity === 'none' ? 'neutral' : 'info'}>{t(`indiaActivity.${c.india_activity}`)}</Badge> },
-    { key: 'triggers', label: t('leads.triggers'), render: (c) => (c.trigger_count > 0 ? <Badge tone="signal"><Zap aria-hidden="true" size={12} />{c.trigger_count} · {format.date(c.latest_trigger)}</Badge> : '—') },
+    shows('oldCompanyFields') && { key: 'india_activity', label: t('company.indiaActivity'), render: (c) => <Badge tone={c.india_activity === 'none' ? 'neutral' : 'info'}>{t(`indiaActivity.${c.india_activity}`)}</Badge> },
+    shows('companyTab.triggers') && { key: 'triggers', label: t('leads.triggers'), render: (c) => (c.trigger_count > 0 ? <Badge tone="signal"><Zap aria-hidden="true" size={12} />{c.trigger_count} · {format.date(c.latest_trigger)}</Badge> : '—') },
     { key: 'verified_contacts', label: t('leads.verifiedContacts'), numeric: true, render: (c) => String(c.verified_contacts) },
-  ];
+  ].filter(Boolean);
 }
 
 function CriteriaSearch({ onNew }) {

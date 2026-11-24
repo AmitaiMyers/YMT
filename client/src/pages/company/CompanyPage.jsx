@@ -94,7 +94,7 @@ export function CompanyPage() {
               <span className="flex flex-wrap items-center gap-2">
                 <bdi>{data.company.industry} · {data.company.country}</bdi>
                 {data.company.is_client ? <Badge tone="success">{t('company.client')}</Badge> : <Badge>{t('company.prospect')}</Badge>}
-                <Badge tone="info">{t(`indiaActivity.${data.company.india_activity}`)}</Badge>
+                {shows('oldCompanyFields') && <Badge tone="info">{t(`indiaActivity.${data.company.india_activity}`)}</Badge>}
               </span>
             }
           />

@@ -37,7 +37,7 @@ const DYNAMIC_KEYS = {
   rejectReason: enums.REJECT_REASONS, exampleLabel: enums.EXAMPLE_LABELS, sourceKind: enums.SOURCE_KINDS,
   mandateStatus: enums.MANDATE_STATUSES, mandateSchedule: enums.MANDATE_SCHEDULES, runTrigger: enums.RUN_TRIGGERS,
   aiProvider: ['claude', 'openai'], aiTask: enums.AI_TASKS, weekday: enums.WEEKDAYS.map(String),
-  'research.view': ['queue', 'manual', 'followup', 'accepted', 'rejected'],
+  'research.view': ['queue', 'tasks', 'manual', 'followup', 'accepted', 'rejected'],
   'research.field': ['entity_name', 'parent_company', 'business_unit', 'israel_connection', 'incorporation_country', 'hq_country',
     'model_primary', 'model_secondary', 'sector', 'subsector', 'customer_types', 'customer_markets', 'employees', 'revenue', 'ownership',
     'export_proof', 'registry_number', 'other_names'],
@@ -61,7 +61,7 @@ const DYNAMIC_KEYS = {
   'score.service': enums.SERVICE_FIT_LEVELS, 'score.evidence': enums.EVIDENCE_LEVELS,
   'shepha.field': ['name', 'website', 'registry_number', 'note'],
   // View mode (24.11.2026)
-  viewMode: enums.VIEW_MODES, viewModeHelp: enums.VIEW_MODES,
+  viewMode: enums.VIEW_MODES, viewModeHelp: enums.VIEW_MODES, 'myTasks.scope': ['me', 'all'],
 };
 
 function sourceFiles(dir) {

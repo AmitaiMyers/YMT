@@ -6,7 +6,8 @@ import { parseBody, parseId, parseOptionalInt, parseOptionalEnum } from '../vali
 import { insert, update, findById, removeById, audit, nowIso } from '../db.js';
 import { badRequest } from '../http.js';
 import { requireAdmin } from '../auth.js';
-import { LANGUAGES, INDIA_ACTIVITY, TRIGGER_TYPES, DEPARTMENTS, PREFERRED_CHANNELS } from '../constants.js';
+import { LANGUAGES, INDIA_ACTIVITY, TRIGGER_TYPES, DEPARTMENTS, PREFERRED_CHANNELS, EXPORT_PROOFS, MARKETS, MARKET_STATUSES, MARKET_FITS } from '../constants.js';
+import { upsertSource } from '../research/runner.js';
 import { generateCompanyBrief, generateOutreachEmail } from '../generators.js';
 import { enqueueApproval } from '../approvalQueue.js';
 import { assertMayContact, composeMessage } from '../outreachRules.js';
@@ -20,7 +21,9 @@ const COMPANY_SPEC = {
   annual_revenue_usd: { type: 'int', min: 0 },
   exports: { type: 'bool' },
   export_markets: { type: 'string', max: 300 },
-  india_activity: { type: 'string', required: true, enum: INDIA_ACTIVITY },
+  // Old field, hidden in the Focused view (the per-market status replaces it); a new company without it gets "none".
+  india_activity: { type: 'string', enum: INDIA_ACTIVITY },
+  export_proof: { type: 'string', enum: EXPORT_PROOFS },
   is_client: { type: 'bool' },
   notes: { type: 'text', max: 5000 },
 };
@@ -74,6 +77,14 @@ function contactVerificationFields(current, contact, userId) {
   return {};
 }
 
+// Status and fit per Asian market, set by hand (the agent sets them with a source; staff may add or correct them).
+const MARKET_SPEC = {
+  status: { type: 'string', required: true, enum: MARKET_STATUSES },
+  fit: { type: 'string', required: true, enum: MARKET_FITS },
+  note: { type: 'string', max: 300 },
+  source_url: { type: 'url' },
+};
+
 const ROLE_CHECK_SPEC = { source: { type: 'string', required: true, max: 300 } };
 
 function buildCompanyFilter(query) {
@@ -119,7 +130,7 @@ export function companyRoutes(db) {
   });
 
   router.post('/companies', (req, res) => {
-    const values = withDefaults(parseBody(COMPANY_SPEC, req.body), { exports: 0, is_client: 0 });
+    const values = withDefaults(parseBody(COMPANY_SPEC, req.body), { exports: 0, is_client: 0, india_activity: 'none' });
     const id = insert(db, 'companies', values);
     audit(db, req.user.id, 'company.created', 'companies', id);
     res.status(201).json({ id });
@@ -160,7 +171,23 @@ export function companyRoutes(db) {
       documents: byCompany('SELECT id, kind, title, language, status, shareable, created_at FROM documents WHERE company_id = ? ORDER BY created_at DESC'),
       approvals: byCompany('SELECT id, kind, status, subject, created_at FROM approvals WHERE company_id = ? ORDER BY created_at DESC'),
       share_links: byCompany('SELECT * FROM share_links WHERE company_id = ? ORDER BY created_at DESC'),
+      markets: byCompany(`SELECT m.market, m.status, m.fit, m.note, m.checked_at, s.url AS source_url FROM company_markets m
+        LEFT JOIN sources s ON s.id = m.source_id WHERE m.company_id = ? ORDER BY m.market`),
     });
+  });
+
+  router.put('/companies/:id/markets/:market', (req, res) => {
+    const companyId = parseId(req.params.id);
+    findById(db, 'companies', companyId);
+    const market = parseOptionalEnum(req.params.market, 'market', MARKETS);
+    const values = parseBody(MARKET_SPEC, req.body);
+    const sourceId = values.source_url === null ? null : upsertSource(db, { url: values.source_url, title: null, publishedOn: null, kind: 'staff' });
+    const row = { status: values.status, fit: values.fit, note: values.note, source_id: sourceId, checked_at: nowIso() };
+    const existing = db.prepare('SELECT id FROM company_markets WHERE company_id = ? AND market = ?').get(companyId, market);
+    if (existing) update(db, 'company_markets', existing.id, row);
+    else insert(db, 'company_markets', { company_id: companyId, market, ...row });
+    audit(db, req.user.id, 'company.market_set', 'companies', companyId, `${market}: ${values.status} / ${values.fit}`);
+    res.json({ ok: true });
   });
 
   // ------------------------------------------------------------ triggers

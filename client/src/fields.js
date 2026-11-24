@@ -2,26 +2,33 @@
 
 import { useI18n } from './i18n/I18nProvider.jsx';
 import { useEnumOptions } from './enumOptions.js';
+import { useViewMode } from './app/viewMode.jsx';
 import {
-  INDIA_ACTIVITY, TRIGGER_TYPES, DEPARTMENTS, LANGUAGES, DEAL_MODELS, RESOURCE_TYPES, CHANNELS, DIRECTIONS, PREFERRED_CHANNELS,
+  INDIA_ACTIVITY, TRIGGER_TYPES, DEPARTMENTS, LANGUAGES, DEAL_MODELS, RESOURCE_TYPES, CHANNELS, DIRECTIONS, PREFERRED_CHANNELS, EXPORT_PROOFS,
 } from '../../shared/enums.js';
 
 export function useCompanyFields() {
   const { t } = useI18n();
   const options = useEnumOptions();
-  return [
+  const { shows } = useViewMode();
+  const old = shows('oldCompanyFields');
+  const fields = [
     { name: 'name', label: t('company.name'), type: 'text', required: true },
     { name: 'industry', label: t('company.industry'), type: 'text', required: true },
     { name: 'country', label: t('company.country'), type: 'text', required: true },
     { name: 'website', label: t('company.website'), type: 'url', advanced: true },
     { name: 'employee_count', label: t('company.employees'), type: 'number', advanced: true },
     { name: 'annual_revenue_usd', label: t('company.revenue'), type: 'number', advanced: true },
-    { name: 'india_activity', label: t('company.indiaActivity'), type: 'select', required: true, options: options('indiaActivity', INDIA_ACTIVITY) },
-    { name: 'export_markets', label: t('company.exportMarkets'), type: 'text', advanced: true },
-    { name: 'exports', label: t('company.exports'), type: 'checkbox' },
+    { name: 'export_proof', label: t('research.field.export_proof'), type: 'select', options: options('exportProof', EXPORT_PROOFS) },
+    ...(old ? [
+      { name: 'india_activity', label: t('company.indiaActivity'), type: 'select', required: true, options: options('indiaActivity', INDIA_ACTIVITY) },
+      { name: 'export_markets', label: t('company.exportMarkets'), type: 'text', advanced: true },
+      { name: 'exports', label: t('company.exports'), type: 'checkbox' },
+    ] : []),
     { name: 'is_client', label: t('company.isClient'), type: 'checkbox' },
     { name: 'notes', label: t('company.notes'), type: 'textarea', wide: true, advanced: true },
   ];
+  return fields;
 }
 
 export const COMPANY_DEFAULTS = { country: 'Israel', india_activity: 'none', exports: false, is_client: false };

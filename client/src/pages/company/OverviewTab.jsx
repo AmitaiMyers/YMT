@@ -9,6 +9,8 @@ import { useAuth } from '../../auth/AuthProvider.jsx';
 import { Card, DefinitionList, Button, ErrorBox, EmptyState, ExternalLink, GeneratedText, useConfirm, useToast } from '../../ui/index.js';
 import { EntityForm } from '../../components/EntityForm.jsx';
 import { useCompanyFields } from '../../fields.js';
+import { useViewMode } from '../../app/viewMode.jsx';
+import { MarketsCard } from './MarketsCard.jsx';
 
 export function OverviewTab({ data, reload, flow }) {
   const { t } = useI18n();
@@ -17,6 +19,7 @@ export function OverviewTab({ data, reload, flow }) {
   const confirm = useConfirm();
   const toast = useToast();
   const { user } = useAuth();
+  const { shows } = useViewMode();
   const fields = useCompanyFields();
   const [editing, setEditing] = useState(false);
   const company = data.company;
@@ -55,15 +58,20 @@ export function OverviewTab({ data, reload, flow }) {
             [t('company.website'), company.website && <ExternalLink href={company.website} />],
             [t('company.employees'), format.number(company.employee_count)],
             [t('company.revenue'), format.usd(company.annual_revenue_usd)],
-            [t('company.exports'), company.exports ? t('common.yes') : t('common.no')],
-            [t('company.exportMarkets'), company.export_markets],
-            [t('company.indiaActivity'), t(`indiaActivity.${company.india_activity}`)],
+            [t('research.field.export_proof'), t(`exportProof.${company.export_proof ?? 'unknown'}`)],
+            ...(shows('oldCompanyFields') ? [
+              [t('company.exports'), company.exports ? t('common.yes') : t('common.no')],
+              [t('company.exportMarkets'), company.export_markets],
+              [t('company.indiaActivity'), t(`indiaActivity.${company.india_activity}`)],
+            ] : []),
             [t('company.notes'), company.notes],
           ]} />
         )}
       </Card>
 
-      <Card
+      <MarketsCard companyId={company.id} markets={data.markets} onChanged={reload} />
+
+      {shows('companyGenerators') && <Card
         title={t('company.brief')}
         actions={<>
           <Button variant="secondary" size="sm" loading={brief.busy} onClick={() => brief.run('he')}>{t('company.generateBriefHe')}</Button>
@@ -74,7 +82,7 @@ export function OverviewTab({ data, reload, flow }) {
         {company.approved_brief
           ? <GeneratedText text={company.approved_brief} language={detectLanguage(company.approved_brief)} />
           : <EmptyState icon={FileText} title={t('company.noBrief')}>{t('company.briefHelp')}</EmptyState>}
-      </Card>
+      </Card>}
 
       {user.role === 'admin' && (
         <Card title={t('company.dangerZone')}>

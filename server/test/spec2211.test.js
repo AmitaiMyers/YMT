@@ -298,3 +298,32 @@ test('view mode: focus by default; only admins switch it', async () => {
   assert.equal((await call('tom', 'PUT', '/settings/view-mode', { view_mode: 'full' })).data.view_mode, 'full');
   assert.equal((await call('shir', 'GET', '/settings')).data.view_mode, 'full');
 });
+
+test('My tasks: mine by display name (any case) or the whole team; idle deals and meetings without a summary', async () => {
+  const company = (await call('shir', 'POST', '/companies', { name: 'Tasks Co', industry: 'Valves', country: 'Israel' })).data.id;
+  assert.equal(db.prepare('SELECT india_activity FROM companies WHERE id = ?').get(company).india_activity, 'none'); // old field optional
+  const add = (assignee, due, commitment = false) => call('shir', 'POST', '/tasks', { company_id: company, description: `for ${assignee}`, assignee, due_date: due, is_client_commitment: commitment });
+  await add('shir', daysAgo(3));
+  await add('Tom', daysAgo(1));
+  await add('Shir', daysAgo(2), true); // the client's commitment, not YMT's
+  const mine = (await call('shir', 'GET', '/my-work')).data;
+  const descriptions = mine.tasks.map((task) => task.description);
+  assert.ok(descriptions.includes('for shir') && !descriptions.includes('for Tom'));
+  assert.equal(descriptions.filter((d) => d === 'for Shir').length, 0);
+  assert.ok(mine.overdue >= 1);
+  const all = (await call('shir', 'GET', '/my-work?scope=all')).data;
+  assert.ok(all.tasks.some((task) => task.description === 'for Tom'));
+  assert.equal((await call('shir', 'GET', '/my-work?scope=team')).status, 400);
+  assert.ok(Array.isArray(mine.meetings_to_summarize) && Array.isArray(mine.stale_deals));
+});
+
+test('markets and proven export set by hand on a company', async () => {
+  const company = (await call('shir', 'POST', '/companies', { name: 'Markets Co', industry: 'Valves', country: 'Israel', export_proof: 'proven' })).data.id;
+  assert.equal((await call('shir', 'PUT', `/companies/${company}/markets/korea`, { status: 'exploring', fit: 'fit' })).status, 400);
+  assert.equal((await call('shir', 'PUT', `/companies/${company}/markets/japan`, { status: 'sometimes', fit: 'fit' })).status, 400);
+  assert.equal((await call('shir', 'PUT', `/companies/${company}/markets/japan`, { status: 'exploring', fit: 'fit', note: 'Met at a fair', source_url: 'https://markets.example/japan' })).status, 200);
+  assert.equal((await call('shir', 'PUT', `/companies/${company}/markets/japan`, { status: 'distributor', fit: 'possible' })).status, 200);
+  const overview = (await call('shir', 'GET', `/companies/${company}/overview`)).data;
+  assert.equal(overview.company.export_proof, 'proven');
+  assert.deepEqual(overview.markets.map((m) => [m.market, m.status, m.fit, m.source_url]), [['japan', 'distributor', 'possible', null]]);
+});

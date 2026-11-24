@@ -12,8 +12,10 @@ import { Card, Loaded, PageHeader, Tabs, Table, EmptyState, SkeletonRows, Button
 import { useCounts } from '../../app/CountsProvider.jsx';
 import { OpportunityStatus, VerdictBadge, FlagBadges, ScoreBadge, useEmployeesText } from './researchUi.jsx';
 import { AddOpportunityDialog } from './AddOpportunityDialog.jsx';
+import { MyTasks } from './MyTasks.jsx';
 
-const VIEWS = ['queue', 'manual', 'followup', 'accepted', 'rejected'];
+// 'tasks' is "My tasks": the owner's open tasks and follow-ups (it replaces the Inbox's task list in the Focused view).
+const VIEWS = ['queue', 'tasks', 'manual', 'followup', 'accepted', 'rejected'];
 
 export function ReviewPage() {
   const { t } = useI18n();
@@ -27,7 +29,8 @@ export function ReviewPage() {
   const [adding, setAdding] = useState(false);
   const employeesText = useEmployeesText();
   const views = VIEWS.filter((key) => key !== 'manual' || isAdmin);
-  const result = useLoad(`/research/review${toQuery({ view, owner: view === 'manual' ? '' : scope })}`);
+  const result = useLoad(view === 'tasks' ? null : `/research/review${toQuery({ view, owner: view === 'manual' ? '' : scope })}`);
+  const myWork = useLoad('/my-work?scope=me'); // the overdue count on the "My tasks" tab
 
   const columns = [
     { key: 'company_name', label: t('research.company'), render: (card) => (
@@ -59,7 +62,12 @@ export function ReviewPage() {
     ...(scope === 'all' || view === 'manual' ? [{ key: 'owner_name', label: t('research.owner'), render: (card) => card.owner_name ?? <Badge tone="signal">{t('research.noOwner')}</Badge> }] : []),
   ];
 
-  const tabs = views.map((key) => ({ key, label: t(`research.view.${key}`), count: key === 'queue' && scope === 'me' ? counts.research : 0 }));
+  const tabCount = (key) => {
+    if (key === 'queue') return scope === 'me' ? counts.research : 0;
+    if (key === 'tasks') return myWork.data ? myWork.data.overdue : 0;
+    return 0;
+  };
+  const tabs = views.map((key) => ({ key, label: t(`research.view.${key}`), count: tabCount(key) }));
   return (
     <>
       <PageHeader
@@ -67,7 +75,7 @@ export function ReviewPage() {
         subtitle={t('research.reviewSubtitle')}
         actions={(
           <>
-            {isAdmin && (
+            {isAdmin && view !== 'tasks' && (
               <Button variant="ghost" onClick={() => setScope(scope === 'me' ? 'all' : 'me')} aria-pressed={scope === 'all'}>
                 {scope === 'me' ? t('research.showAll') : t('research.showMine')}
               </Button>
@@ -77,6 +85,7 @@ export function ReviewPage() {
         )}
       />
       <Tabs tabs={tabs} active={view} onChange={setView} label={t('nav.research')}>
+        {view === 'tasks' ? <MyTasks onChanged={myWork.reload} /> : (
         <Card padded>
           <Loaded result={result} skeleton={<SkeletonRows rows={6} />}>
             {(cards) => (
@@ -89,6 +98,7 @@ export function ReviewPage() {
             )}
           </Loaded>
         </Card>
+        )}
       </Tabs>
       <AddOpportunityDialog
         open={adding}
