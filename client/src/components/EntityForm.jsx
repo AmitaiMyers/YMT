@@ -72,6 +72,8 @@ export function FieldInput({ field, value, onChange, inputId, errorId, invalid }
       return <input {...common} type="datetime-local" className={className} value={value} onChange={(e) => onChange(e.target.value)} />;
     case 'number':
       return <input {...common} type="number" inputMode="numeric" min={field.min ?? 0} step="1" className={`${className} tabular`} value={value} onChange={(e) => onChange(e.target.value)} />;
+    case 'password': // API keys: never offered for saving or autofill by the browser
+      return <input {...common} type="password" dir="ltr" autoComplete="off" className={className} value={value} onChange={(e) => onChange(e.target.value)} />;
     case 'text': case 'email': case 'url': case 'date':
       return <input {...common} type={field.type} dir={['email', 'url'].includes(field.type) ? 'ltr' : undefined} className={className} value={value} onChange={(e) => onChange(e.target.value)} />;
     default:

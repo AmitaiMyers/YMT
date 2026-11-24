@@ -498,16 +498,29 @@ export function contactsRequest({ company, opportunity, proposedService, keyword
  * an email must appear in the quoted sentence and not be a personal mailbox; a LinkedIn link must be a profile
  * URL that the search returned. The source itself must be one the search returned.
  */
+/** A business email (valid, not a personal mailbox such as gmail.com), or null. */
+export function businessEmail(email) {
+  if (email === null || !EMAIL_RE.test(email)) return null;
+  return PERSONAL_EMAIL_DOMAINS.includes(email.split('@')[1].toLowerCase()) ? null : email;
+}
+
+/** A LinkedIn personal profile link in https form, or null. */
+export function linkedinProfile(url) {
+  if (url === null) return null;
+  const secure = url.replace(/^http:\/\//i, 'https://');
+  return LINKEDIN_PROFILE_RE.test(secure) ? secure : null;
+}
+
 export function parseContact(raw, isAllowedSource) {
   if (typeof raw !== 'object' || raw === null) fail('contact must be an object');
   const sourceUrl = httpUrl(raw.source_url, 'source_url');
   if (!isAllowedSource(sourceUrl)) fail('source_url was not returned by the search');
   const quote = text(raw.quote, 'quote', { max: 600 });
   const emailText = text(raw.email, 'email', { max: 200, optional: true });
-  const email = emailText !== null && EMAIL_RE.test(emailText) && quote.toLowerCase().includes(emailText.toLowerCase())
-    && !PERSONAL_EMAIL_DOMAINS.includes(emailText.split('@')[1].toLowerCase()) ? emailText : null;
+  // An email counts only when the quoted source sentence publishes it.
+  const email = emailText !== null && quote.toLowerCase().includes(emailText.toLowerCase()) ? businessEmail(emailText) : null;
   const linkedinText = text(raw.linkedin_url, 'linkedin_url', { max: 300, optional: true });
-  const linkedinUrl = linkedinText !== null && LINKEDIN_PROFILE_RE.test(linkedinText) && isAllowedSource(linkedinText) ? linkedinText : null;
+  const linkedinUrl = linkedinText !== null && isAllowedSource(linkedinText) ? linkedinProfile(linkedinText) : null;
   return {
     fullName: text(raw.full_name, 'full_name', { max: 120 }),
     jobTitle: text(raw.job_title, 'job_title', { max: 150 }),

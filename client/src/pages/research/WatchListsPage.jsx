@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ClipboardList, Upload, Trash2 } from 'lucide-react';
+import { ClipboardList, Upload, Trash2, Search } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useLoad, useAction } from '../../hooks/useApi.js';
 import { del } from '../../api.js';
@@ -11,6 +11,7 @@ import { useAuth } from '../../auth/AuthProvider.jsx';
 import { Card, Loaded, PageHeader, Table, Button, SkeletonRows, EmptyState, ExternalLink, ErrorBox, useToast, useConfirm } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { ImportListDialog } from './ImportListDialog.jsx';
+import { FindCompaniesDialog } from './FindCompaniesDialog.jsx';
 
 function useImportedToast() {
   const { t } = useI18n();
@@ -25,6 +26,7 @@ export function WatchListsPage() {
   const importedToast = useImportedToast();
   const result = useLoad('/watch-lists');
   const [importing, setImporting] = useState(false);
+  const [finding, setFinding] = useState(false);
   const columns = [
     { key: 'name', label: t('watch.listName'), render: (list) => (
       <div className="min-w-48">
@@ -39,12 +41,27 @@ export function WatchListsPage() {
   ];
   return (
     <>
-      <PageHeader title={t('nav.watchLists')} subtitle={t('watch.subtitle')} actions={<Button icon={Upload} onClick={() => setImporting(true)}>{t('watch.import')}</Button>} />
+      <PageHeader title={t('nav.watchLists')} subtitle={t('watch.subtitle')} actions={(
+        <>
+          <Button variant="secondary" icon={Search} onClick={() => setFinding(true)}>{t('findCompanies.open')}</Button>
+          <Button icon={Upload} onClick={() => setImporting(true)}>{t('watch.import')}</Button>
+        </>
+      )} />
       <Card padded>
         <Loaded result={result} skeleton={<SkeletonRows rows={4} />}>
           {(lists) => <Table caption={t('nav.watchLists')} columns={columns} rows={lists} empty={<EmptyState icon={ClipboardList} title={t('watch.none')}>{t('watch.noneHint')}</EmptyState>} />}
         </Loaded>
       </Card>
+      {finding && (
+        <FindCompaniesDialog
+          onClose={() => setFinding(false)}
+          onDone={(found) => {
+            setFinding(false);
+            importedToast(found);
+            navigate(`/research/watch-lists/${found.list_id}`);
+          }}
+        />
+      )}
       {importing && (
         <ImportListDialog
           open

@@ -62,6 +62,8 @@ const DYNAMIC_KEYS = {
   'shepha.field': ['name', 'website', 'registry_number', 'note'],
   // View mode (24.11.2026)
   viewMode: enums.VIEW_MODES, viewModeHelp: enums.VIEW_MODES, 'myTasks.scope': ['me', 'all'],
+  dataSource: enums.DATA_SOURCES, 'dataSources': enums.DATA_SOURCES.map((p) => `${p}Help`),
+  findCompanies: ['provider', 'countries', 'keywords', 'limit', 'employees_min', 'employees_max', 'list', 'list_name'],
 };
 
 function sourceFiles(dir) {

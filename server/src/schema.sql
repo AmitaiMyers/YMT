@@ -717,3 +717,11 @@ CREATE INDEX IF NOT EXISTS idx_facts_company ON facts(company_id);
 CREATE INDEX IF NOT EXISTS idx_runs_status ON research_runs(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_time ON ai_usage(created_at);
 CREATE INDEX IF NOT EXISTS idx_watch_entries_list ON watch_list_entries(list_id);
+
+-- Apollo and Lusha API keys (admin-entered; read only by the server, never sent to the browser).
+CREATE TABLE IF NOT EXISTS data_source_keys (
+  provider TEXT PRIMARY KEY CHECK (provider IN ('apollo', 'lusha')),
+  api_key TEXT NOT NULL,
+  updated_by INTEGER REFERENCES users(id),
+  updated_at TEXT NOT NULL
+);

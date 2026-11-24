@@ -367,6 +367,32 @@ export async function executeCalibration(db, ai, calibrationId, now = new Date()
 
 // ------------------------------------------------------------------ decision makers (Release 2)
 
+/**
+ * Store people as decision-maker proposals on a card, for the owner to confirm. People already at the company (contacts
+ * or earlier proposals, by name) are skipped. Returns how many were added.
+ * @param {{ fullName: string, jobTitle: string|null, email: string|null, linkedinUrl: string|null, sourceUrl: string, quote: string }[]} people
+ * @param {'web'|'list'} sourceKind web = found by the AI's search; list = from a data provider (Apollo, Lusha)
+ */
+export function proposeContacts(db, opportunity, people, sourceKind) {
+  const known = new Set([
+    ...db.prepare('SELECT full_name FROM contacts WHERE company_id = ?').all(opportunity.company_id).map((c) => normalizeName(c.full_name)),
+    ...db.prepare('SELECT name_key FROM contact_proposals WHERE company_id = ?').all(opportunity.company_id).map((p) => p.name_key),
+  ]);
+  let added = 0;
+  for (const person of people) {
+    const nameKey = normalizeName(person.fullName);
+    if (nameKey === '' || known.has(nameKey)) continue;
+    known.add(nameKey);
+    const sourceId = upsertSource(db, { url: person.sourceUrl, title: null, publishedOn: null, kind: sourceKind });
+    insert(db, 'contact_proposals', {
+      opportunity_id: opportunity.id, company_id: opportunity.company_id, full_name: person.fullName, name_key: nameKey, job_title: person.jobTitle ?? '',
+      email: person.email, linkedin_url: person.linkedinUrl, source_id: sourceId, quote: person.quote,
+    });
+    added += 1;
+  }
+  return added;
+}
+
 /** Search for decision makers of an accepted card and store them as proposals for the owner to confirm. */
 export async function executeContactSearch(db, ai, searchId, now = new Date()) {
   const search = findById(db, 'contact_searches', searchId);
@@ -380,29 +406,15 @@ export async function executeContactSearch(db, ai, searchId, now = new Date()) {
     const result = await ai.call('contacts', contactsRequest({ company, opportunity, proposedService: opportunity.proposed_service, keywords }), { contactSearchId: searchId, now });
     const allowed = new Set([...result.sources.map((s) => normalizeUrl(s.url)), normalizeUrl(evidence.url)]);
     const isAllowed = (url) => URL.canParse(url) && allowed.has(normalizeUrl(url));
-    const known = new Set([
-      ...db.prepare('SELECT full_name FROM contacts WHERE company_id = ?').all(company.id).map((c) => normalizeName(c.full_name)),
-      ...db.prepare('SELECT name_key FROM contact_proposals WHERE company_id = ?').all(company.id).map((p) => p.name_key),
-    ]);
-    let found = 0;
+    const people = [];
     for (const raw of parseContacts(result.input).slice(0, MAX_CONTACTS)) {
-      let person;
       try {
-        person = parseContact(raw, isAllowed); // a person without a usable source is skipped, not the whole search
+        people.push(parseContact(raw, isAllowed)); // a person without a usable source is skipped, not the whole search
       } catch (error) {
         if (!(error instanceof InvalidResultError)) throw error;
-        continue;
       }
-      const nameKey = normalizeName(person.fullName);
-      if (nameKey === '' || known.has(nameKey)) continue;
-      known.add(nameKey);
-      const sourceId = upsertSource(db, { url: person.sourceUrl, title: null, publishedOn: null, kind: 'web' });
-      insert(db, 'contact_proposals', {
-        opportunity_id: opportunity.id, company_id: company.id, full_name: person.fullName, name_key: nameKey, job_title: person.jobTitle,
-        email: person.email, linkedin_url: person.linkedinUrl, source_id: sourceId, quote: person.quote,
-      });
-      found += 1;
     }
+    const found = proposeContacts(db, opportunity, people, 'web');
     const cost = db.prepare('SELECT COALESCE(SUM(cost_usd), 0) AS total FROM ai_usage WHERE contact_search_id = ?').get(searchId).total;
     update(db, 'contact_searches', searchId, { status: 'done', found, cost_usd: cost, finished_at: nowIso() });
   } catch (error) {

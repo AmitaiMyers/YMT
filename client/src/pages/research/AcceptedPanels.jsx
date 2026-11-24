@@ -11,7 +11,7 @@ import { Card, Loaded, Button, ErrorBox, SkeletonRows, StatusBadge, statusTone, 
 import { EntityForm, FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { useEnumOptions } from '../../enumOptions.js';
 import { RunStatus, useCost } from './researchUi.jsx';
-import { DEAL_MODELS, DEPARTMENTS, LANGUAGES, PREFERRED_CHANNELS, PROPOSAL_DISMISS_REASONS } from '../../../../shared/enums.js';
+import { DEAL_MODELS, DEPARTMENTS, LANGUAGES, PREFERRED_CHANNELS, PROPOSAL_DISMISS_REASONS, DATA_SOURCES } from '../../../../shared/enums.js';
 
 const TITLE_MAX = 120;
 
@@ -122,6 +122,34 @@ function Proposal({ proposal, onChanged }) {
   );
 }
 
+/** Decision makers from Apollo or Lusha (connected ones only): proposals like the agent's own, at the cost of credits. */
+function ProviderSearch({ card, onChanged }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const status = useLoad('/data-sources');
+  const find = useAction(async (provider) => {
+    const result = await post(`/opportunities/${card.id}/contacts-from/${provider}`, {});
+    toast({ title: t('dataSources.contactsFound', { provider: t(`dataSource.${provider}`), found: result.found, added: result.added }) });
+    onChanged();
+  });
+  if (!status.data) return null;
+  const connected = DATA_SOURCES.filter((provider) => status.data[provider].configured);
+  if (connected.length === 0) return null;
+  return (
+    <div className="mt-3 border-t border-line pt-3">
+      <div className="flex flex-wrap gap-2">
+        {connected.map((provider) => (
+          <Button key={provider} size="sm" variant="secondary" loading={find.busy} onClick={() => find.run(provider)}>
+            {t('dataSources.findWith', { provider: t(`dataSource.${provider}`) })}
+          </Button>
+        ))}
+      </div>
+      <p className="mt-1.5 text-[13px] text-subtle">{t('dataSources.contactsCredits')}</p>
+      {find.error && <div className="mt-2"><ErrorBox message={find.error} /></div>}
+    </div>
+  );
+}
+
 export function DecisionMakersPanel({ card, onChanged }) {
   const { t } = useI18n();
   const format = useFormat();
@@ -151,6 +179,7 @@ export function DecisionMakersPanel({ card, onChanged }) {
         </div>
       )}
       {again.error && <div className="mt-2"><ErrorBox message={again.error} /></div>}
+      <ProviderSearch card={card} onChanged={onChanged} />
       {card.contact_proposals.some((proposal) => proposal.status === 'confirmed') && (
         <p className="mt-3 text-[13px]"><Link className="text-link hover:underline" to={`/companies/${card.company.id}`}>{t('research.seeContacts')}</Link></p>
       )}

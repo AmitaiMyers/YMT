@@ -130,3 +130,7 @@ export const DROP_REASONS = ['shepha_exclusion', 'no_israeli_connection', 'no_ex
 // focus = only what this week's tasks need (lead-finding pilot, CRM, deals, outreach, calendar); full = every screen.
 // Nothing is removed: switching back to full shows everything again (Settings → General, admins).
 export const VIEW_MODES = ['focus', 'full'];
+
+// ---------------------------------------------------------------- Data sources (25.11.2026)
+// Paid data providers YMT can connect with an API key (Settings → Data sources): companies into watch lists, decision makers on cards.
+export const DATA_SOURCES = ['apollo', 'lusha'];

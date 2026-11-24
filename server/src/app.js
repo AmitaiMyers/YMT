@@ -18,6 +18,7 @@ import { dashboardRoutes } from './routes/dashboard.js';
 import { settingsRoutes } from './routes/settings.js';
 import { shareRoutes, publicShareRoutes } from './routes/share.js';
 import { inboxRoutes } from './routes/inbox.js';
+import { dataSourceRoutes } from './routes/dataSources.js';
 import { googleRoutes, googleCallbackRoutes } from './routes/google.js';
 import { researchRoutes } from './routes/research.js';
 import { watchListRoutes } from './routes/watchLists.js';
@@ -33,7 +34,7 @@ import { createAiService } from './ai/service.js';
  *   ai?: ReturnType<typeof import('./ai/service.js').createAiService> }} options
  *   Without `ai`, research screens work but runs report that no AI provider is configured.
  */
-export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy = 'loopback', google = null, ai = createAiService(db, {}) }) {
+export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy = 'loopback', google = null, ai = createAiService(db, {}), fetchImpl = fetch }) {
   const app = express();
   // Behind a hosting proxy/load balancer this must count its hops, or every visitor shares the proxy's IP
   // (one login rate-limit bucket for everybody).
@@ -68,6 +69,7 @@ export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy 
     documentRoutes(db), directoryRoutes(db), dashboardRoutes(db),
     settingsRoutes(db, { dbPath, hostingLocation, googleEnabled: Boolean(google), aiProviders: ai.configuredProviders() }),
     shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }), researchRoutes(db, { ai }), watchListRoutes(db), outreachRoutes(db, { ai }), conversationRoutes(db, { ai, google }), discoveryRoutes(db),
+    dataSourceRoutes(db, { fetchImpl }),
   ]) {
     api.use(routes);
   }

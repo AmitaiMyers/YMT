@@ -17,6 +17,7 @@ import { ApprovedAnswersSettings } from './ApprovedAnswersSettings.jsx';
 import { DiscoverySettings } from './DiscoverySettings.jsx';
 import { ServicesSettings } from './ServicesSettings.jsx';
 import { ShephaSettings } from './ShephaSettings.jsx';
+import { DataSourcesSettings } from './DataSourcesSettings.jsx';
 import { MAX_FOLLOWUPS_HARD_LIMIT, VIEW_MODES } from '../../../../shared/enums.js';
 import { InstallButton } from '../../app/InstallButton.jsx';
 import { useInstallPrompt } from '../../app/pwa.js';
@@ -138,6 +139,7 @@ export function SettingsPage() {
     { key: 'answers', label: t('settings.answers'), Component: ApprovedAnswersSettings },
     ...(shows('settings.discovery') ? [{ key: 'discovery', label: t('settings.discovery'), Component: DiscoverySettings }] : []),
     { key: 'services', label: t('settings.services'), Component: ServicesSettings },
+    { key: 'dataSources', label: t('settings.dataSources'), Component: DataSourcesSettings },
     ...(isAdmin ? [{ key: 'shepha', label: t('settings.shepha'), Component: ShephaSettings }] : []),
     ...(isAdmin ? [{ key: 'users', label: t('settings.users'), Component: UsersSettings }] : []),
     { key: 'privacy', label: t('settings.privacy'), Component: PrivacySettings },
