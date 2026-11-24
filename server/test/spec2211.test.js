@@ -327,3 +327,18 @@ test('markets and proven export set by hand on a company', async () => {
   assert.equal(overview.company.export_proof, 'proven');
   assert.deepEqual(overview.markets.map((m) => [m.market, m.status, m.fit, m.source_url]), [['japan', 'distributor', 'possible', null]]);
 });
+
+test('an over-long AI summary is shortened, not a reason to drop the company; quotes stay strict', async () => {
+  const { parseCandidate } = await import('../src/research/tasks.js');
+  const base = {
+    company_name: 'Autonomous Guard', website: '', source_url: 'https://news.example/ag', source_title: 'AG', source_kind: 'web',
+    published_on: daysAgo(5), initiative_quote: 'Autonomous Guard is looking for an Indian partner.', target_country: 'India',
+    need_type: 'market_entry_distribution', relationship_role: 'client',
+  };
+  const long = `${'Autonomous Guard wants a distribution partner in India for its perimeter security systems '.repeat(10)}end`;
+  const parsed = parseCandidate({ ...base, business_need: long }, NOW);
+  assert.ok(parsed.businessNeed.length <= 500 && parsed.businessNeed.endsWith('…'));
+  assert.ok(!parsed.businessNeed.slice(0, -1).endsWith(' '));
+  assert.equal(parseCandidate({ ...base, business_need: 'Short need.' }, NOW).businessNeed, 'Short need.');
+  assert.throws(() => parseCandidate({ ...base, business_need: 'x', initiative_quote: 'q'.repeat(1001) }, NOW), /initiative_quote is longer/);
+});

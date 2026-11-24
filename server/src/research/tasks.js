@@ -44,6 +44,23 @@ function text(value, name, { max = 1000, optional = false } = {}) {
   return trimmed === '' ? null : trimmed;
 }
 
+/**
+ * A summary the AI wrote in its own words (not a quote or a source). An over-long summary is no reason to lose the
+ * company, so it is shortened at a word boundary and marked with "…"; quotes and sources stay strict (see text()).
+ */
+function summaryText(value, name, { max, optional = false }) {
+  const trimmed = text(value, name, { max: Number.MAX_SAFE_INTEGER, optional });
+  if (trimmed === null || trimmed.length <= max) return trimmed;
+  const cut = trimmed.slice(0, max - 1);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > max / 2 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
+}
+
+/** A string field with its length limit visible to the model. */
+function limitedString(maxLength, description) {
+  return { type: 'string', maxLength, description };
+}
+
 function oneOf(value, name, allowed) {
   if (!allowed.includes(value)) fail(`${name} must be one of: ${allowed.join(', ')}`);
   return value;
@@ -112,7 +129,7 @@ const CANDIDATE_SCHEMA = {
     initiative_quote: str,
     target_country: str,
     need_type: enumOf(NEED_TYPES),
-    business_need: str,
+    business_need: limitedString(300, 'One short sentence: what the company wants to do, in YMT\'s words (at most 300 characters).'),
     relationship_role: enumOf(RELATIONSHIP_ROLES),
   },
   required: ['company_name', 'website', 'source_url', 'source_title', 'source_kind', 'published_on', 'initiative_quote',
@@ -145,7 +162,8 @@ export function discoverRequest({ mandate, version, batchSize, knownCompanies, p
       `Only use sources published on or after ${publishedAfter}. Each candidate needs one source page that states the initiative,`,
       'with its publication date. Job postings count when the page shows the posting date. Do not use LinkedIn pages.',
       ...(watchCompanies ? [] : [`Skip these companies, which YMT already has: ${knownCompanies.length ? knownCompanies.join('; ') : 'none'}.`]),
-      'Quote the sentence that states the initiative. When done, call submit_candidates (an empty list is a valid answer).',
+      'Quote the sentence that states the initiative, and sum up the need in one short sentence (business_need, at most 300 characters).',
+      'When done, call submit_candidates (an empty list is a valid answer).',
     ].join('\n'),
     tool: {
       name: 'submit_candidates',
@@ -170,7 +188,7 @@ export function parseCandidate(raw, now) {
     quote: text(raw.initiative_quote, 'initiative_quote', { max: 1000 }),
     targetCountry: text(raw.target_country, 'target_country', { max: 100 }),
     needType: oneOf(raw.need_type, 'need_type', NEED_TYPES),
-    businessNeed: text(raw.business_need, 'business_need', { max: 500 }),
+    businessNeed: summaryText(raw.business_need, 'business_need', { max: 500 }),
     relationshipRole: oneOf(raw.relationship_role, 'relationship_role', RELATIONSHIP_ROLES),
   };
 }
@@ -324,7 +342,7 @@ export function parseClassification(raw, isAllowedSource) {
     ownership: keep('ownership', text(raw.ownership, 'ownership', { max: 200, optional: true })),
     export_proof: keep('export_proof', oneOf(raw.export_proof, 'export_proof', EXPORT_PROOFS)) ?? 'unknown',
     registry_number: keep('registry_number', text(raw.registry_number, 'registry_number', { max: 40, optional: true })),
-    description: text(raw.description, 'description', { max: 600, optional: true }),
+    description: summaryText(raw.description, 'description', { max: 600, optional: true }),
   };
   const otherNames = keep('other_names', list(raw.other_names, 'other_names').map((n) => text(n, 'other_names[]', { max: 200 }))) ?? [];
   const markets = list(raw.markets, 'markets').map((entry, index) => {
@@ -354,13 +372,13 @@ function judgeSchema(serviceCodes) {
     type: 'object',
     properties: {
       verdict: enumOf(JUDGE_VERDICTS),
-      reason: str,
-      reason_to_act: str,
+      reason: limitedString(400, 'One sentence (at most 400 characters).'),
+      reason_to_act: limitedString(400, 'One sentence (at most 400 characters).'),
       trigger_kind: enumOf(TRIGGER_KINDS),
-      trigger_strength: str,
+      trigger_strength: limitedString(300, 'One sentence, or empty (at most 300 characters).'),
       subsector_fit: enumOf(SUBSECTOR_FITS),
       service_code: enumOf([...serviceCodes, 'none']),
-      proposed_service: str,
+      proposed_service: limitedString(200, 'The first offer in words (at most 200 characters).'),
       unknowns: strArray,
     },
     required: ['verdict', 'reason', 'reason_to_act', 'trigger_kind', 'trigger_strength', 'subsector_fit', 'service_code', 'proposed_service', 'unknowns'],
@@ -421,13 +439,13 @@ export function parseJudgement(raw, serviceCodes) {
   const serviceCode = oneOf(raw.service_code, 'service_code', [...serviceCodes, 'none']);
   return {
     verdict: oneOf(raw.verdict, 'verdict', JUDGE_VERDICTS),
-    reason: text(raw.reason, 'reason', { max: 600 }),
-    reasonToAct: text(raw.reason_to_act, 'reason_to_act', { max: 600, optional: true }),
+    reason: summaryText(raw.reason, 'reason', { max: 600 }),
+    reasonToAct: summaryText(raw.reason_to_act, 'reason_to_act', { max: 600, optional: true }),
     triggerKind: oneOf(raw.trigger_kind, 'trigger_kind', TRIGGER_KINDS),
-    triggerStrength: text(raw.trigger_strength, 'trigger_strength', { max: 400, optional: true }),
+    triggerStrength: summaryText(raw.trigger_strength, 'trigger_strength', { max: 400, optional: true }),
     subsectorFit: oneOf(raw.subsector_fit, 'subsector_fit', SUBSECTOR_FITS),
     serviceCode: serviceCode === 'none' ? null : serviceCode,
-    proposedService: text(raw.proposed_service, 'proposed_service', { max: 300, optional: true }),
+    proposedService: summaryText(raw.proposed_service, 'proposed_service', { max: 300, optional: true }),
     unknowns: list(raw.unknowns, 'unknowns').map((u) => text(u, 'unknowns[]', { max: 200 })),
   };
 }
@@ -645,7 +663,7 @@ export function parseReplyAnalysis(raw, channel) {
   const body = text(raw.draft_body, 'draft_body', { max: CHANNEL_GUIDANCE[channel].bodyMax, optional: true });
   return {
     classification,
-    summary: text(raw.summary, 'summary', { max: 300 }),
+    summary: summaryText(raw.summary, 'summary', { max: 300 }),
     optOut: raw.opt_out || classification === 'opt_out',
     missing,
     draft: answers && body !== null
