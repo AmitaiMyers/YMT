@@ -42,12 +42,17 @@ function Actions({ card, onChanged, openDraft, onSchedule }) {
     onChanged();
     openDraft(id);
   });
+  const searchAgain = useAction(async () => {
+    await post(`/opportunities/${card.id}/contacts/search`);
+    toast({ title: t('nextAction.searchStarted') });
+    onChanged();
+  });
   const close = useAction(async (status) => {
     await patch(`/deals/${next.deal_id}`, { status });
     toast({ title: status === 'won' ? t('nextAction.wonToast') : t('nextAction.lostToast') });
     onChanged();
   });
-  const error = approve.error ?? followup.error ?? close.error;
+  const error = approve.error ?? followup.error ?? close.error ?? searchAgain.error;
   const scroll = (id, label) => <Button variant="primary" icon={ArrowDown} onClick={() => focusSection(id)}>{label}</Button>;
 
   const buttons = {
@@ -59,6 +64,12 @@ function Actions({ card, onChanged, openDraft, onSchedule }) {
     ),
     assign: scroll('assign-panel', t('nextAction.assign')),
     pick_contact: scroll('decision-makers', t('nextAction.pickContact')),
+    find_route: (
+      <>
+        <Button variant="primary" icon={ACTION_ICONS.find_route} loading={searchAgain.busy} onClick={() => searchAgain.run()}>{t('nextAction.searchAgain')}</Button>
+        <ButtonLink variant="secondary" to={`/companies/${card.company.id}`}>{t('nextAction.addContactByHand')}</ButtonLink>
+      </>
+    ),
     draft_message: scroll('first-approach', t('nextAction.draftMessage')),
     send: <Button variant="primary" icon={ACTION_ICONS.send} onClick={() => openDraft(next.approval_id)}>{t('nextAction.reviewAndSend')}</Button>,
     wait: <ButtonLink variant="secondary" to={`/conversations/${next.contact_id}`}>{t('nextAction.logReply')}</ButtonLink>,
@@ -72,7 +83,7 @@ function Actions({ card, onChanged, openDraft, onSchedule }) {
     schedule: <Button variant="primary" icon={ACTION_ICONS.schedule} onClick={onSchedule}>{t('nextAction.schedule')}</Button>,
     meeting_upcoming: <ButtonLink variant="secondary" to="/calendar">{t('nextAction.openCalendar')}</ButtonLink>,
     summarize: <ButtonLink variant="primary" icon={ACTION_ICONS.summarize} to={`/meetings/${next.meeting_id}/complete`}>{t('nextAction.summarize')}</ButtonLink>,
-    close: next.deal_id === null ? <ButtonLink variant="secondary" to="/pipeline">{t('nextAction.openPipeline')}</ButtonLink> : (
+    close: next.deal_id === null ? <ButtonLink variant="secondary" to={`/companies/${card.company.id}`}>{t('nextAction.openCompany')}</ButtonLink> : (
       <>
         <Button variant="success" icon={Trophy} loading={close.busy} onClick={() => close.run('won')}>{t('nextAction.won')}</Button>
         <Button variant={next.suggested === 'lost' ? 'danger' : 'secondary'} icon={CircleX} loading={close.busy} onClick={() => close.run('lost')}>{t('nextAction.lost')}</Button>

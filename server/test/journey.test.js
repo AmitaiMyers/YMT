@@ -114,3 +114,22 @@ test('rejected cards leave the board; only messages can be approved & sent', asy
   const brief = insert(db, 'approvals', { kind: 'company_brief', company_id: 1, language: 'en', content: 'x', created_by: 1 });
   assert.equal((await call('tom', 'POST', `/approvals/${brief}/approve-and-send`)).status, 400);
 });
+
+test('nobody to reach → "find a way to reach them"; the company\'s general email is enough to go on', async () => {
+  const shirId = db.prepare("SELECT id FROM users WHERE username = 'shir'").get().id;
+  const company = insert(db, 'companies', { name: 'Quiet Co', industry: 'x', country: 'Israel', website: 'https://quiet.example' });
+  const quiet = insert(db, 'opportunities', {
+    company_id: company, owner_id: shirId, relationship_role: 'client', target_country: 'India', need_type: 'market_entry_distribution', business_need: 'x',
+    evidence_source_id: insert(db, 'sources', { url: 'https://news.example/quiet', kind: 'web' }), evidence_date: '2026-11-01', evidence_quote: 'q',
+    status: 'draft', flags: '[]', unknowns: '[]',
+  });
+  assert.equal((await call('shir', 'POST', `/opportunities/${quiet}/decision`, { decision: 'accept' })).status, 200);
+  db.prepare("UPDATE contact_searches SET status = 'done' WHERE opportunity_id = ?").run(quiet);
+  const nextOf = async () => (await call('shir', 'GET', `/opportunities/${quiet}`)).data.journey.next.kind;
+  assert.equal(await nextOf(), 'find_route');
+  // A named person without any route does not help yet.
+  insert(db, 'contacts', { company_id: company, full_name: 'No Route', department: 'sales', preferred_language: 'en' });
+  assert.equal(await nextOf(), 'find_route');
+  db.prepare("UPDATE companies SET general_email = 'info@quiet.example' WHERE id = ?").run(company);
+  assert.equal(await nextOf(), 'pick_contact');
+});

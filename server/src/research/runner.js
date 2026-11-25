@@ -13,7 +13,7 @@ import { loadMandates, findVersion } from './mandates.js';
 import { entriesPerRun, pickEntries, recordChecks, matchEntry } from './watchLists.js';
 import {
   discoverRequest, parseCandidates, parseCandidate, classifyRequest, parseClassification, judgeRequest, parseJudgement,
-  InvalidResultError, contactsRequest, parseContacts, parseContact, MAX_CONTACTS,
+  InvalidResultError, contactsRequest, parseContacts, parseContact, parseCompanyRoutes, MAX_CONTACTS,
 } from './tasks.js';
 
 const DAY_MS = 86400000;
@@ -393,6 +393,19 @@ export function proposeContacts(db, opportunity, people, sourceKind) {
   return added;
 }
 
+const ROUTE_COLUMNS = { email: 'general_email', phone: 'general_phone', linkedinPageUrl: 'linkedin_page_url', contactPageUrl: 'contact_page_url' };
+
+/** Fill the company's empty general routes (never overwrite what staff or an earlier search stored). */
+function saveCompanyRoutes(db, company, routes) {
+  const fill = {};
+  for (const [field, column] of Object.entries(ROUTE_COLUMNS)) {
+    if (routes[field] !== null && company[column] === null) fill[column] = routes[field];
+  }
+  if (Object.keys(fill).length === 0) return;
+  if ((fill.general_email || fill.general_phone) && routes.sourceUrl) fill.routes_source_url = routes.sourceUrl;
+  update(db, 'companies', company.id, { ...fill, updated_at: nowIso() });
+}
+
 /** Search for decision makers of an accepted card and store them as proposals for the owner to confirm. */
 export async function executeContactSearch(db, ai, searchId, now = new Date()) {
   const search = findById(db, 'contact_searches', searchId);
@@ -415,6 +428,7 @@ export async function executeContactSearch(db, ai, searchId, now = new Date()) {
       }
     }
     const found = proposeContacts(db, opportunity, people, 'web');
+    saveCompanyRoutes(db, company, parseCompanyRoutes(result.input, isAllowed, normalizeDomain(company.website)));
     const cost = db.prepare('SELECT COALESCE(SUM(cost_usd), 0) AS total FROM ai_usage WHERE contact_search_id = ?').get(searchId).total;
     update(db, 'contact_searches', searchId, { status: 'done', found, cost_usd: cost, finished_at: nowIso() });
   } catch (error) {

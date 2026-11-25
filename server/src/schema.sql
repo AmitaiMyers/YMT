@@ -42,6 +42,12 @@ CREATE TABLE IF NOT EXISTS companies (
   industry TEXT NOT NULL,
   country TEXT NOT NULL DEFAULT 'Israel',
   website TEXT,
+  -- How to reach the company when no person has a route (25.11.2026): each found by the agent on a cited page.
+  general_email TEXT,
+  general_phone TEXT,
+  linkedin_page_url TEXT,
+  contact_page_url TEXT,
+  routes_source_url TEXT,
   employee_count INTEGER,
   annual_revenue_usd INTEGER,
   exports INTEGER NOT NULL DEFAULT 0,

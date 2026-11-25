@@ -15,6 +15,22 @@ function latest(rows, field) {
 }
 
 /**
+ * Before the first message: write it when a saved contact can be reached; choose a contact when the agent found a person
+ * with a route or the company's general email/phone (or is still searching); otherwise nobody can be reached yet.
+ */
+function reachKind(db, opportunity) {
+  const reachableContact = db.prepare(`SELECT 1 FROM contacts WHERE company_id = ? AND opted_out_at IS NULL
+    AND (email IS NOT NULL OR linkedin_url IS NOT NULL OR phone IS NOT NULL)`).get(opportunity.company_id);
+  if (reachableContact) return 'draft_message';
+  const search = db.prepare('SELECT status FROM contact_searches WHERE opportunity_id = ?').get(opportunity.id);
+  const searching = search !== undefined && ['queued', 'running'].includes(search.status);
+  const proposal = db.prepare(`SELECT 1 FROM contact_proposals WHERE opportunity_id = ? AND status = 'proposed'
+    AND (email IS NOT NULL OR linkedin_url IS NOT NULL)`).get(opportunity.id);
+  const company = db.prepare('SELECT general_email, general_phone FROM companies WHERE id = ?').get(opportunity.company_id);
+  return searching || proposal || company.general_email || company.general_phone ? 'pick_contact' : 'find_route';
+}
+
+/**
  * @returns {{ stage: string, since: string, next: { kind: string, [key: string]: unknown } } | null}
  *   null for cards that left the flow (rejected or deferred)
  */
@@ -76,6 +92,5 @@ export function journeyFor(db, opportunity, now = new Date()) {
   }
 
   if (sendNext) return { stage: 'message', since: open.created_at, next: sendNext };
-  const confirmed = db.prepare('SELECT COUNT(*) AS n FROM contacts WHERE company_id = ? AND opted_out_at IS NULL').get(opportunity.company_id).n;
-  return { stage: 'approved', since: opportunity.decided_at, next: { kind: confirmed > 0 ? 'draft_message' : 'pick_contact' } };
+  return { stage: 'approved', since: opportunity.decided_at, next: { kind: reachKind(db, opportunity) } };
 }

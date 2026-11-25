@@ -75,7 +75,7 @@ function StaffApp() {
             <Route path="conversations" element={<ConversationsPage />} />
             <Route path="conversations/:contactId" element={<ConversationPage />} />
             <Route path="leads" element={<Gated feature="leads"><LeadsPage /></Gated>} />
-            <Route path="pipeline" element={<PipelinePage />} />
+            <Route path="pipeline" element={<Gated feature="pipeline"><PipelinePage /></Gated>} />
             <Route path="deals/:id" element={<DealPage />} />
             <Route path="clients" element={<ClientsPage />} />
             <Route path="clients/new" element={<NewCompanyPage />} />

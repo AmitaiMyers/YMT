@@ -123,7 +123,7 @@ function fakeAi() {
           usage,
         };
       }
-      if (tool.name === 'submit_contacts') return { input: { contacts: [] }, sources: [], usage };
+      if (tool.name === 'submit_contacts') return { input: { contacts: [], company_routes: { email: '', phone: '', quote: '', source_url: '', linkedin_page_url: '', contact_page_url: '' } }, sources: [], usage };
       // Longest name first: "Small Co" is part of "Strong Small Co".
       const name = Object.keys(COMPANIES).sort((a, b) => b.length - a.length).find((n) => prompt.includes(n));
       const spec = COMPANIES[name];
@@ -363,4 +363,22 @@ test('a database on the 22.11 wording gets the wider search terms as a new versi
   assert.equal(second.prepare("SELECT value FROM settings WHERE key = 'mandate_spec'").get().value, '2026-11-25');
   second.close();
   rmSync(dir, { recursive: true });
+});
+
+test('company routes are kept only when a returned page backs them', async () => {
+  const { parseCompanyRoutes } = await import('../src/research/tasks.js');
+  const allowed = new Set(['https://acme.example/contact', 'https://www.linkedin.com/company/acme']);
+  const isAllowed = (url) => allowed.has(url);
+  const routes = (over) => parseCompanyRoutes({ company_routes: {
+    email: 'sales@acme.example', phone: '+972 3 555 0000', quote: 'Write to sales@acme.example or call +972 3 555 0000', source_url: 'https://acme.example/contact',
+    linkedin_page_url: 'https://www.linkedin.com/company/acme', contact_page_url: 'https://www.acme.example/contact', ...over,
+  } }, isAllowed, 'acme.example');
+  assert.deepEqual(routes({}), { email: 'sales@acme.example', phone: '+972 3 555 0000', linkedinPageUrl: 'https://www.linkedin.com/company/acme', contactPageUrl: 'https://www.acme.example/contact', sourceUrl: 'https://acme.example/contact' });
+  assert.equal(routes({ quote: 'Call us' }).email, null);                               // not on the page
+  assert.equal(routes({ source_url: 'https://invented.example/x' }).email, null);     // page not returned by the search
+  assert.equal(routes({ email: 'acme@gmail.com', quote: 'acme@gmail.com' }).email, null); // personal mailbox
+  assert.equal(routes({ linkedin_page_url: 'https://www.linkedin.com/company/other' }).linkedinPageUrl, null);
+  assert.equal(routes({ linkedin_page_url: 'https://www.linkedin.com/in/someone' }).linkedinPageUrl, null);
+  assert.equal(routes({ contact_page_url: 'https://other.example/contact' }).contactPageUrl, null);
+  assert.throws(() => parseCompanyRoutes({}, isAllowed, 'acme.example'), /company_routes must be an object/);
 });

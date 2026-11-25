@@ -197,8 +197,12 @@ function fakeScript() {
             { full_name: 'Yossi Cohen', job_title: 'CEO', email: 'yossi.cohen@gmail.com', linkedin_url: 'https://www.linkedin.com/in/not-in-search',
               source_url: SEARCH.team, quote: 'CEO Yossi Cohen (yossi.cohen@gmail.com) founded Acme.' },
             { full_name: 'Ghost Person', job_title: 'CTO', email: '', linkedin_url: '', source_url: 'https://invented.example/x', quote: 'Ghost is CTO.' },
-          ] },
-          sources: [{ url: SEARCH.team, title: 'Team' }, { url: SEARCH.linkedin, title: 'Dana Levi | LinkedIn' }],
+          ],
+          company_routes: {
+            email: 'info@acmesoftware.example', phone: '+972 3 555 0000', quote: 'Contact us: info@acmesoftware.example · +972 3 555 0000', source_url: SEARCH.team,
+            linkedin_page_url: 'http://www.linkedin.com/company/acme-software', contact_page_url: 'https://acmesoftware.example/contact',
+          } },
+          sources: [{ url: SEARCH.team, title: 'Team' }, { url: SEARCH.linkedin, title: 'Dana Levi | LinkedIn' }, { url: 'https://www.linkedin.com/company/acme-software', title: 'Acme | LinkedIn' }],
           usage: { input: 3000, output: 300, cacheRead: 0, cacheWrite: 0, searches: 2 },
         };
       }
@@ -522,6 +526,9 @@ test('Release 2: accept writes the timeline and finds decision makers; open one 
   assert.equal(people['Dana Levi'].linkedin_url, SEARCH.linkedin);
   assert.equal(people['Yossi Cohen'].email, null); // personal mailbox dropped
   assert.equal(people['Yossi Cohen'].linkedin_url, null); // link not returned by the search
+  // The company's general ways in, each backed by a page the search returned.
+  assert.deepEqual([card.company.general_email, card.company.general_phone, card.company.linkedin_page_url, card.company.contact_page_url, card.company.routes_source_url],
+    ['info@acmesoftware.example', '+972 3 555 0000', 'https://www.linkedin.com/company/acme-software', 'https://acmesoftware.example/contact', SEARCH.team]);
 
   assert.equal((await call('omer', 'POST', `/contact-proposals/${people['Dana Levi'].id}/confirm`, { department: 'growth', preferred_language: 'en' })).status, 403);
   const confirmed = await call('shir', 'POST', `/contact-proposals/${people['Dana Levi'].id}/confirm`, { department: 'growth', preferred_language: 'en' });

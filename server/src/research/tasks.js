@@ -460,6 +460,21 @@ const CONTACT_SCHEMA = {
   required: ['full_name', 'job_title', 'email', 'linkedin_url', 'source_url', 'quote'],
   additionalProperties: false,
 };
+// The company's general ways in, for when no person has an email or a LinkedIn link (25.11.2026).
+const COMPANY_ROUTES_SCHEMA = {
+  type: 'object',
+  properties: {
+    email: { ...str, description: 'The general or sales email the company publishes (e.g. info@ or sales@), or empty' },
+    phone: { ...str, description: 'The company switchboard or sales phone it publishes, or empty' },
+    quote: { ...str, description: 'The sentence or line on the source page that shows the email and/or phone' },
+    source_url: { ...str, description: 'The page that publishes the email/phone (usually the contact page)' },
+    linkedin_page_url: { ...str, description: 'The company page on LinkedIn (linkedin.com/company/...), only if it appeared in your search results' },
+    contact_page_url: { ...str, description: 'The contact page on the company\'s own website, or empty' },
+  },
+  required: ['email', 'phone', 'quote', 'source_url', 'linkedin_page_url', 'contact_page_url'],
+  additionalProperties: false,
+};
+const LINKEDIN_COMPANY_RE = /^https:\/\/([a-z]{2,3}\.)?(www\.)?linkedin\.com\/company\/[^/?#]+\/?$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Personal mailboxes are never stored: YMT records business contact details only.
 const PERSONAL_EMAIL_DOMAINS = ['gmail.com', 'googlemail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'live.com', 'icloud.com', 'walla.co.il', 'walla.com', 'aol.com', 'proton.me', 'protonmail.com'];
@@ -481,14 +496,24 @@ export function contactsRequest({ company, opportunity, proposedService, keyword
       'press releases and business news. For each person give the full name, job title and the sentence from the source that names',
       'them in that role. Give a business email only if the source page publishes it, and a LinkedIn profile link only if it appeared',
       'in your search results; otherwise leave them empty. Never give personal phone numbers, home addresses or personal email.',
-      'Do not open LinkedIn pages. When done, call submit_contacts (an empty list is a valid answer).',
+      'Do not open LinkedIn pages.',
+      '',
+      'Also give the company\'s general ways in (company_routes), so YMT can always reach it: open the company\'s contact page and give',
+      'the general or sales email and the switchboard phone it publishes, with the line that shows them and that page\'s link; the',
+      'contact page link; and the company\'s LinkedIn page if it appeared in your search results. Leave a field empty when not found.',
+      'Try hard to find at least one way to reach the company. When done, call submit_contacts.',
     ].join('\n'),
     tool: {
       name: 'submit_contacts',
       description: 'Submit the decision makers found, each with the source that names them.',
-      schema: { type: 'object', properties: { contacts: { type: 'array', items: CONTACT_SCHEMA } }, required: ['contacts'], additionalProperties: false },
+      schema: {
+        type: 'object',
+        properties: { contacts: { type: 'array', items: CONTACT_SCHEMA }, company_routes: COMPANY_ROUTES_SCHEMA },
+        required: ['contacts', 'company_routes'],
+        additionalProperties: false,
+      },
     },
-    webSearch: { maxUses: 4 },
+    webSearch: { maxUses: 6 },
     maxTokens: 6000,
   };
 }
@@ -534,6 +559,36 @@ export function parseContact(raw, isAllowedSource) {
 export function parseContacts(input) {
   if (typeof input !== 'object' || input === null) fail('result must be an object');
   return list(input.contacts, 'contacts');
+}
+
+/**
+ * The company's general routes. Like a person's details, each is kept only when backed: the email and phone must appear
+ * in the quoted line of a page the search returned, the LinkedIn page must be a company page the search returned, and the
+ * contact page must be on the company's own domain. Anything unbacked is dropped (never the whole result).
+ * @param {(url: string) => boolean} isAllowedSource
+ * @param {string|null} companyDomain registrable domain of the company's website
+ */
+export function parseCompanyRoutes(input, isAllowedSource, companyDomain) {
+  const raw = input.company_routes;
+  if (typeof raw !== 'object' || raw === null) fail('company_routes must be an object');
+  const sourceText = text(raw.source_url, 'company_routes.source_url', { max: 2000, optional: true });
+  const source = sourceText !== null && URL.canParse(sourceText) && isAllowedSource(sourceText) ? sourceText : null;
+  const quote = (text(raw.quote, 'company_routes.quote', { max: 600, optional: true }) ?? '').toLowerCase();
+  const published = (value) => value !== null && source !== null && quote.includes(value.toLowerCase());
+  const email = businessEmail(text(raw.email, 'company_routes.email', { max: 200, optional: true }));
+  const phone = text(raw.phone, 'company_routes.phone', { max: 40, optional: true });
+  const linkedinText = text(raw.linkedin_page_url, 'company_routes.linkedin_page_url', { max: 300, optional: true });
+  const linkedin = linkedinText === null ? null : linkedinText.replace(/^http:\/\//i, 'https://');
+  const contactPage = text(raw.contact_page_url, 'company_routes.contact_page_url', { max: 500, optional: true });
+  const onCompanySite = (url) => companyDomain !== null && URL.canParse(url)
+    && (new URL(url).hostname.replace(/^www\./, '') === companyDomain || new URL(url).hostname.endsWith(`.${companyDomain}`));
+  return {
+    email: published(email) ? email : null,
+    phone: published(phone) ? phone : null,
+    linkedinPageUrl: linkedin !== null && LINKEDIN_COMPANY_RE.test(linkedin) && isAllowedSource(linkedin) ? linkedin : null,
+    contactPageUrl: contactPage !== null && onCompanySite(contactPage) ? contactPage : null,
+    sourceUrl: source,
+  };
 }
 
 // ------------------------------------------------------------------ Release 3: first message (no web search)

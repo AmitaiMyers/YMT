@@ -1,15 +1,15 @@
 // Shared pieces of the lead flow: stage and action metadata, the journey bar and the "needs you" logic.
 
 import { Check, Search, FileSearch, UserPlus, PenLine, Send, Hourglass, Reply, MessageSquareReply, CalendarPlus, CalendarClock,
-  NotebookPen, Handshake, Trophy, CircleX, UserCog } from 'lucide-react';
+  NotebookPen, Handshake, Trophy, CircleX, UserCog, SearchX } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { JOURNEY_STAGES } from '../../../../shared/enums.js';
 
 // Actions where the owner is the one who moves the card; the others are waiting on someone else or done.
-const NEEDS_YOU = ['decide', 'assign', 'pick_contact', 'draft_message', 'send', 'followup', 'answer', 'schedule', 'summarize', 'close'];
+const NEEDS_YOU = ['decide', 'assign', 'pick_contact', 'find_route', 'draft_message', 'send', 'followup', 'answer', 'schedule', 'summarize', 'close'];
 
 export const ACTION_ICONS = {
-  decide: FileSearch, assign: UserCog, pick_contact: UserPlus, draft_message: PenLine, send: Send, wait: Hourglass, followup: Reply,
+  decide: FileSearch, assign: UserCog, pick_contact: UserPlus, find_route: SearchX, draft_message: PenLine, send: Send, wait: Hourglass, followup: Reply,
   answer: MessageSquareReply, schedule: CalendarPlus, meeting_upcoming: CalendarClock, summarize: NotebookPen, close: Handshake, done: Trophy,
 };
 

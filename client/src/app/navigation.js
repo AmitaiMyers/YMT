@@ -18,7 +18,7 @@ export const NAV_GROUPS = [
   ] },
   { key: 'win', items: [
     { to: '/leads', key: 'nav.leads', feature: 'leads', icon: Radar, hotkey: 'g l' },
-    { to: '/pipeline', key: 'nav.pipeline', icon: SquareKanban, hotkey: 'g p', mobile: true },
+    { to: '/pipeline', key: 'nav.pipeline', feature: 'pipeline', icon: SquareKanban, hotkey: 'g p', mobile: true },
   ] },
   { key: 'clients', items: [
     { to: '/clients', key: 'nav.clients', icon: Building2, hotkey: 'g c', mobile: true },

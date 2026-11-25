@@ -139,5 +139,5 @@ export const DATA_SOURCES = ['apollo', 'lusha'];
 // The board's columns: where a research card stands, from the agent's find to the closed deal (server/src/research/journey.js).
 export const JOURNEY_STAGES = ['review', 'approved', 'message', 'waiting', 'replied', 'meeting', 'closed'];
 // The one next action of a card at its stage.
-export const JOURNEY_ACTIONS = ['decide', 'assign', 'pick_contact', 'draft_message', 'send', 'wait', 'followup', 'answer', 'schedule',
+export const JOURNEY_ACTIONS = ['decide', 'assign', 'pick_contact', 'find_route', 'draft_message', 'send', 'wait', 'followup', 'answer', 'schedule',
   'meeting_upcoming', 'summarize', 'close', 'done'];

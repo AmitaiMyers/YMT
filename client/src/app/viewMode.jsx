@@ -16,6 +16,7 @@ export const FOCUS_HIDDEN = new Set([
   'documents',          // proposals, contracts and signatures
   'network',            // suppliers and experts
   'dashboard',          // the old business dashboard (Research metrics is this week's dashboard)
+  'pipeline',           // the deals board by workflow stage (the Lead flow board does this job in Focus mode)
   'meetingPrep',        // pre-meeting sheet
   'meetingAi',          // AI meeting-summary draft (a meeting is still closed with a written summary)
   'companyGenerators',  // the old company brief and template email (first approaches start from a research card)

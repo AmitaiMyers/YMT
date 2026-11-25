@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Handshake, UserCheck, UserX, RefreshCw, Quote } from 'lucide-react';
+import { Handshake, UserCheck, UserX, RefreshCw, Quote, Mail, Phone, Globe, Building2 } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useLoad, useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
@@ -122,6 +122,53 @@ function Proposal({ proposal, onChanged }) {
   );
 }
 
+/**
+ * How to reach the company when no person has a route (25.11.2026): its general email and phone (from a cited page),
+ * its LinkedIn page and its contact page. The email or phone can become a contact in one click, so a first message
+ * can always go out.
+ */
+function CompanyRoutes({ card, onChanged }) {
+  const { t } = useI18n();
+  const toast = useToast();
+  const { company } = card;
+  const save = useAction(async (route) => {
+    await post(`/companies/${company.id}/contacts`, {
+      full_name: t('routes.generalContactName', { company: company.name }), department: 'sales', preferred_language: 'en',
+      ...(route === 'email' ? { email: company.general_email, preferred_channel: 'email' } : { phone: company.general_phone, preferred_channel: 'switchboard' }),
+      verified: true, verified_source: company.routes_source_url ?? company.contact_page_url ?? company.website,
+    });
+    toast({ title: t('routes.saved') });
+    onChanged();
+  });
+  const known = new Set(card.outreach ? card.outreach.contacts.flatMap((contact) => [contact.email, contact.phone]) : []);
+  const rows = [
+    company.general_email && { key: 'email', icon: Mail, value: <span dir="ltr">{company.general_email}</span>, use: !known.has(company.general_email) },
+    company.general_phone && { key: 'phone', icon: Phone, value: <span dir="ltr">{company.general_phone}</span>, use: !known.has(company.general_phone) },
+    company.linkedin_page_url && { key: 'linkedin', icon: Building2, value: <ExternalLink href={company.linkedin_page_url}>{t('routes.linkedinPage')}</ExternalLink> },
+    company.contact_page_url && { key: 'contact', icon: Globe, value: <ExternalLink href={company.contact_page_url}>{t('routes.contactPage')}</ExternalLink> },
+  ].filter(Boolean);
+  if (rows.length === 0) return <p className="mt-3 rounded-[8px] bg-signal-soft px-3 py-2 text-[13px] text-signal-fg">{t('routes.none')}</p>;
+  return (
+    <div className="mt-3 rounded-[8px] border border-line bg-sunken/60 p-3">
+      <h3 className="mb-2 text-sm font-semibold text-fg">{t('routes.title')}</h3>
+      <ul className="space-y-2 text-sm">
+        {rows.map((row) => {
+          const Icon = row.icon;
+          return (
+            <li key={row.key} className="flex flex-wrap items-center gap-2">
+              <Icon aria-hidden="true" size={15} className="text-subtle" />
+              {row.value}
+              {row.use && <Button size="sm" variant="ghost" icon={UserCheck} loading={save.busy} onClick={() => save.run(row.key)}>{t('routes.useAsContact')}</Button>}
+            </li>
+          );
+        })}
+      </ul>
+      {company.routes_source_url && <p className="mt-2 text-[12px] text-subtle">{t('routes.source')} <ExternalLink href={company.routes_source_url}>{new URL(company.routes_source_url).hostname.replace(/^www\./, '')}</ExternalLink></p>}
+      {save.error && <div className="mt-2"><ErrorBox message={save.error} /></div>}
+    </div>
+  );
+}
+
 /** Decision makers from Apollo or Lusha (connected ones only): proposals like the agent's own, at the cost of credits. */
 function ProviderSearch({ card, onChanged }) {
   const { t } = useI18n();
@@ -179,6 +226,7 @@ export function DecisionMakersPanel({ card, onChanged }) {
         </div>
       )}
       {again.error && <div className="mt-2"><ErrorBox message={again.error} /></div>}
+      {search && search.status === 'done' && <CompanyRoutes card={card} onChanged={onChanged} />}
       <ProviderSearch card={card} onChanged={onChanged} />
       {card.contact_proposals.some((proposal) => proposal.status === 'confirmed') && (
         <p className="mt-3 text-[13px]"><Link className="text-link hover:underline" to={`/companies/${card.company.id}`}>{t('research.seeContacts')}</Link></p>
