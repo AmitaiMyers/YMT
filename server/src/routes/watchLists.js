@@ -6,6 +6,7 @@ import { insert, findById, audit, transaction } from '../db.js';
 import { badRequest, forbidden, HttpError } from '../http.js';
 import { normalizeDomain } from '../research/classification.js';
 import { importEntries, MAX_IMPORT_ROWS } from '../research/watchLists.js';
+import { cardDataJson, sendToReview, MAX_SEND_TO_REVIEW } from '../research/importCards.js';
 
 const LIST_SPEC = {
   name: { type: 'string', required: true, max: 120 },
@@ -19,20 +20,40 @@ const ENTRY_SPEC = {
   notes: { type: 'string', max: 300 },
 };
 
+const SEND_SPEC = {
+  entry_ids: { type: 'list', required: true },
+  mandate_id: { type: 'id', required: true },
+};
+
+/** One imported row: the list columns plus, optionally, the company-card columns of the file (card_data). */
+function parseEntry(row) {
+  if (typeof row !== 'object' || row === null || Array.isArray(row)) throw badRequest('Each entry must be an object');
+  const { card_data: cardData = null, ...listColumns } = row;
+  const entry = parseBody(ENTRY_SPEC, listColumns);
+  if (entry.website !== null && normalizeDomain(entry.website) === null) throw badRequest(`website "${entry.website}" is not a web address`);
+  return { ...entry, card_data: cardDataJson(cardData) };
+}
+
 /** Validate imported rows; the error names the row (1-based, as in the file after its header). */
 function parseEntries(rows) {
   if (!Array.isArray(rows) || rows.length === 0) throw badRequest('entries must be a non-empty list');
   if (rows.length > MAX_IMPORT_ROWS) throw badRequest(`At most ${MAX_IMPORT_ROWS} companies per import`);
   return rows.map((row, index) => {
-    let entry;
     try {
-      entry = parseBody(ENTRY_SPEC, row);
+      return parseEntry(row);
     } catch (error) {
       if (!(error instanceof HttpError)) throw error;
       throw badRequest(`Row ${index + 1}: ${error.message}`); // add the row number, keep the reason
     }
-    if (entry.website !== null && normalizeDomain(entry.website) === null) throw badRequest(`Row ${index + 1}: website "${entry.website}" is not a web address`);
-    return entry;
+  });
+}
+
+/** Entry ids arrive as a list of numbers. */
+function parseEntryIds(ids) {
+  if (ids.length > MAX_SEND_TO_REVIEW) throw badRequest(`At most ${MAX_SEND_TO_REVIEW} companies at a time`);
+  return ids.map((id) => {
+    if (!/^[1-9]\d*$/.test(id)) throw badRequest('entry_ids must be company ids');
+    return Number(id);
   });
 }
 
@@ -55,7 +76,8 @@ export function watchListRoutes(db) {
 
   router.get('/watch-lists/:id', (req, res) => {
     const list = findById(db, 'watch_lists', parseId(req.params.id));
-    const entries = db.prepare(`SELECT e.id, e.name, e.website, e.country, e.notes, MAX(c.last_checked_at) AS last_checked_at
+    const entries = db.prepare(`SELECT e.id, e.name, e.website, e.country, e.notes, e.opportunity_id, e.card_data IS NOT NULL AS has_card_data,
+        MAX(c.last_checked_at) AS last_checked_at
       FROM watch_list_entries e LEFT JOIN watch_checks c ON c.entry_id = e.id
       WHERE e.list_id = ? GROUP BY e.id ORDER BY e.name LIMIT ${MAX_IMPORT_ROWS}`).all(list.id);
     res.json({ ...list, entries });
@@ -78,6 +100,17 @@ export function watchListRoutes(db) {
     if (Object.keys(rest).length > 0) throw badRequest(`Unknown field(s): ${Object.keys(rest).join(', ')}`);
     const result = transaction(db, () => importEntries(db, list.id, entries));
     audit(db, req.user.id, 'watch_list.imported', 'watch_lists', list.id, `${result.added} added`);
+    res.json(result);
+  });
+
+  /** Chosen companies become cards in Research review for the person who sends them (see research/importCards.js). */
+  router.post('/watch-lists/:id/send-to-review', (req, res) => {
+    const list = findById(db, 'watch_lists', parseId(req.params.id));
+    const values = parseBody(SEND_SPEC, req.body);
+    const entryIds = parseEntryIds(values.entry_ids);
+    if (entryIds.length === 0) throw badRequest('Choose at least one company');
+    const result = sendToReview(db, { list, entryIds, mandateId: values.mandate_id, user: req.user });
+    audit(db, req.user.id, 'watch_list.sent_to_review', 'watch_lists', list.id, `${result.created.length} new cards, ${result.existing.length} already had one`);
     res.json(result);
   });
 

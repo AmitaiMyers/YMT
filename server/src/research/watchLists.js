@@ -23,7 +23,9 @@ export function importEntries(db, listId, entries) {
     const nameKey = normalizeName(entry.name);
     const domain = normalizeDomain(entry.website);
     if (nameKey === '' || names.has(nameKey) || (domain && domains.has(domain))) continue;
-    insert(db, 'watch_list_entries', { list_id: listId, name: entry.name, name_key: nameKey, website: entry.website, domain, country: entry.country, notes: entry.notes });
+    insert(db, 'watch_list_entries', {
+      list_id: listId, name: entry.name, name_key: nameKey, website: entry.website, domain, country: entry.country, notes: entry.notes, card_data: entry.card_data,
+    });
     names.add(nameKey);
     if (domain) domains.add(domain);
     added += 1;

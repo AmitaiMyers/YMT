@@ -8,7 +8,7 @@ import { useLoad } from '../../hooks/useApi.js';
 import { Dialog, Loaded, SkeletonRows, Notice } from '../../ui/index.js';
 import { RunForm } from '../research/MandatesPage.jsx';
 
-function AgentChoice({ agents, selectedId, onSelect }) {
+export function AgentChoice({ agents, selectedId, onSelect }) {
   const { t } = useI18n();
   const format = useFormat();
   return (

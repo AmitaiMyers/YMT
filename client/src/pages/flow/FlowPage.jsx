@@ -88,7 +88,11 @@ function RunningAgents({ runs }) {
   return (
     <div role="status" className="animate-rise mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] border border-info-line bg-info-soft px-4 py-3 text-sm">
       <span className="flex items-center gap-2 font-semibold text-link"><Bot aria-hidden="true" size={18} className="animate-pulse motion-reduce:animate-none" />{t('flow.agentsSearching', { count: runs.length })}</span>
-      {runs.map((run) => <span key={run.id} className="text-muted">{t('flow.runLine', { code: run.mandate_code, count: run.batch_size })}</span>)}
+      {runs.map((run) => (
+        <span key={run.id} className="text-muted">
+          {run.company_name === null ? t('flow.runLine', { code: run.mandate_code, count: run.batch_size }) : t('flow.runCompanyLine', { code: run.mandate_code, company: run.company_name })}
+        </span>
+      ))}
       <span className="text-[13px] text-subtle">{t('flow.runHint')}</span>
     </div>
   );

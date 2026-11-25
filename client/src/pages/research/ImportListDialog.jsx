@@ -1,6 +1,8 @@
 // Import a company list from an Excel (.xlsx) or CSV file – including a company export from Apollo or Lusha:
 // choose the encoding (CSV only), map the columns, preview, import.
 // Creates a new watch list, or adds to an existing one when `list` is given. Duplicates are skipped by the server.
+// Company-card columns (this CRM's full export, shared/cardColumns.js) are kept with each company, so "Send to review"
+// can rebuild its card. Large files go up in chunks to stay under the server's request size limit.
 
 import { useMemo, useState } from 'react';
 import { Upload, X } from 'lucide-react';
@@ -10,8 +12,10 @@ import { post } from '../../api.js';
 import { Dialog, Button, IconButton, ErrorBox, Table, Notice, FilePicker } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { readRows, isExcel, SPREADSHEET_ACCEPT } from '../../lib/spreadsheet.js';
+import { CARD_COLUMN_NAMES } from '../../../../shared/cardColumns.js';
 
 const ENCODINGS = ['utf-8', 'windows-1255'];
+const UPLOAD_CHUNK = 200; // rows per request: full-export rows are large
 const TARGETS = ['name', 'website', 'country', 'notes'];
 // Header words that suggest a column, in English and Hebrew. Exact headers of Apollo and Lusha company exports
 // ("Company", "Company Name", "Website", "Company Domain", "Company Country") are tried first, so a person's
@@ -70,14 +74,28 @@ export function ImportListDialog({ open, list = null, onClose, onImported }) {
     ...Object.fromEntries(TARGETS.map((target) => [target, mapping[target] === '' ? null : (row[Number(mapping[target])] ?? '') || null])),
   })).filter((row) => row.name !== null) : []), [body, mapping]);
   const kept = mapped.filter((row) => !removed.has(row.key));
-  const entries = kept.map((row) => Object.fromEntries(TARGETS.map((target) => [target, row[target]])));
+  const cardColumns = header.map((title, index) => [String(title).trim(), index]).filter(([title]) => CARD_COLUMN_NAMES.includes(title));
+  const cardDataOf = (row) => {
+    const values = cardColumns.map(([title, index]) => [title, String(row[index] ?? '').trim()]).filter(([, value]) => value !== '');
+    return values.length === 0 ? null : Object.fromEntries(values);
+  };
+  const entries = kept.map((row) => ({ ...Object.fromEntries(TARGETS.map((target) => [target, row[target]])), card_data: cardDataOf(body[row.key]) }));
   const leaveOut = (key) => setRemoved((previous) => new Set(previous).add(key));
 
   const submit = useAction(async () => {
-    const result = list
-      ? await post(`/watch-lists/${list.id}/import`, { entries })
-      : await post('/watch-lists', { name, source_url: sourceUrl || null, source_note: sourceNote || null, entries });
-    onImported(result);
+    const chunks = [];
+    for (let start = 0; start < entries.length; start += UPLOAD_CHUNK) chunks.push(entries.slice(start, start + UPLOAD_CHUNK));
+    const first = list
+      ? await post(`/watch-lists/${list.id}/import`, { entries: chunks[0] })
+      : await post('/watch-lists', { name, source_url: sourceUrl || null, source_note: sourceNote || null, entries: chunks[0] });
+    const listId = list ? list.id : first.id;
+    const total = { id: listId, added: first.added, skipped: first.skipped };
+    for (const chunk of chunks.slice(1)) {
+      const next = await post(`/watch-lists/${listId}/import`, { entries: chunk });
+      total.added += next.added;
+      total.skipped += next.skipped;
+    }
+    onImported(total);
   });
 
   const columnOptions = header.map((title, index) => ({ value: String(index), label: title || t('watch.column', { n: index + 1 }) }));
@@ -128,6 +146,7 @@ export function ImportListDialog({ open, list = null, onClose, onImported }) {
         )}
         {mapping && (
           <div>
+            {cardColumns.length > 0 && <Notice tone="info">{t('watch.cardColumnsFound', { count: cardColumns.length })}</Notice>}
             <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
               <span>{t('watch.preview', { count: entries.length })}</span>
               {removed.size > 0 && (

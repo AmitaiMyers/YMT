@@ -7,6 +7,7 @@ import { openDatabase, insert } from '../src/db.js';
 import { createApp } from '../src/app.js';
 import { createUser } from '../src/auth.js';
 import { exportCardsCsv } from '../src/research/exportCards.js';
+import { parseCsv } from '../../shared/csv.js';
 
 let server;
 let baseUrl;
@@ -103,7 +104,7 @@ test('a company walks the whole flow; the board always shows its stage and the n
 
   // The full export carries the whole story: deal, sent message, reply and meeting.
   const { csv } = exportCardsCsv(db, { ownerId: null });
-  const [header, row] = csv.split('\r\n').map((line) => line.split(','));
+  const [header, row] = parseCsv(csv, ',');
   const cell = (column) => row[header.indexOf(column)];
   assert.equal(cell('Flow step'), 'closed');
   assert.equal(cell('Messages sent'), '1');

@@ -21,6 +21,7 @@ import { JourneyBar } from '../flow/journey.jsx';
 import { NextAction } from '../flow/NextAction.jsx';
 import { FirstApproachPanel } from './ApproachPanel.jsx';
 import { usePolling } from './MandatesPage.jsx';
+import { CardAgentButton, CardAgentStatus, isAgentResearching } from './CardAgentRun.jsx';
 import { REJECT_REASONS, EXAMPLE_LABELS, CUSTOMER_TYPES } from '../../../../shared/enums.js';
 
 const DECIDABLE = ['draft', 'needs_review', 'verify', 'deferred'];
@@ -218,7 +219,7 @@ export function CardPage() {
   const { refresh } = useCounts();
   const result = useLoad(`/opportunities/${id}`);
   const searching = Boolean(result.data && result.data.contact_search && ['queued', 'running'].includes(result.data.contact_search.status));
-  usePolling(result, searching);
+  usePolling(result, searching || Boolean(result.data && isAgentResearching(result.data)));
 
   async function openNext(card) {
     refresh();
@@ -261,7 +262,9 @@ export function CardPage() {
                   <span>{card.mandate_code ? `${card.mandate_code} · ${card.owner_name ?? t('research.noOwner')}` : t('research.noMandate')}</span>
                 </span>
               )}
+              actions={canAct ? <CardAgentButton card={card} onStarted={result.reload} /> : undefined}
             />
+            <CardAgentStatus card={card} />
             {card.journey && (
               <div className="mb-6 space-y-5">
                 <div className="rounded-[14px] border border-line bg-surface px-3 py-4 shadow-e1"><JourneyBar journey={card.journey} /></div>

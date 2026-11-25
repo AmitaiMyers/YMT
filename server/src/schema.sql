@@ -356,6 +356,8 @@ CREATE TABLE IF NOT EXISTS watch_list_entries (
   domain TEXT,
   country TEXT,
   notes TEXT,
+  card_data TEXT,                     -- JSON: the company-card columns of the imported file (shared/cardColumns.js), or NULL
+  opportunity_id INTEGER REFERENCES opportunities(id) ON DELETE SET NULL, -- the card it was sent to review as (or already had)
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
   UNIQUE (list_id, name_key)
 );
@@ -405,6 +407,7 @@ CREATE TABLE IF NOT EXISTS research_runs (
   requested_by INTEGER REFERENCES users(id),
   batch_size INTEGER NOT NULL CHECK (batch_size BETWEEN 1 AND 20),
   watch_list_id INTEGER REFERENCES watch_lists(id) ON DELETE SET NULL, -- NULL: open web search
+  opportunity_id INTEGER REFERENCES opportunities(id) ON DELETE CASCADE, -- set: research this one card's company again
   companies_checked INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed', 'waiting_budget')),
   candidates_found INTEGER NOT NULL DEFAULT 0,

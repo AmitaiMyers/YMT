@@ -224,6 +224,15 @@ const CARD_LIST_SQL = `
  * @param {{ ai: ReturnType<typeof import('../ai/service.js').createAiService> }} deps
  */
 export function researchRoutes(db, { ai }) {
+  /** Every AI task is configured and the monthly cap has room; otherwise 409 with the reason. */
+  function assertAiReady() {
+    for (const task of AI_TASKS) {
+      const problem = ai.problem(task);
+      if (problem) throw conflict(problem);
+    }
+    if (budgetStatus(db).remaining <= 0) throw conflict('The monthly AI cap is used up. An admin can raise it in AI settings.');
+  }
+
   const router = Router();
 
   function mandateSummary(mandate) {
@@ -358,16 +367,34 @@ export function researchRoutes(db, { ai }) {
     if (mandate.owner_id === null) throw badRequest('Assign an owner to this mandate before running it');
     const { batch_size: batchSize, watch_list_id: watchListId } = parseBody(RUN_SPEC, req.body);
     if (watchListId !== null) assertUsableWatchList(db, watchListId);
-    for (const task of AI_TASKS) {
-      const problem = ai.problem(task);
-      if (problem) throw conflict(problem);
-    }
-    if (budgetStatus(db).remaining <= 0) throw conflict('The monthly AI cap is used up. An admin can raise it in AI settings.');
+    assertAiReady();
     const id = insert(db, 'research_runs', {
       mandate_id: mandate.id, mandate_version_id: mandate.current_version_id, trigger: 'manual', requested_by: req.user.id, batch_size: batchSize,
       watch_list_id: watchListId,
     });
     audit(db, req.user.id, 'research.run_requested', 'research_runs', id, `${mandate.code} × ${batchSize}`);
+    res.status(201).json(findById(db, 'research_runs', id));
+  });
+
+  /**
+   * "Run agent" on one card: the card's agent researches its company again (fresh initiative, profile, verdict) and
+   * searches for decision makers; the same card is updated (research/runner.js researchCard).
+   */
+  router.post('/opportunities/:id/research', (req, res) => {
+    const opportunity = findById(db, 'opportunities', parseId(req.params.id));
+    assertCanSee(req.user, opportunity);
+    if (opportunity.mandate_id === null) throw badRequest('Choose an agent for this card first');
+    const mandate = findById(db, 'mandates', opportunity.mandate_id);
+    if (mandate.current_version_id === null) throw badRequest(`Agent ${mandate.code} has no criteria yet`);
+    if (db.prepare("SELECT 1 FROM research_runs WHERE opportunity_id = ? AND status IN ('queued', 'running', 'waiting_budget')").get(opportunity.id)) {
+      throw conflict('The agent is already researching this company');
+    }
+    assertAiReady();
+    const id = insert(db, 'research_runs', {
+      mandate_id: mandate.id, mandate_version_id: mandate.current_version_id, trigger: 'manual', requested_by: req.user.id, batch_size: 1,
+      opportunity_id: opportunity.id,
+    });
+    audit(db, req.user.id, 'research.card_research_requested', 'opportunities', opportunity.id, mandate.code);
     res.status(201).json(findById(db, 'research_runs', id));
   });
 
@@ -413,8 +440,10 @@ export function researchRoutes(db, { ai }) {
     const rows = db.prepare(`${CARD_LIST_SQL} WHERE ${conditions.join(' AND ')} ORDER BY o.id DESC LIMIT 500`).all(...params);
     const now = new Date();
     const cards = withScores(rows, false).map((card) => ({ ...card, journey: journeyFor(db, findById(db, 'opportunities', card.id), now) }));
-    const runs = db.prepare(`SELECT r.id, r.status, r.batch_size, r.created_at, m.code AS mandate_code, m.name AS mandate_name
-      FROM research_runs r JOIN mandates m ON m.id = r.mandate_id WHERE r.status IN ('queued', 'running') ORDER BY r.id`).all();
+    const runs = db.prepare(`SELECT r.id, r.status, r.batch_size, r.created_at, m.code AS mandate_code, m.name AS mandate_name, c.name AS company_name
+      FROM research_runs r JOIN mandates m ON m.id = r.mandate_id
+      LEFT JOIN opportunities o ON o.id = r.opportunity_id LEFT JOIN companies c ON c.id = o.company_id
+      WHERE r.status IN ('queued', 'running') ORDER BY r.id`).all();
     res.json({ cards, runs });
   });
 
@@ -463,6 +492,8 @@ export function researchRoutes(db, { ai }) {
       mandate_floor_usd: card.mandate_version_id ? findById(db, 'mandate_versions', card.mandate_version_id).revenue_floor_usd : null,
       live_check: LIVE_TRIGGER_KINDS.includes(card.trigger_kind),
       journey: journeyFor(db, findById(db, 'opportunities', id)),
+      agent_run: db.prepare(`SELECT id, status, error, cost_usd, candidates_found, created_at, finished_at FROM research_runs
+        WHERE opportunity_id = ? ORDER BY id DESC LIMIT 1`).get(id) ?? null,
     });
   });
 

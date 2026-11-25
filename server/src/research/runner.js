@@ -169,6 +169,98 @@ function saveAliases(db, companyId, names, sourceUrl) {
   }
 }
 
+/** Classify the candidate's company; every value needs a source from the search, the classification or the evidence. */
+async function classifyCompany(ai, { run, candidate, searchSources, now }) {
+  const result = await ai.call('classify', classifyRequest(candidate), { runId: run.id, now });
+  const allowed = new Set([...searchSources, ...result.sources.map((s) => normalizeUrl(s.url)), normalizeUrl(candidate.sourceUrl)]);
+  const classified = parseClassification(result.input, (url) => URL.canParse(url) && allowed.has(normalizeUrl(url)));
+  return { ...classified, sourceTitles: new Map(result.sources.map((s) => [normalizeUrl(s.url), s.title])) };
+}
+
+/** The agent's recommendation for the company against the mandate, on this evidence. */
+async function judgeCompany(ai, { run, runMandate, services, name, classified, candidate, now }) {
+  const result = await ai.call('judge', judgeRequest({
+    mandate: runMandate, version: runMandate.version, company: { name, ...classified.company, markets: classified.markets }, services,
+    evidence: { url: candidate.sourceUrl, date: candidate.publishedOn, quote: candidate.quote, businessNeed: candidate.businessNeed, targetCountry: candidate.targetCountry },
+  }), { runId: run.id, now });
+  return parseJudgement(result.input, services.map((service) => service.code));
+}
+
+/** Cited facts, other names and market statuses of a classification. Call inside a transaction. */
+function saveFindings(db, companyId, classified, runId) {
+  for (const fact of classified.facts) {
+    const sourceId = upsertSource(db, { url: fact.sourceUrl, title: classified.sourceTitles.get(normalizeUrl(fact.sourceUrl)) ?? null, publishedOn: null, kind: 'web' });
+    insert(db, 'facts', { company_id: companyId, field: fact.field, value: fact.value, source_id: sourceId, quote: fact.quote, entity_covered: fact.entityCovered, run_id: runId });
+  }
+  saveAliases(db, companyId, classified.otherNames, (classified.facts.find((fact) => fact.field === 'other_names') ?? { sourceUrl: null }).sourceUrl);
+  saveMarkets(db, companyId, classified.markets);
+}
+
+/** The first reported initiative that belongs to the card's company, is backed by the search and fresh enough – or null. */
+function freshInitiative(db, card, rawCandidates, listed, searchSources, freshnessDays, now) {
+  const usedByOtherCard = db.prepare(`SELECT 1 FROM opportunities o JOIN sources s ON s.id = o.evidence_source_id
+    WHERE o.company_id = ? AND o.id != ? AND s.url = ?`);
+  for (const raw of rawCandidates) {
+    let candidate;
+    try {
+      candidate = parseCandidate(raw, now);
+    } catch (error) {
+      if (!(error instanceof InvalidResultError)) throw error;
+      continue; // one malformed answer does not stop the card's research
+    }
+    const ok = matchEntry(listed, candidate) !== null && searchSources.has(normalizeUrl(candidate.sourceUrl))
+      && !isStale(candidate.publishedOn, freshnessDays, now) && !usedByOtherCard.get(card.company_id, card.id, normalizeUrl(candidate.sourceUrl));
+    if (ok) return candidate;
+  }
+  return null;
+}
+
+/**
+ * "Run agent" on one card: look for a fresh, dated initiative of its company, classify the company again and judge it
+ * against the card's agent, then update the same card (new evidence when found; the company's empty fields filled and
+ * new facts added; the agent's verdict, trigger and service replaced) and search for decision makers again.
+ * Unlike a search run it never drops the company: the reviewer sees the new verdict on the card.
+ */
+async function researchCard(db, ai, { run, runMandate, services, publishedAfter, now, stats }) {
+  const card = findById(db, 'opportunities', run.opportunity_id);
+  const company = findById(db, 'companies', card.company_id);
+  const evidence = findById(db, 'sources', card.evidence_source_id);
+  const listed = [{ name: company.name, website: company.website, domain: normalizeDomain(company.website) }];
+  const discovery = await ai.call('discover', discoverRequest({
+    mandate: runMandate, version: runMandate.version, batchSize: 1, knownCompanies: [], publishedAfter, watchCompanies: listed,
+  }), { runId: run.id, now });
+  stats.companies_checked = 1;
+  const searchSources = new Set(discovery.sources.map((s) => normalizeUrl(s.url)));
+  const fresh = freshInitiative(db, card, parseCandidates(discovery.input), listed, searchSources, runMandate.freshness_days, now);
+  stats.candidates_found = fresh ? 1 : 0;
+  const candidate = fresh ?? {
+    companyName: company.name, website: company.website, sourceUrl: evidence.url, quote: card.evidence_quote, publishedOn: card.evidence_date,
+    businessNeed: card.business_need, targetCountry: card.target_country, needType: card.need_type,
+  };
+
+  const classified = await classifyCompany(ai, { run, candidate, searchSources, now });
+  const judgement = await judgeCompany(ai, { run, runMandate, services, name: company.name, classified, candidate, now });
+  const flags = JSON.parse(card.flags).filter((flag) => flag !== 'weak_evidence');
+  transaction(db, () => {
+    saveCompany(db, company, candidate, classified.company);
+    saveFindings(db, company.id, classified, run.id);
+    const evidenceChange = fresh === null ? {} : {
+      evidence_source_id: upsertSource(db, { url: fresh.sourceUrl, title: fresh.sourceTitle, publishedOn: fresh.publishedOn, kind: fresh.sourceKind }),
+      evidence_date: fresh.publishedOn, evidence_quote: fresh.quote, business_need: fresh.businessNeed, need_type: fresh.needType,
+      target_country: fresh.targetCountry, relationship_role: fresh.relationshipRole, trigger_live: null, trigger_checked_at: null,
+    };
+    update(db, 'opportunities', card.id, {
+      ...evidenceChange,
+      verdict: judgement.verdict, verdict_reason: judgement.reason, reason_to_act: judgement.reasonToAct,
+      proposed_service: judgement.proposedService ?? card.proposed_service, trigger_kind: judgement.triggerKind,
+      trigger_strength: judgement.triggerStrength, subsector_fit: judgement.subsectorFit, service_code: judgement.serviceCode,
+      unknowns: JSON.stringify([...new Set([...classified.unknowns, ...judgement.unknowns])]),
+      flags: JSON.stringify(judgement.verdict === 'weak' ? [...flags, 'weak_evidence'] : flags),
+    });
+    queueContactSearch(db, card.id, run.requested_by);
+  });
+}
+
 /**
  * Classify, judge and store one candidate. Returns 'created' | 'duplicate' | 'filtered'.
  * AI calls happen before the database transaction, so a failed call never leaves half a card.
@@ -180,9 +272,7 @@ async function processCandidate(db, ai, { run, runMandate, mandates, candidate, 
   if (foundFirst && isKnownInitiative(db, foundFirst.company.id, candidate)) return 'duplicate';
 
   // Steps 3–4: classify and verify, with a cited source for every value.
-  const classifyResult = await ai.call('classify', classifyRequest(candidate), { runId: run.id, now });
-  const allowed = new Set([...searchSources, ...classifyResult.sources.map((s) => normalizeUrl(s.url)), normalizeUrl(candidate.sourceUrl)]);
-  const classified = parseClassification(classifyResult.input, (url) => URL.canParse(url) && allowed.has(normalizeUrl(url)));
+  const classified = await classifyCompany(ai, { run, candidate, searchSources, now });
   const profile = classified.company;
   const identity = {
     name: profile.entity_name ?? candidate.companyName, website: candidate.website ?? profile.website,
@@ -197,12 +287,7 @@ async function processCandidate(db, ai, { run, runMandate, mandates, candidate, 
   if (found && isKnownInitiative(db, found.company.id, candidate)) return 'duplicate';
 
   // Step 6: recommendation against the mandate.
-  const companyForJudge = { name: identity.name, ...profile, markets: classified.markets };
-  const judgeResult = await ai.call('judge', judgeRequest({
-    mandate: runMandate, version: runMandate.version, company: companyForJudge, services,
-    evidence: { url: candidate.sourceUrl, date: candidate.publishedOn, quote: candidate.quote, businessNeed: candidate.businessNeed, targetCountry: candidate.targetCountry },
-  }), { runId: run.id, now });
-  const judgement = parseJudgement(judgeResult.input, services.map((service) => service.code));
+  const judgement = await judgeCompany(ai, { run, runMandate, services, name: identity.name, classified, candidate, now });
   if (judgement.verdict === 'no_match') return recordDrop(db, run.id, candidate, 'not_a_match', judgement.reason);
   const size = found ? { drop: null, belowFloor: false } : sizeGate(runMandate.version, profile, judgement, candidate.publishedOn, now);
   if (size.drop) return recordDrop(db, run.id, candidate, size.drop);
@@ -211,7 +296,6 @@ async function processCandidate(db, ai, { run, runMandate, mandates, candidate, 
     runMandate, mandates, company: profile, verdict: judgement.verdict,
     opportunity: { targetCountry: candidate.targetCountry, needType: candidate.needType },
   });
-  const sourceTitles = new Map(classifyResult.sources.map((s) => [normalizeUrl(s.url), s.title]));
   const flags = [
     ...assignment.flags,
     ...(found && found.match === 'name' ? ['possible_duplicate'] : []),
@@ -223,12 +307,7 @@ async function processCandidate(db, ai, { run, runMandate, mandates, candidate, 
   transaction(db, () => {
     const companyId = saveCompany(db, found ? found.company : null, candidate, profile);
     const evidenceSourceId = upsertSource(db, { url: candidate.sourceUrl, title: candidate.sourceTitle, publishedOn: candidate.publishedOn, kind: candidate.sourceKind });
-    for (const fact of classified.facts) {
-      const sourceId = upsertSource(db, { url: fact.sourceUrl, title: sourceTitles.get(normalizeUrl(fact.sourceUrl)) ?? null, publishedOn: null, kind: 'web' });
-      insert(db, 'facts', { company_id: companyId, field: fact.field, value: fact.value, source_id: sourceId, quote: fact.quote, entity_covered: fact.entityCovered, run_id: run.id });
-    }
-    saveAliases(db, companyId, classified.otherNames, (classified.facts.find((fact) => fact.field === 'other_names') ?? { sourceUrl: null }).sourceUrl);
-    saveMarkets(db, companyId, classified.markets);
+    saveFindings(db, companyId, classified, run.id);
     const id = insert(db, 'opportunities', {
       company_id: companyId, mandate_id: assignment.mandateId, mandate_version_id: assignment.versionId, run_id: run.id,
       owner_id: assignment.ownerId, relationship_role: candidate.relationshipRole, target_country: candidate.targetCountry,
@@ -264,6 +343,11 @@ export async function executeRun(db, ai, runId, now = new Date()) {
     const services = loadServices(db);
     const publishedAfter = new Date(now.getTime() - base.freshness_days * DAY_MS).toISOString().slice(0, 10);
 
+    if (run.opportunity_id !== null) {
+      await researchCard(db, ai, { run, runMandate, services, publishedAfter, now, stats });
+      finishRun(db, runId, { ...stats, status: 'done' });
+      return;
+    }
     const watched = run.watch_list_id === null ? null : pickEntries(db, run.watch_list_id, base.id, entriesPerRun(run.batch_size));
     if (watched !== null && watched.length === 0) throw new Error('The watch list has no companies');
     const discovery = await ai.call('discover', discoverRequest({

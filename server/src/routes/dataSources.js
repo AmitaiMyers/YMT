@@ -71,7 +71,7 @@ export function dataSourceRoutes(db, { fetchImpl = fetch } = {}) {
       countries, keywords: splitList(values.keywords), employeesMin: values.employees_min, employeesMax: values.employees_max, limit: values.limit,
     });
     const entries = companies.filter((company) => company.name)
-      .map((company) => ({ ...company, website: domainOf(company.website) ? company.website : null }));
+      .map((company) => ({ ...company, website: domainOf(company.website) ? company.website : null, card_data: null }));
     const result = transaction(db, () => {
       const listId = values.list_id ?? insert(db, 'watch_lists', {
         name: values.list_name, source_note: `${LABELS[provider]} company search: ${[values.countries, values.keywords].filter(Boolean).join(' · ')}`, created_by: req.user.id,

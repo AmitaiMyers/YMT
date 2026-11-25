@@ -2,7 +2,7 @@
 // Used by the watch-list import (company lists, Apollo or Lusha exports) and the SHEPHA exclusion list.
 
 import { readSheet } from 'read-excel-file/browser';
-import { detectDelimiter, parseCsv } from './csv.js';
+import { detectDelimiter, parseCsv } from '../../../shared/csv.js';
 
 export const SPREADSHEET_ACCEPT = '.xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 

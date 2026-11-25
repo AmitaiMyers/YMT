@@ -1,17 +1,19 @@
 // Watch lists: company lists imported from public sources. A mandate run can check these companies instead of
-// searching the open web; checks rotate so repeated runs work through the whole list.
+// searching the open web; checks rotate so repeated runs work through the whole list. Chosen companies can also be
+// sent to Research review as cards (built from the card columns their file carried).
 
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ClipboardList, Upload, Trash2, Search } from 'lucide-react';
+import { ClipboardList, Upload, Trash2, Search, Send, FileCheck2 } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useLoad, useAction } from '../../hooks/useApi.js';
 import { del } from '../../api.js';
 import { useAuth } from '../../auth/AuthProvider.jsx';
-import { Card, Loaded, PageHeader, Table, Button, SkeletonRows, EmptyState, ExternalLink, ErrorBox, useToast, useConfirm } from '../../ui/index.js';
+import { Card, Loaded, PageHeader, Table, Button, SkeletonRows, EmptyState, ExternalLink, ErrorBox, Badge, useToast, useConfirm } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { ImportListDialog } from './ImportListDialog.jsx';
 import { FindCompaniesDialog } from './FindCompaniesDialog.jsx';
+import { SendToReviewDialog } from './SendToReviewDialog.jsx';
 
 function useImportedToast() {
   const { t } = useI18n();
@@ -85,9 +87,20 @@ export function WatchListPage() {
   const confirm = useConfirm();
   const importedToast = useImportedToast();
   const { user } = useAuth();
+  const toast = useToast();
   const result = useLoad(`/watch-lists/${id}`);
   const [importing, setImporting] = useState(false);
   const [query, setQuery] = useState('');
+  const [selected, setSelected] = useState(() => new Set());
+  const [sending, setSending] = useState(false);
+  const toggle = (entryIds, on) => setSelected((previous) => {
+    const next = new Set(previous);
+    for (const entryId of entryIds) {
+      if (on) next.add(entryId);
+      else next.delete(entryId);
+    }
+    return next;
+  });
   const remove = useAction(async (list) => {
     const ok = await confirm({ title: t('watch.delete'), body: t('watch.deleteBody', { name: list.name }), confirmLabel: t('watch.delete'), tone: 'danger' });
     if (!ok) return;
@@ -101,6 +114,10 @@ export function WatchListPage() {
         const canDelete = user.role === 'admin' || list.created_by === user.id;
         const needle = query.trim().toLowerCase();
         const shown = needle ? list.entries.filter((entry) => `${entry.name} ${entry.website ?? ''}`.toLowerCase().includes(needle)) : list.entries;
+        // Companies that already have a card are linked to it and cannot be chosen again.
+        const choosable = shown.filter((entry) => entry.opportunity_id === null).map((entry) => entry.id);
+        const allShownChosen = choosable.length > 0 && choosable.every((entryId) => selected.has(entryId));
+        const chosen = list.entries.filter((entry) => selected.has(entry.id) && entry.opportunity_id === null).map((entry) => entry.id);
         return (
           <>
             <PageHeader
@@ -122,24 +139,69 @@ export function WatchListPage() {
             />
             {remove.error && <ErrorBox message={remove.error} />}
             <Card padded>
-              <div className="mb-4 max-w-sm">
-                <FieldRow field={{ name: 'q', label: t('common.search') }} inputId="watch-search">
-                  <FieldInput field={{ name: 'q', type: 'text' }} inputId="watch-search" value={query} onChange={setQuery} />
-                </FieldRow>
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                <div className="w-full max-w-sm">
+                  <FieldRow field={{ name: 'q', label: t('common.search') }} inputId="watch-search">
+                    <FieldInput field={{ name: 'q', type: 'text' }} inputId="watch-search" value={query} onChange={setQuery} />
+                  </FieldRow>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-sm text-muted" aria-live="polite">{t('watch.chosenCount', { count: chosen.length })}</span>
+                  <Button icon={Send} disabled={chosen.length === 0} disabledReason={t('watch.chooseFirst')} onClick={() => setSending(true)}>
+                    {t('watch.sendToReview')}
+                  </Button>
+                </div>
               </div>
               <Table
                 caption={list.name}
                 columns={[
+                  {
+                    key: 'choose',
+                    label: (
+                      <input
+                        type="checkbox" className="h-4 w-4 align-middle" aria-label={t('watch.chooseAll')}
+                        checked={allShownChosen} disabled={choosable.length === 0} onChange={(event) => toggle(choosable, event.target.checked)}
+                      />
+                    ),
+                    render: (entry) => (entry.opportunity_id === null ? (
+                      <input
+                        type="checkbox" className="h-4 w-4 align-middle" aria-label={t('watch.choose', { name: entry.name })}
+                        checked={selected.has(entry.id)} onChange={(event) => toggle([entry.id], event.target.checked)}
+                      />
+                    ) : <span aria-hidden="true" />),
+                  },
                   { key: 'name', label: t('watch.field.name') },
                   { key: 'website', label: t('watch.field.website'), render: (entry) => (entry.website ? <span dir="ltr">{entry.website}</span> : '—') },
                   { key: 'country', label: t('watch.field.country') },
                   { key: 'notes', label: t('watch.field.notes') },
                   { key: 'last_checked_at', label: t('watch.lastChecked'), render: (entry) => (entry.last_checked_at ? format.date(entry.last_checked_at) : t('watch.notYet')) },
+                  {
+                    key: 'card',
+                    label: t('watch.card'),
+                    render: (entry) => {
+                      if (entry.opportunity_id !== null) return <Link className="whitespace-nowrap font-medium text-link hover:underline" to={`/research/cards/${entry.opportunity_id}`}>{t('watch.openCard')}</Link>;
+                      if (entry.has_card_data) return <Badge tone="info"><FileCheck2 aria-hidden="true" size={13} />{t('watch.cardInFile')}</Badge>;
+                      return '—';
+                    },
+                  },
                 ]}
                 rows={shown}
                 empty={t('watch.noMatches')}
               />
             </Card>
+            {sending && (
+              <SendToReviewDialog
+                list={list}
+                entryIds={chosen}
+                onClose={() => setSending(false)}
+                onSent={(sent) => {
+                  setSending(false);
+                  setSelected(new Set());
+                  toast({ title: t('watch.sent', { count: sent.created.length }), body: sent.existing.length > 0 ? t('watch.alreadyHadCard', { count: sent.existing.length }) : undefined });
+                  result.reload();
+                }}
+              />
+            )}
             {importing && (
               <ImportListDialog
                 open

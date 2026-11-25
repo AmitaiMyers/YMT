@@ -1,18 +1,29 @@
 // The full migration export (25.11.2026): one CSV row per research card with everything the system knows about it –
 // the company profile, the evidence, the agent's judgement, score, markets, contacts, suggestions, cited facts, the deal,
 // messages, replies and meetings – so the data can move to another system. The first four columns ("Company", "Website",
-// "Country", "Notes") are the ones the watch-list import recognises, so the file also loads back into this CRM.
+// "Country", "Notes") are the ones the watch-list import recognises, so the file also loads back into this CRM; the card,
+// profile and contact columns listed in shared/cardColumns.js rebuild the card when the company is sent to review.
 // Values are stored codes (e.g. "hq_israel"); lists are joined with " | " and multi-part entries with " · ".
 
-import { toCsv } from '../csv.js';
+import { toCsv } from '../../../shared/csv.js';
 import { scoreOpportunity, servicesMap } from './scoring.js';
 import { journeyFor } from './journey.js';
+import { LIST_SEPARATOR as LIST, CONTACTS_COLUMN } from '../../../shared/cardColumns.js';
 
-const LIST = ' | ';
 const PART = ' · ';
 const join = (values) => values.filter((value) => value !== null && value !== undefined && value !== '').join(PART);
 const parseList = (json) => (json ? JSON.parse(json) : []);
 const yesNo = (flag) => (flag === null ? '' : flag === 1 ? 'yes' : 'no');
+
+/** A contact as the import reads it back (see CONTACT_SPEC in importCards.js). */
+function contactData(contact) {
+  return {
+    full_name: contact.full_name, job_title: contact.job_title, department: contact.department, email: contact.email, phone: contact.phone,
+    linkedin_url: contact.linkedin_url, country: contact.country, preferred_language: contact.preferred_language,
+    preferred_channel: contact.preferred_channel, whatsapp_consent: contact.whatsapp_consent === 1, verified: contact.verified === 1,
+    verified_source: contact.verified_source, verified_at: contact.verified_at, opted_out_at: contact.opted_out_at,
+  };
+}
 
 const COLUMNS = [
   // Watch-list import columns (keep first)
@@ -111,6 +122,7 @@ const COLUMNS = [
     c.country, c.preferred_language, c.preferred_channel, c.whatsapp_consent ? 'WhatsApp consent' : '',
     c.verified ? `role checked ${c.verified_at ?? ''} ${c.verified_source ?? ''}`.trim() : 'role not checked',
     c.opted_out_at ? `opted out ${c.opted_out_at}` : ''])).join(LIST)],
+  [CONTACTS_COLUMN, (r) => (r.contacts.length === 0 ? '' : JSON.stringify(r.contacts.map(contactData)))],
   ['Decision-maker suggestions', (r) => r.proposals.map((p) => join([p.full_name, p.job_title, p.email, p.linkedin_url, p.status, p.dismiss_reason, p.source_url])).join(LIST)],
   // Evidence base
   ['Facts with sources', (r) => r.facts.map((f) => `${f.field} = ${f.value} [${f.url}]`).join(LIST)],
