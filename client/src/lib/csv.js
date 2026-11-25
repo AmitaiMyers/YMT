@@ -46,17 +46,10 @@ function csvCell(value) {
 }
 
 /**
- * Download rows as a CSV file. A UTF-8 byte-order mark is added so Excel shows Hebrew correctly.
- * @param {string} filename
+ * Rows as CSV text (RFC 4180, CRLF line ends).
  * @param {string[]} header
  * @param {Array<Array<unknown>>} rows
  */
-export function downloadCsv(filename, header, rows) {
-  const text = [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
-  const url = URL.createObjectURL(new Blob(['\uFEFF', text], { type: 'text/csv;charset=utf-8' }));
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+export function toCsv(header, rows) {
+  return [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
 }

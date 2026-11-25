@@ -1,7 +1,7 @@
 // Settings (editable by any staff member), data & privacy visibility, backups and audit log.
 
 import { Router } from 'express';
-import { statSync, mkdirSync } from 'node:fs';
+import { statSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseBody } from '../validate.js';
 import { getSettings, count, audit } from '../db.js';
@@ -21,6 +21,13 @@ const SETTINGS_SPEC = {
 };
 
 const VIEW_MODE_SPEC = { view_mode: { type: 'string', required: true, enum: VIEW_MODES } };
+
+const EXPORT_SPEC = {
+  filename: { type: 'string', required: true, max: 90 },
+  content: { type: 'text', required: true, max: 900_000 }, // within the 1 MB request limit: thousands of rows
+};
+// Only plain file names inside the exports folder (no paths, no other extensions).
+const EXPORT_NAME_RE = /^[a-z0-9][a-z0-9-]{0,80}\.csv$/;
 
 const COUNTED_TABLES = ['users', 'companies', 'contacts', 'triggers', 'deals', 'interactions', 'approvals',
   'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'suppressions', 'replies', 'approved_answers', 'discovery_requests', 'audit_log'];
@@ -85,6 +92,22 @@ export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled, aiP
     audit(db, userId, 'backup.created', 'settings', null, backupPath);
     return backupPath;
   }
+
+  /**
+   * Save an export (e.g. the Lead flow companies as CSV) in DATA_DIR/exports, next to the database, so it stays with
+   * YMT's data. A UTF-8 byte-order mark is added so Excel shows Hebrew correctly. Returns the saved file's full path.
+   */
+  router.post('/exports', (req, res) => {
+    if (dbPath === ':memory:') throw badRequest('Exports need a database file (DATA_DIR)');
+    const { filename, content } = parseBody(EXPORT_SPEC, req.body);
+    if (!EXPORT_NAME_RE.test(filename)) throw badRequest('filename must look like name.csv (lowercase letters, digits and dashes)');
+    const exportDir = path.join(path.dirname(dbPath), 'exports');
+    mkdirSync(exportDir, { recursive: true });
+    const exportPath = path.join(exportDir, filename);
+    writeFileSync(exportPath, `\uFEFF${content}`, 'utf8');
+    audit(db, req.user.id, 'export.saved', 'settings', null, exportPath);
+    res.status(201).json({ path: exportPath });
+  });
 
   router.post('/settings/backup', requireAdmin, (req, res) => {
     const backupPath = createBackup(req.user.id);
