@@ -7,7 +7,7 @@ import { FileSpreadsheet, Upload } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useLoad, useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
-import { Card, Loaded, SkeletonRows, Button, ErrorBox, Notice, Table, useToast } from '../../ui/index.js';
+import { Card, Loaded, SkeletonRows, Button, ErrorBox, Notice, Table, useToast, FilePicker } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { readRows, cellText, SPREADSHEET_ACCEPT } from '../../lib/spreadsheet.js';
 
@@ -40,10 +40,12 @@ function toRows(sheet, mapping) {
 function ImportForm({ onImported }) {
   const { t } = useI18n();
   const toast = useToast();
+  const [file, setFile] = useState(null);
   const [sheet, setSheet] = useState(null);
   const [mapping, setMapping] = useState(null);
-  const read = useAction(async (file) => {
-    const data = await readRows(file);
+  const read = useAction(async (nextFile) => {
+    setFile(nextFile);
+    const data = await readRows(nextFile);
     if (data.length < 2) throw new Error(t('shepha.emptyFile'));
     const header = data[0].map(cellText);
     setSheet(data);
@@ -53,6 +55,7 @@ function ImportForm({ onImported }) {
     const rows = toRows(sheet, mapping);
     const result = await post('/shepha-exclusions', { rows });
     toast({ title: t('shepha.imported', { count: result.count }) });
+    setFile(null);
     setSheet(null);
     setMapping(null);
     onImported();
@@ -64,13 +67,7 @@ function ImportForm({ onImported }) {
   return (
     <div className="space-y-4">
       <FieldRow field={{ name: 'file', label: t('shepha.file'), help: t('shepha.fileHelp') }} inputId="shepha-file">
-        <input
-          id="shepha-file"
-          type="file"
-          accept={SPREADSHEET_ACCEPT}
-          className="block w-full text-sm"
-          onChange={(event) => { if (event.target.files[0]) read.run(event.target.files[0]); }}
-        />
+        <FilePicker id="shepha-file" accept={SPREADSHEET_ACCEPT} file={file} onFile={(nextFile) => read.run(nextFile)} />
       </FieldRow>
       <ErrorBox message={read.error} />
       {sheet && (

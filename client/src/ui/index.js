@@ -15,3 +15,4 @@ export { ThemeProvider, useTheme } from './theme.jsx';
 export { OnlineProvider, useOnline } from './online.jsx';
 export { useCountUp, useHotkeys, usePageTitle, useReducedMotion } from './hooks.js';
 export { ExternalLink } from './ExternalLink.jsx';
+export { FilePicker } from './FilePicker.jsx';

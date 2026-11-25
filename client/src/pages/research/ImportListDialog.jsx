@@ -7,7 +7,7 @@ import { Upload } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
-import { Dialog, Button, ErrorBox, Table, Notice } from '../../ui/index.js';
+import { Dialog, Button, ErrorBox, Table, Notice, FilePicker } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { readRows, isExcel, SPREADSHEET_ACCEPT } from '../../lib/spreadsheet.js';
 
@@ -81,7 +81,7 @@ export function ImportListDialog({ open, list = null, onClose, onImported }) {
       <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); submit.run(); }}>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FieldRow field={{ name: 'file', label: t('watch.file'), required: true }} inputId="watch-file">
-            <input id="watch-file" type="file" accept={SPREADSHEET_ACCEPT} className="block w-full text-sm" onChange={(event) => readFile(event.target.files[0] ?? null, encoding)} />
+            <FilePicker id="watch-file" accept={SPREADSHEET_ACCEPT} file={file} onFile={(nextFile) => readFile(nextFile, encoding)} />
           </FieldRow>
           {(file === null || !isExcel(file)) && <FieldRow field={{ name: 'encoding', label: t('watch.encoding'), help: t('watch.encodingHelp') }} inputId="watch-encoding" errorId="watch-encoding-hint">
             <FieldInput
