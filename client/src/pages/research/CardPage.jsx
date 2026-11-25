@@ -17,6 +17,8 @@ import { useEnumOptions } from '../../enumOptions.js';
 import { OpportunityStatus, VerdictBadge, FlagBadges, useEmployeesText } from './researchUi.jsx';
 import { PipelinePanel, DecisionMakersPanel } from './AcceptedPanels.jsx';
 import { ScorePanel, MarketsPanel } from './ScorePanels.jsx';
+import { JourneyBar } from '../flow/journey.jsx';
+import { NextAction } from '../flow/NextAction.jsx';
 import { FirstApproachPanel } from './ApproachPanel.jsx';
 import { usePolling } from './MandatesPage.jsx';
 import { REJECT_REASONS, EXAMPLE_LABELS, CUSTOMER_TYPES } from '../../../../shared/enums.js';
@@ -249,7 +251,7 @@ export function CardPage() {
         return (
           <>
             <PageHeader
-              eyebrow={<Link className="text-link hover:underline" to="/research">{t('nav.research')}</Link>}
+              eyebrow={<Link className="text-link hover:underline" to="/flow">{t('nav.flow')}</Link>}
               title={card.company.name}
               subtitle={(
                 <span className="flex flex-wrap items-center gap-2">
@@ -260,6 +262,12 @@ export function CardPage() {
                 </span>
               )}
             />
+            {card.journey && (
+              <div className="mb-6 space-y-5">
+                <div className="rounded-[14px] border border-line bg-surface px-3 py-4 shadow-e1"><JourneyBar journey={card.journey} /></div>
+                <NextAction card={card} canAct={canAct} onChanged={() => { refresh(); result.reload(); }} />
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               <div className="space-y-6 lg:col-span-2">
                 <Card title={t('research.evidenceTitle')}>
@@ -302,7 +310,7 @@ export function CardPage() {
                     </div>
                   )}
                 </Card>
-                {card.outreach && canAct && <FirstApproachPanel card={card} onChanged={result.reload} />}
+                {card.outreach && canAct && <div id="first-approach" className="scroll-mt-6 rounded-[10px]"><FirstApproachPanel card={card} onChanged={result.reload} /></div>}
                 <CompanyCard company={card.company} aliases={card.aliases} />
                 <MarketsPanel markets={card.markets} />
                 <Card title={t('research.factsTitle')} padded>
@@ -331,8 +339,8 @@ export function CardPage() {
               <div className="space-y-6">
                 {card.status === 'manual_assignment' && <Notice>{t('research.manualNotice')}</Notice>}
                 <ScorePanel card={card} canAct={canAct} onChanged={result.reload} />
-                {canAssign && <AssignPanel card={card} onAssigned={() => { refresh(); result.reload(); }} />}
-                {canDecide && <DecisionPanel card={card} onDecided={openNext} />}
+                {canAssign && <div id="assign-panel" className="scroll-mt-6 rounded-[10px]"><AssignPanel card={card} onAssigned={() => { refresh(); result.reload(); }} /></div>}
+                {canDecide && <div id="decision-panel" className="scroll-mt-6 rounded-[10px]"><DecisionPanel card={card} onDecided={openNext} /></div>}
                 {!DECIDABLE.includes(card.status) && card.status !== 'manual_assignment' && (
                   <Card title={t('research.decisionTitle')}>
                     <DefinitionList stacked items={[
@@ -346,7 +354,7 @@ export function CardPage() {
                 )}
                 {card.status === 'accepted' && canAct && <PipelinePanel card={card} onChanged={result.reload} />}
                 {/* Spec step 5: decision makers are searched before the review, so the owner sees them while deciding. */}
-                {!['rejected', 'manual_assignment'].includes(card.status) && canAct && <DecisionMakersPanel card={card} onChanged={result.reload} />}
+                {!['rejected', 'manual_assignment'].includes(card.status) && canAct && <div id="decision-makers" className="scroll-mt-6 rounded-[10px]"><DecisionMakersPanel card={card} onChanged={result.reload} /></div>}
                 {card.mandate_id !== null && canAct && <ExamplePanel card={card} onSaved={result.reload} />}
               </div>
             </div>

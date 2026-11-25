@@ -11,6 +11,7 @@
   --color-info-soft: var(--info-soft); --color-info-line: var(--info-line); --color-chart: var(--chart); --color-chart-track: var(--chart-track);
   --color-signal: var(--signal); --color-on-signal: var(--on-signal); --color-signal-fg: var(--signal-fg); --color-signal-soft: var(--signal-soft);
   --color-success: var(--success); --color-success-fg: var(--success-fg); --color-success-soft: var(--success-soft);
+  --color-brand-blue: var(--brand-blue); --color-brand-sky: var(--brand-sky); --color-brand-cyan: var(--brand-cyan); --color-brand-green: var(--brand-green);
   --color-danger: var(--danger); --color-danger-fg: var(--danger-fg); --color-danger-soft: var(--danger-soft);
   --color-sidebar: var(--sidebar); --color-sidebar-fg: var(--sidebar-fg); --color-sidebar-muted: var(--sidebar-muted); --color-sidebar-active: var(--sidebar-active);
   --shadow-e1: var(--e1); --shadow-e2: var(--e2); --shadow-e3: var(--e3);
@@ -34,6 +35,17 @@ h1, h2, h3 { line-height: 1.3; }
 
 /* Generated letters/documents: each line takes its own direction (fixes mixed Hebrew/English punctuation). */
 .generated-text p { min-height: 1.7em; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+
+/* Sign-in brand panel: the brand background (swap public/brand/login-background.* for the original photo). */
+.brand-hero { background: url('/brand/login-background.svg') center / cover no-repeat, var(--brand-gradient); min-height: 9rem; }
+
+/* Lead flow: the next-step accent (brand gradient), a flash when a section is brought into view, the current journey dot. */
+.next-action-accent { background: var(--brand-gradient); }
+@keyframes section-flash { 0% { box-shadow: 0 0 0 0 rgb(30 136 229 / 0); } 30% { box-shadow: 0 0 0 4px rgb(30 136 229 / 0.35); } 100% { box-shadow: 0 0 0 0 rgb(30 136 229 / 0); } }
+.section-flash { animation: section-flash 1.4s var(--ease-standard) both; }
+@keyframes journey-pulse { 0% { box-shadow: 0 0 0 0 rgb(11 74 143 / 0.35); } 70% { box-shadow: 0 0 0 8px rgb(11 74 143 / 0); } 100% { box-shadow: 0 0 0 0 rgb(11 74 143 / 0); } }
+.journey-bar [data-state="current"] .journey-dot { animation: journey-pulse 2.2s var(--ease-standard) infinite; }
+@media (prefers-reduced-motion: reduce) { .section-flash, .journey-bar [data-state="current"] .journey-dot { animation: none; } }
 
 /* Motion utilities (all disabled by the reduced-motion token override). */
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }

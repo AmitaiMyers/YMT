@@ -25,6 +25,7 @@ const DocumentsPage = lazy(() => import('./pages/documents/DocumentsPage.jsx').t
 const DocumentPage = lazy(() => import('./pages/documents/DocumentPage.jsx').then((module) => ({ default: module.DocumentPage })));
 const NetworkPage = lazy(() => import('./pages/NetworkPage.jsx').then((module) => ({ default: module.NetworkPage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage.jsx').then((module) => ({ default: module.SettingsPage })));
+const FlowPage = lazy(() => import('./pages/flow/FlowPage.jsx').then((module) => ({ default: module.FlowPage })));
 const ReviewPage = lazy(() => import('./pages/research/ReviewPage.jsx').then((module) => ({ default: module.ReviewPage })));
 const CardPage = lazy(() => import('./pages/research/CardPage.jsx').then((module) => ({ default: module.CardPage })));
 const MandatesPage = lazy(() => import('./pages/research/MandatesPage.jsx').then((module) => ({ default: module.MandatesPage })));
@@ -58,7 +59,8 @@ function StaffApp() {
       <ViewModeProvider>
         <Routes>
           <Route element={<AppShell />}>
-            <Route index element={<Gated feature="inbox" fallback="/research"><InboxPage /></Gated>} />
+            <Route index element={<Gated feature="inbox" fallback="/flow"><InboxPage /></Gated>} />
+            <Route path="flow" element={<FlowPage />} />
             <Route path="approvals" element={<ApprovalsPage />} />
             <Route path="calendar" element={<CalendarPage />} />
             <Route path="meetings/:id/prep" element={<Gated feature="meetingPrep" fallback="/calendar"><MeetingPrepPage /></Gated>} />

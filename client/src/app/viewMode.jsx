@@ -11,7 +11,7 @@ import { Loaded, Skeleton } from '../ui/index.js';
 
 /** Features hidden in Focus mode. Keys are used by the navigation, the routes and the screens that hold them. */
 export const FOCUS_HIDDEN = new Set([
-  'inbox',              // daily hub; the research queue is the home screen in Focus mode
+  'inbox',              // daily hub; the lead-flow board is the home screen in Focus mode
   'leads',              // the old manual lead search and trigger log (research cards replace them)
   'documents',          // proposals, contracts and signatures
   'network',            // suppliers and experts
@@ -58,7 +58,7 @@ export function useViewMode() {
   return context;
 }
 
-/** Where "home" is: the inbox in Full mode, the research queue in Focus mode. */
+/** Where "home" is: the inbox in Full mode, the lead-flow board in Focus mode. */
 export function useHomePath() {
-  return useViewMode().shows('inbox') ? '/' : '/research';
+  return useViewMode().shows('inbox') ? '/' : '/flow';
 }

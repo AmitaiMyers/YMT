@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="YMT">
+  <!-- Vector redraw of the YMT drop: leaf-green top, water-blue body, cyan orbit. Replace with the original artwork when available. -->
+  <defs>
+    <linearGradient id="ymt-blue" x1="0.2" y1="0.3" x2="0.8" y2="1"><stop offset="0" stop-color="#29B6F6"/><stop offset="0.55" stop-color="#1E88E5"/><stop offset="1" stop-color="#0D47A1"/></linearGradient>
+    <linearGradient id="ymt-green" x1="0.3" y1="0" x2="0.5" y2="1"><stop offset="0" stop-color="#9CCC65"/><stop offset="1" stop-color="#43A047"/></linearGradient>
+    <clipPath id="ymt-drop"><path d="M33 4 C27 15 15 27 15 40 A18 18 0 0 0 51 40 C51 27 39 15 33 4 Z"/></clipPath>
+  </defs>
+  <g transform="rotate(-28 33 37)"><ellipse cx="33" cy="37" rx="25" ry="8.5" fill="none" stroke="#4FC3F7" stroke-width="3.2"/></g>
+  <path d="M33 4 C27 15 15 27 15 40 A18 18 0 0 0 51 40 C51 27 39 15 33 4 Z" fill="url(#ymt-blue)"/>
+  <g clip-path="url(#ymt-drop)"><path d="M0 0 H64 V20 L0 46 Z" fill="url(#ymt-green)"/></g>
+  <g transform="rotate(-28 33 37)"><path d="M8 37 A25 8.5 0 0 0 58 37" fill="none" stroke="#4FC3F7" stroke-width="3.2" stroke-linecap="round"/></g>
+</svg>

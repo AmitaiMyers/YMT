@@ -1,5 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="96" fill="#0f2a4a"/>
-  <path d="M96 352 L208 224 L288 296 L416 160" fill="none" stroke="#f59e0b" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="256" y="452" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="96" font-weight="700" fill="#ffffff">YMT</text>
+  <defs>
+    <linearGradient id="b" x1="0.2" y1="0.3" x2="0.8" y2="1"><stop offset="0" stop-color="#29B6F6"/><stop offset="0.55" stop-color="#1E88E5"/><stop offset="1" stop-color="#0D47A1"/></linearGradient>
+    <linearGradient id="g" x1="0.3" y1="0" x2="0.5" y2="1"><stop offset="0" stop-color="#9CCC65"/><stop offset="1" stop-color="#43A047"/></linearGradient>
+    <clipPath id="d"><path d="M33 4 C27 15 15 27 15 40 A18 18 0 0 0 51 40 C51 27 39 15 33 4 Z"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#FFFFFF"/>
+  <g transform="translate(64 40) scale(6)">
+    <g transform="rotate(-28 33 37)"><ellipse cx="33" cy="37" rx="25" ry="8.5" fill="none" stroke="#4FC3F7" stroke-width="3.2"/></g>
+    <path d="M33 4 C27 15 15 27 15 40 A18 18 0 0 0 51 40 C51 27 39 15 33 4 Z" fill="url(#b)"/>
+    <g clip-path="url(#d)"><path d="M0 0 H64 V20 L0 46 Z" fill="url(#g)"/></g>
+    <g transform="rotate(-28 33 37)"><path d="M8 37 A25 8.5 0 0 0 58 37" fill="none" stroke="#4FC3F7" stroke-width="3.2" stroke-linecap="round"/></g>
+  </g>
 </svg>

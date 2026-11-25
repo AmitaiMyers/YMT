@@ -27,7 +27,8 @@ export function usePolling(result, active) {
   }, [active, result.reload]);
 }
 
-export function RunDialog({ mandate, onClose, onQueued }) {
+/** How many cards and from which source: the form of one agent run (in the agent's dialog and on the lead-flow board). */
+export function RunForm({ mandate, onQueued, onCancel }) {
   const { t } = useI18n();
   const [size, setSize] = useState(String(mandate.default_batch));
   const [listId, setListId] = useState('');
@@ -35,25 +36,32 @@ export function RunDialog({ mandate, onClose, onQueued }) {
   const run = useAction(async () => onQueued(await post(`/mandates/${mandate.id}/runs`, { batch_size: Number(size), watch_list_id: listId === '' ? null : Number(listId) })));
   const valid = Number.isInteger(Number(size)) && Number(size) >= 1 && Number(size) <= MAX_RUN_BATCH;
   return (
+    <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); run.run(); }}>
+      <FieldRow field={{ name: 'batch', label: t('research.batchSize', { max: MAX_RUN_BATCH }), required: true }} inputId="run-batch">
+        <FieldInput field={{ name: 'batch', type: 'number', required: true, min: 1 }} inputId="run-batch" value={size} onChange={setSize} />
+      </FieldRow>
+      <FieldRow field={{ name: 'source', label: t('research.searchSource'), help: t('research.searchSourceHelp') }} inputId="run-source" errorId="run-source-hint">
+        <select id="run-source" aria-describedby="run-source-hint" className={`${INPUT_CLASS} border-line-strong`} value={listId} onChange={(event) => setListId(event.target.value)}>
+          <option value="">{t('research.openSearch')}</option>
+          {(lists.data ?? []).filter((list) => list.entry_count > 0).map((list) => (
+            <option key={list.id} value={String(list.id)}>{t('research.watchListOption', { name: list.name, count: list.entry_count })}</option>
+          ))}
+        </select>
+      </FieldRow>
+      {run.error && <ErrorBox message={run.error} />}
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" icon={Play} loading={run.busy} disabled={!valid} disabledReason={t('research.batchInvalid', { max: MAX_RUN_BATCH })}>{t('research.runNow')}</Button>
+        <Button variant="secondary" onClick={onCancel}>{t('common.cancel')}</Button>
+      </div>
+    </form>
+  );
+}
+
+export function RunDialog({ mandate, onClose, onQueued }) {
+  const { t } = useI18n();
+  return (
     <Dialog open onClose={onClose} title={t('research.runTitle', { code: mandate.code })} description={t('research.runHint')}>
-      <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); run.run(); }}>
-        <FieldRow field={{ name: 'batch', label: t('research.batchSize', { max: MAX_RUN_BATCH }), required: true }} inputId="run-batch">
-          <FieldInput field={{ name: 'batch', type: 'number', required: true, min: 1 }} inputId="run-batch" value={size} onChange={setSize} />
-        </FieldRow>
-        <FieldRow field={{ name: 'source', label: t('research.searchSource'), help: t('research.searchSourceHelp') }} inputId="run-source" errorId="run-source-hint">
-          <select id="run-source" aria-describedby="run-source-hint" className={`${INPUT_CLASS} border-line-strong`} value={listId} onChange={(event) => setListId(event.target.value)}>
-            <option value="">{t('research.openSearch')}</option>
-            {(lists.data ?? []).filter((list) => list.entry_count > 0).map((list) => (
-              <option key={list.id} value={String(list.id)}>{t('research.watchListOption', { name: list.name, count: list.entry_count })}</option>
-            ))}
-          </select>
-        </FieldRow>
-        {run.error && <ErrorBox message={run.error} />}
-        <div className="flex flex-wrap gap-2">
-          <Button type="submit" icon={Play} loading={run.busy} disabled={!valid} disabledReason={t('research.batchInvalid', { max: MAX_RUN_BATCH })}>{t('research.runNow')}</Button>
-          <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
-        </div>
-      </form>
+      <RunForm mandate={mandate} onQueued={onQueued} onCancel={onClose} />
     </Dialog>
   );
 }

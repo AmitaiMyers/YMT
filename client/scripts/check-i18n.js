@@ -19,7 +19,7 @@ const DYNAMIC_KEYS = {
   companyTab: ['overview', 'contacts', 'triggers', 'pipeline', 'meetings', 'documents', 'matches', 'sharing', 'discovery', 'research'],
   privacy: ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'],
   navGroup: ['today', 'research', 'win', 'clients', 'manage'],
-  nav: ['inbox', 'approvals', 'calendar', 'research', 'conversations', 'mandates', 'watchLists', 'researchMetrics', 'leads', 'pipeline', 'clients', 'documents', 'network', 'dashboard', 'settings'],
+  nav: ['inbox', 'approvals', 'calendar', 'flow', 'research', 'conversations', 'mandates', 'watchLists', 'researchMetrics', 'leads', 'pipeline', 'clients', 'documents', 'network', 'dashboard', 'settings'],
   theme: ['system', 'light', 'dark'],
   'leads.tab': ['search', 'triggers', 'new'],
   'clients.scope': ['clients', 'all'],
@@ -64,6 +64,12 @@ const DYNAMIC_KEYS = {
   viewMode: enums.VIEW_MODES, viewModeHelp: enums.VIEW_MODES, 'myTasks.scope': ['me', 'all'],
   dataSource: enums.DATA_SOURCES, 'dataSources': enums.DATA_SOURCES.map((p) => `${p}Help`),
   findCompanies: ['provider', 'countries', 'keywords', 'limit', 'employees_min', 'employees_max', 'list', 'list_name'],
+  // Lead flow (25.11.2026)
+  journeyStage: enums.JOURNEY_STAGES, flowHint: enums.JOURNEY_STAGES, flowEmpty: enums.JOURNEY_STAGES,
+  journeyAction: enums.JOURNEY_ACTIONS.filter((kind) => kind !== 'done'), journeyOutcome: ['won', 'lost'],
+  nextActionHelp: [...enums.JOURNEY_ACTIONS.filter((kind) => kind !== 'done' && kind !== 'wait'), 'done_won', 'done_lost'],
+  'journey.state': ['done', 'current', 'todo', 'lost'],
+  'approval.sendConfirm': enums.OUTREACH_CHANNELS, 'toast.sentVia': enums.OUTREACH_CHANNELS, 'auth.hero': ['find', 'approve', 'close'],
 };
 
 function sourceFiles(dir) {

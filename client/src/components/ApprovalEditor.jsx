@@ -12,6 +12,7 @@ import { CopyButton } from './CopyButton.jsx';
 import { useCounts } from '../app/CountsProvider.jsx';
 import { lineDiff } from '../lib/lineDiff.js';
 import { MESSAGE_KINDS, COLD_KINDS } from '../../../shared/enums.js';
+import { sendTarget, whatsappUrl } from '../lib/sendLinks.js';
 
 const FIELD_CLASS = `${INPUT_CLASS} border-line-strong`;
 const LINK_BUTTON_CLASS = 'inline-flex min-h-11 items-center gap-2 rounded-[6px] bg-primary px-4 text-sm font-medium text-on-primary shadow-e1 hover:bg-primary-hover sm:min-h-10';
@@ -35,10 +36,34 @@ function mailtoHref(item) {
   return `mailto:${encodeURIComponent(item.recipient_email)}?${queryString({ subject: item.subject ?? '', body: item.content })}`;
 }
 
-/** WhatsApp click-to-chat: opens WhatsApp with the approved text; the person presses send themselves. */
-function whatsappHref(item) {
-  const digits = item.recipient_phone.replace(/\D/g, '').replace(/^00/, '');
-  return `https://wa.me/${digits}?${queryString({ text: item.content })}`;
+/**
+ * "Approve & send" (25.11.2026): one click approves the message, records it as sent and opens it in Gmail, WhatsApp or
+ * LinkedIn for the person to press Send there. The new tab is opened during the click (browsers block it later) and
+ * closed again if the server refuses; a blocked pop-up stops before anything is recorded.
+ */
+function useApproveAndSend(item, onSent) {
+  const { t } = useI18n();
+  const confirm = useConfirm();
+  return useAction(async () => {
+    const ok = await confirm({
+      title: t('approval.sendConfirmTitle'),
+      body: t(`approval.sendConfirm.${item.channel}`, { recipient: recipientOf(item) }),
+      confirmLabel: t('approval.approveAndSend'),
+      tone: 'success',
+    });
+    if (!ok) return;
+    const target = sendTarget(item);
+    if (target.copy) await navigator.clipboard.writeText(item.content);
+    const tab = window.open('', '_blank');
+    if (tab === null) throw new Error(t('approval.popupBlocked'));
+    await post(`/approvals/${item.id}/approve-and-send`).then(undefined, (error) => {
+      tab.close();
+      throw error;
+    });
+    tab.opener = null;
+    tab.location.href = target.url;
+    onSent(target.copy ? t('toast.sentLinkedin') : t(`toast.sentVia.${item.channel}`));
+  });
 }
 
 function DiffView({ before, after, language }) {
@@ -108,13 +133,14 @@ function PendingEditor({ item, onDone }) {
     await post(`/approvals/${item.id}/reject`, { note });
     complete(t('toast.rejected'), 'rejected');
   });
+  const send = useApproveAndSend(item, (message) => complete(message, 'sent'));
 
   const missingRecipient = isMessage && !saved.recipient;
   const approveReason = changed ? t('approval.saveBeforeApprove') : missingRecipient ? t('approval.needsRecipient') : undefined;
 
   return (
     <div className="space-y-4">
-      <ErrorBox message={save.error ?? approve.error ?? reject.error} />
+      <ErrorBox message={save.error ?? approve.error ?? reject.error ?? send.error} />
       {COLD_KINDS.includes(item.kind) && <Notice icon={Scale}>{t('approval.legalHint')}</Notice>}
       {isMessage && (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -168,9 +194,15 @@ function PendingEditor({ item, onDone }) {
           </>
         ) : (
           <>
-            <Button variant="success" icon={Check} loading={approve.busy} loadingLabel={t('approval.approving')} disabled={approveReason !== undefined} disabledReason={approveReason} onClick={approve.run}>
-              {t('approval.approve')}
-            </Button>
+            {isMessage ? (
+              <Button variant="success" icon={Send} loading={send.busy} loadingLabel={t('approval.sending')} disabled={approveReason !== undefined} disabledReason={approveReason} onClick={send.run}>
+                {t('approval.approveAndSend')}
+              </Button>
+            ) : (
+              <Button variant="success" icon={Check} loading={approve.busy} loadingLabel={t('approval.approving')} disabled={approveReason !== undefined} disabledReason={approveReason} onClick={approve.run}>
+                {t('approval.approve')}
+              </Button>
+            )}
             <Button variant="secondary" icon={Save} loading={save.busy} disabled={!changed} disabledReason={t('approval.nothingToSave')} onClick={save.run}>{t('approval.saveEdits')}</Button>
             <Button variant="ghost" icon={X} className="ms-auto text-danger-fg" offlineOk onClick={() => setRejecting(true)}>{t('approval.reject')}</Button>
           </>
@@ -203,7 +235,7 @@ function SendStep({ item }) {
   }
   return (
     <>
-      <li><a className={LINK_BUTTON_CLASS} href={whatsappHref(item)} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" size={16} />1. {t('approval.openWhatsapp')}</a></li>
+      <li><a className={LINK_BUTTON_CLASS} href={whatsappUrl(item)} target="_blank" rel="noopener noreferrer"><MessageCircle aria-hidden="true" size={16} />1. {t('approval.openWhatsapp')}</a></li>
       <li>{copy}</li>
     </>
   );
@@ -224,16 +256,23 @@ function ApprovedActions({ item, onDone }) {
     await post(`/approvals/${item.id}/mark-sent`);
     complete(t('toast.markedSent'), 'sent');
   });
+  const send = useApproveAndSend(item, (message) => complete(message, 'sent'));
   if (!MESSAGE_KINDS.includes(item.kind)) return <Notice>{t('approval.briefSaved')}</Notice>;
   const lastStep = item.channel === 'linkedin' ? 3 : 2;
   return (
     <div className="space-y-3">
-      <ErrorBox message={markSent.error} />
-      <Notice tone="signal" icon={Send}>{t(`approval.manualSend.${item.channel}`)}</Notice>
-      <ol className="flex flex-wrap items-center gap-2">
-        <SendStep item={item} />
-        <li><Button variant="success" icon={Send} loading={markSent.busy} onClick={markSent.run}>{lastStep}. {t('approval.markSent')}</Button></li>
-      </ol>
+      <ErrorBox message={send.error ?? markSent.error} />
+      <Button variant="success" icon={Send} loading={send.busy} loadingLabel={t('approval.sending')} onClick={send.run}>{t('approval.sendNow')}</Button>
+      <details className="text-sm">
+        <summary className="cursor-pointer text-link">{t('approval.sendManually')}</summary>
+        <div className="mt-3 space-y-3">
+          <Notice tone="signal" icon={Send}>{t(`approval.manualSend.${item.channel}`)}</Notice>
+          <ol className="flex flex-wrap items-center gap-2">
+            <SendStep item={item} />
+            <li><Button variant="secondary" icon={Send} loading={markSent.busy} onClick={markSent.run}>{lastStep}. {t('approval.markSent')}</Button></li>
+          </ol>
+        </div>
+      </details>
     </div>
   );
 }

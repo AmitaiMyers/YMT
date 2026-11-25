@@ -128,7 +128,7 @@ function PersonPicker({ person, onChange }) {
  * @param {{ open: boolean, onClose: () => void, onScheduled: (result) => void,
  *   initialStart?: string, company?: { id: number, name: string, deals?: Array<{ id: number, title: string }> } }} props
  */
-export function ScheduleMeetingDialog({ open, onClose, onScheduled, initialStart, company }) {
+export function ScheduleMeetingDialog({ open, onClose, onScheduled, initialStart, company, initialDealId = null }) {
   const { t } = useI18n();
   const format = useFormat();
   const toast = useToast();
@@ -139,7 +139,7 @@ export function ScheduleMeetingDialog({ open, onClose, onScheduled, initialStart
   const formId = useId();
   const blank = () => ({
     title: '', scheduled_at: isoToLocalInput(initialStart ?? nextHalfHour()), duration_minutes: '60', location: '',
-    organization: '', deal_id: '', add_to_google: true, send_invite: false,
+    organization: '', deal_id: initialDealId === null ? '' : String(initialDealId), add_to_google: true, send_invite: false,
   });
   const [form, setForm] = useState(blank);
   const [person, setPerson] = useState(null);

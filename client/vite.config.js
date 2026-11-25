@@ -22,8 +22,8 @@ export default defineConfig({
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui'],
         orientation: 'any', // phones in portrait, tablets and desktops in any orientation
-        background_color: '#0F2A4A',
-        theme_color: '#0F2A4A',
+        background_color: '#FFFFFF',
+        theme_color: '#0A2E5C',
         categories: ['business', 'productivity'],
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

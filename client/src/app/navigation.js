@@ -1,6 +1,6 @@
 // Single navigation map shared by the sidebar, the mobile tab bar, the command palette and shortcuts.
 
-import { Inbox, ListChecks, CalendarDays, Radar, SquareKanban, Building2, FileText, Network, LayoutDashboard, Settings, ScanSearch, Target, ChartColumn, ClipboardList, MessagesSquare } from 'lucide-react';
+import { Route as RouteIcon, Inbox, ListChecks, CalendarDays, Radar, SquareKanban, Building2, FileText, Network, LayoutDashboard, Settings, ScanSearch, Target, ChartColumn, ClipboardList, MessagesSquare } from 'lucide-react';
 
 export const NAV_GROUPS = [
   { key: 'today', items: [
@@ -9,6 +9,7 @@ export const NAV_GROUPS = [
     { to: '/calendar', key: 'nav.calendar', icon: CalendarDays, hotkey: 'g m' },
   ] },
   { key: 'research', items: [
+    { to: '/flow', key: 'nav.flow', icon: RouteIcon, hotkey: 'g f', mobile: true },
     { to: '/research', key: 'nav.research', icon: ScanSearch, end: true, hotkey: 'g r', count: 'research', mobile: true },
     { to: '/conversations', key: 'nav.conversations', icon: MessagesSquare, hotkey: 'g v', count: 'conversations' },
     { to: '/research/mandates', key: 'nav.mandates', icon: Target, hotkey: 'g e' },

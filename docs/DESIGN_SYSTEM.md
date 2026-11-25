@@ -234,3 +234,83 @@ client/src/
 | Extras | Safe areas (notch, home bar), `viewport-fit=cover` | | App shortcuts in the dock/taskbar (Inbox, Approvals, Pipeline, New company), Ctrl/⌘+K |
 
 The manifest provides `any` and `maskable` icons, install-dialog screenshots for both form factors (`narrow` and `wide`), and `display: standalone`. The service worker precaches only the app shell and the self-hosted font; API data is never cached. Each screen is code-split and downloads on first visit.
+
+---
+
+## 6. Lead flow & brand refresh (25.11.2026)
+
+Goal: make YMT's whole flow obvious and fast – **run agent → find companies → read the summary → approve/reject → send the
+AI's first message → wait → reply / second message → meeting → close the deal** – on desktop first, in the same calm
+design language, now in the YMT brand colours.
+
+### 6.1 Brand palette (from the logo)
+
+| Token | Light | Use |
+|---|---|---|
+| `--brand-blue` / `--primary` | `#0B4A8F` | Primary buttons, current step, headings accents (9.0 : 1 on white) |
+| `--brand-sky` / `--chart` | `#1E88E5` | Progress, charts, focus glow (3.7 : 1 – graphics only) |
+| `--brand-cyan` | `#29B6F6` | The logo's orbit; decorative only |
+| `--brand-green` | `#6AB04C` | The logo's leaf; brand moments |
+| `--success` | `#2E7D32` | Done steps, "won" (5.1 : 1 with white text) |
+| `--link` / `--focus` | `#1565C0` | Links and the keyboard focus ring (5.7 : 1) |
+| `--sidebar` | `#0A2E5C` | Navigation |
+| `--brand-gradient` | leaf → cyan → deep blue | The next-step accent bar and the sign-in panel |
+
+Signal amber keeps its single meaning: **this is waiting for you**. Typography (Heebo), spacing (4/8 grid), radii
+(6 / 10 / 14 / 16) and the motion tokens are unchanged. The logo is a vector redraw (`public/brand/ymt-mark.svg`) until the
+original artwork is added; the sign-in background is `public/brand/login-background.*`.
+
+### 6.2 Information architecture
+
+- **Lead flow** (`/flow`) is the home of the Focused view: a board with **one column per step** – To review, Approved,
+  First message, Waiting for reply, Replied, Meeting, Closed. Every card shows the company, agent, score, days at the step
+  and **one next action**; cards that wait for you carry an amber edge and an amber action chip. Empty steps stay narrow
+  so all seven fit a laptop screen; steps with cards share the width and the board scrolls sideways only when needed.
+- **Run agent** sits on the board (top right, and inside the empty "To review" column): pick an agent (only active ones
+  with an owner can run), how many companies and the source. While agents search, a live strip says so and the board
+  refreshes itself.
+- **The company's journey page** (the research card) opens with the **journey bar** (the same seven steps: done = green
+  check, current = brand blue with a soft pulse, lost = red) and the **Next step** panel: the action as the title, one
+  sentence of why, and the button that does it. Everything below (evidence, score, decision makers, first approach,
+  company facts) supports that one decision.
+
+### 6.3 The one next action
+
+| Step | Next action | What the button does |
+|---|---|---|
+| To review | Approve or reject | **Approve** (one click, stays on the page, opens the deal) · *Reject or another decision* scrolls to the decision panel |
+| Approved | Choose who to contact | Scrolls to and flashes the decision makers the agent found |
+| Approved (contact saved) | Write the first message | Scrolls to the first-approach panel (person, channel, *Draft with AI*) |
+| First message | Approve & send | Opens the message in a side sheet: edit, then **Approve & send** |
+| Waiting | Waiting for a reply | Says when a second message becomes due; *They replied? Add their reply* |
+| Waiting (due) | Send a second message | The AI drafts it and the side sheet opens |
+| Replied | Answer the reply / Approve & send the answer | Opens the conversation or the drafted answer |
+| Replied (answered) | Schedule a meeting | The meeting dialog, pre-filled with the company and its deal |
+| Meeting | Meeting on … / Summarize the meeting | Calendar / the meeting summary |
+| Meeting (done) | Close the deal | **Won** / **Lost** |
+| Closed | Deal won / lost | Open the deal |
+
+The stage and action are **computed on the server** from cards, messages, replies, meetings and deals
+(`server/src/research/journey.js`), so the board can never drift from reality.
+
+### 6.4 Approve & send (one click)
+
+Messages are still never sent by the app. **Approve & send** asks once ("Gmail opens with the message to …; press Send
+there; it is recorded as sent now"), then approves, records the message as sent and opens it: **Gmail compose** for email,
+**WhatsApp click-to-chat**, or the **LinkedIn profile with the text copied**. The tab is opened during the click (browsers
+block later pop-ups) and closed again if the server refuses; a blocked pop-up stops before anything is recorded.
+*Send manually* stays available under the button.
+
+### 6.5 Interaction & feedback
+
+- Hover/focus on a board card lifts it 2 px with a stronger shadow; the whole card is one link (keyboard: Tab, Enter).
+- The current journey dot pulses softly; completed dots pop in with a check; a won deal turns the next-step icon green.
+- Scrolling to a section flashes a soft blue ring around it and moves keyboard focus to its first control.
+- Every action button shows its own loading label; errors appear in place, in words; success is a toast.
+- All motion is disabled by `prefers-reduced-motion`.
+
+### 6.6 Accessibility
+
+Board columns are labelled regions with counts announced ("3 cards"), the journey bar is an ordered list with
+`aria-current="step"` and a spoken state per step, colour is never the only signal (icons + text everywhere), and every
+screen passed axe (WCAG 2.2 AA, serious/critical) in English and Hebrew.
