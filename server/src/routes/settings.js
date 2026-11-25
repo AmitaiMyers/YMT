@@ -6,7 +6,8 @@ import path from 'node:path';
 import { parseBody } from '../validate.js';
 import { getSettings, count, audit } from '../db.js';
 import { requireAdmin } from '../auth.js';
-import { badRequest } from '../http.js';
+import { badRequest, forbidden } from '../http.js';
+import { exportCardsCsv } from '../research/exportCards.js';
 import { MAX_FOLLOWUPS_HARD_LIMIT, VIEW_MODES } from '../constants.js';
 
 const SETTINGS_SPEC = {
@@ -22,12 +23,7 @@ const SETTINGS_SPEC = {
 
 const VIEW_MODE_SPEC = { view_mode: { type: 'string', required: true, enum: VIEW_MODES } };
 
-const EXPORT_SPEC = {
-  filename: { type: 'string', required: true, max: 90 },
-  content: { type: 'text', required: true, max: 900_000 }, // within the 1 MB request limit: thousands of rows
-};
-// Only plain file names inside the exports folder (no paths, no other extensions).
-const EXPORT_NAME_RE = /^[a-z0-9][a-z0-9-]{0,80}\.csv$/;
+const EXPORT_COMPANIES_SPEC = { owner: { type: 'string', required: true, enum: ['me', 'all'] } };
 
 const COUNTED_TABLES = ['users', 'companies', 'contacts', 'triggers', 'deals', 'interactions', 'approvals',
   'meetings', 'tasks', 'documents', 'signatures', 'resources', 'share_links', 'opportunities', 'sources', 'facts', 'suppressions', 'replies', 'approved_answers', 'discovery_requests', 'audit_log'];
@@ -94,19 +90,22 @@ export function settingsRoutes(db, { dbPath, hostingLocation, googleEnabled, aiP
   }
 
   /**
-   * Save an export (e.g. the Lead flow companies as CSV) in DATA_DIR/exports, next to the database, so it stays with
-   * YMT's data. A UTF-8 byte-order mark is added so Excel shows Hebrew correctly. Returns the saved file's full path.
+   * The full company export (every research card with everything known about it, see research/exportCards.js), saved
+   * in DATA_DIR/exports next to the database so it stays with YMT's data. A UTF-8 byte-order mark is added so Excel
+   * shows Hebrew correctly. Members export their own cards; admins can export everyone's.
    */
-  router.post('/exports', (req, res) => {
+  router.post('/exports/companies', (req, res) => {
     if (dbPath === ':memory:') throw badRequest('Exports need a database file (DATA_DIR)');
-    const { filename, content } = parseBody(EXPORT_SPEC, req.body);
-    if (!EXPORT_NAME_RE.test(filename)) throw badRequest('filename must look like name.csv (lowercase letters, digits and dashes)');
+    const { owner } = parseBody(EXPORT_COMPANIES_SPEC, req.body);
+    if (owner === 'all' && req.user.role !== 'admin') throw forbidden('Admin role required');
+    const { csv, count: rows } = exportCardsCsv(db, { ownerId: owner === 'all' ? null : req.user.id });
     const exportDir = path.join(path.dirname(dbPath), 'exports');
     mkdirSync(exportDir, { recursive: true });
-    const exportPath = path.join(exportDir, filename);
-    writeFileSync(exportPath, `\uFEFF${content}`, 'utf8');
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    const exportPath = path.join(exportDir, `ymt-companies-${stamp}.csv`);
+    writeFileSync(exportPath, `\uFEFF${csv}`, 'utf8');
     audit(db, req.user.id, 'export.saved', 'settings', null, exportPath);
-    res.status(201).json({ path: exportPath });
+    res.status(201).json({ path: exportPath, count: rows });
   });
 
   router.post('/settings/backup', requireAdmin, (req, res) => {

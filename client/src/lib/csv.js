@@ -38,18 +38,3 @@ export function parseCsv(text, delimiter) {
   if (cell !== '' || row.length > 0) { row.push(cell); rows.push(row); }
   return rows.map((r) => r.map((value) => value.trim())).filter((r) => r.some((value) => value !== ''));
 }
-
-/** One CSV cell: quoted when it holds a comma, quote or line break (RFC 4180). */
-function csvCell(value) {
-  const text = value === null || value === undefined ? '' : String(value);
-  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
-
-/**
- * Rows as CSV text (RFC 4180, CRLF line ends).
- * @param {string[]} header
- * @param {Array<Array<unknown>>} rows
- */
-export function toCsv(header, rows) {
-  return [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
-}

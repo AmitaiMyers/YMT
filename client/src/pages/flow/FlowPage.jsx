@@ -15,7 +15,6 @@ import { usePolling } from '../research/MandatesPage.jsx';
 import { RunAgentDialog } from './RunAgentDialog.jsx';
 import { ACTION_ICONS, STAGE_ICONS, needsYou, useActionLabel, daysSince } from './journey.jsx';
 import { JOURNEY_STAGES } from '../../../../shared/enums.js';
-import { toCsv } from '../../lib/csv.js';
 
 function FlowCard({ card, showOwner }) {
   const { t } = useI18n();
@@ -96,30 +95,17 @@ function RunningAgents({ runs }) {
 }
 
 /**
- * The companies on the board as a CSV file, saved in the CRM's data folder (data/exports). "Company", "Website",
- * "Country" and "Notes" are the headers the watch-list import recognises, so the file can be uploaded back as a list;
- * the other columns are for reading.
+ * Every company card (also rejected and deferred ones) with everything the CRM knows about it, as one CSV file in the
+ * CRM's data folder (data/exports) – built on the server so nothing is left out. Its first columns are the ones the
+ * watch-list import recognises, so the file also loads back as a list.
  */
 function useExportCsv() {
   const { t } = useI18n();
-  const format = useFormat();
   const toast = useToast();
-  const actionLabel = useActionLabel();
-  return useAction(async (cards) => {
-    const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
-    const { path } = await post('/exports', { filename: `ymt-companies-${stamp}.csv`, content: csvOf(cards) });
-    toast({ title: t('flow.exported', { count: cards.length }), body: <bdi dir="ltr" className="break-all">{path}</bdi>, duration: 12_000 });
+  return useAction(async (owner) => {
+    const { path, count } = await post('/exports/companies', { owner });
+    toast({ title: t('flow.exported', { count }), body: <bdi dir="ltr" className="break-all">{path}</bdi>, duration: 12_000 });
   });
-
-  function csvOf(cards) {
-    return toCsv(['Company', 'Website', 'Country', 'Notes', 'Agent', 'Step', 'Next action', 'Score', 'Tier', 'Target country', 'Business need', 'Owner'],
-    cards.map((card) => [
-      card.company_name, card.company_website, card.company_country === 'unknown' ? '' : card.company_country,
-      [card.mandate_code, t(`journeyStage.${card.journey.stage}`)].filter(Boolean).join(' · '),
-      card.mandate_code ?? '', t(`journeyStage.${card.journey.stage}`), actionLabel(card.journey.next, format),
-      card.score, card.tier, card.target_country, card.business_need, card.owner_name ?? '',
-    ]));
-  }
 }
 
 export function FlowPage() {
@@ -144,7 +130,7 @@ export function FlowPage() {
               {scope === 'me' ? t('research.showAll') : t('research.showMine')}
             </Button>
           )}
-          <Button variant="secondary" icon={Download} loading={exportCsv.busy} disabled={!result.data || result.data.cards.length === 0} disabledReason={t('flow.nothingToExport')} onClick={() => exportCsv.run(result.data.cards)}>
+          <Button variant="secondary" icon={Download} loading={exportCsv.busy} onClick={() => exportCsv.run(scope)}>
             {t('flow.exportCsv')}
           </Button>
           <Button icon={Sparkles} onClick={() => setRunning(true)}>{t('flow.runAgent')}</Button>

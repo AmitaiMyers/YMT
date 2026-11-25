@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { openDatabase, insert } from '../src/db.js';
 import { createApp } from '../src/app.js';
 import { createUser } from '../src/auth.js';
+import { exportCardsCsv } from '../src/research/exportCards.js';
 
 let server;
 let baseUrl;
@@ -99,6 +100,16 @@ test('a company walks the whole flow; the board always shows its stage and the n
   assert.equal((await call('shir', 'PATCH', `/deals/${dealId}`, { status: 'won' })).status, 200);
   const closed = await boardRow();
   assert.deepEqual([closed.journey.stage, closed.journey.next.kind, closed.journey.next.outcome], ['closed', 'done', 'won']);
+
+  // The full export carries the whole story: deal, sent message, reply and meeting.
+  const { csv } = exportCardsCsv(db, { ownerId: null });
+  const [header, row] = csv.split('\r\n').map((line) => line.split(','));
+  const cell = (column) => row[header.indexOf(column)];
+  assert.equal(cell('Flow step'), 'closed');
+  assert.equal(cell('Messages sent'), '1');
+  assert.match(cell('Deal'), / · won/);
+  assert.match(cell('Replies'), / · email/);
+  assert.match(cell('Meetings'), / · done · Acme – intro/);
 });
 
 test('rejected cards leave the board; only messages can be approved & sent', async () => {
