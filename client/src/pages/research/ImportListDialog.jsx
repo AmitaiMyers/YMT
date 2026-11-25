@@ -3,11 +3,11 @@
 // Creates a new watch list, or adds to an existing one when `list` is given. Duplicates are skipped by the server.
 
 import { useMemo, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { useAction } from '../../hooks/useApi.js';
 import { post } from '../../api.js';
-import { Dialog, Button, ErrorBox, Table, Notice, FilePicker } from '../../ui/index.js';
+import { Dialog, Button, IconButton, ErrorBox, Table, Notice, FilePicker } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { readRows, isExcel, SPREADSHEET_ACCEPT } from '../../lib/spreadsheet.js';
 
@@ -28,7 +28,6 @@ const GUESSES = {
   country: /country|מדינה/i,
   notes: /note|remark|comment|הערה|הערות|תיאור/i,
 };
-const PREVIEW_ROWS = 5;
 
 function guessMapping(header) {
   const used = new Set();
@@ -50,12 +49,15 @@ export function ImportListDialog({ open, list = null, onClose, onImported }) {
   const [name, setName] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
   const [sourceNote, setSourceNote] = useState('');
+  // Rows the user left out (indexes into the file's rows), so one unwanted company does not need a new file.
+  const [removed, setRemoved] = useState(() => new Set());
 
   const read = useAction(async (nextFile, nextEncoding) => {
     setFile(nextFile);
     if (!nextFile) return;
     const nextRows = await readRows(nextFile, nextEncoding);
     setRows(nextRows);
+    setRemoved(new Set());
     setMapping(guessMapping(nextRows[0] ?? []));
     if (!list && name === '') setName(nextFile.name.replace(/\.[^.]+$/, ''));
   });
@@ -63,9 +65,13 @@ export function ImportListDialog({ open, list = null, onClose, onImported }) {
 
   const header = rows[0] ?? [];
   const body = rows.slice(1);
-  const entries = useMemo(() => (mapping && mapping.name !== '' ? body.map((row) => Object.fromEntries(
-    TARGETS.map((target) => [target, mapping[target] === '' ? null : (row[Number(mapping[target])] ?? '') || null]),
-  )).filter((entry) => entry.name !== null) : []), [body, mapping]);
+  const mapped = useMemo(() => (mapping && mapping.name !== '' ? body.map((row, index) => ({
+    key: index,
+    ...Object.fromEntries(TARGETS.map((target) => [target, mapping[target] === '' ? null : (row[Number(mapping[target])] ?? '') || null])),
+  })).filter((row) => row.name !== null) : []), [body, mapping]);
+  const kept = mapped.filter((row) => !removed.has(row.key));
+  const entries = kept.map((row) => Object.fromEntries(TARGETS.map((target) => [target, row[target]])));
+  const leaveOut = (key) => setRemoved((previous) => new Set(previous).add(key));
 
   const submit = useAction(async () => {
     const result = list
@@ -122,14 +128,29 @@ export function ImportListDialog({ open, list = null, onClose, onImported }) {
         )}
         {mapping && (
           <div>
-            <p className="mb-2 text-sm text-muted">{t('watch.preview', { count: entries.length })}</p>
-            <Table
-              caption={t('watch.previewCaption')}
-              rowKey="key"
-              columns={TARGETS.map((target) => ({ key: target, label: t(`watch.field.${target}`) }))}
-              rows={entries.slice(0, PREVIEW_ROWS).map((entry, index) => ({ ...entry, key: index }))}
-              empty={<Notice tone="signal">{t('watch.noRows')}</Notice>}
-            />
+            <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+              <span>{t('watch.preview', { count: entries.length })}</span>
+              {removed.size > 0 && (
+                <>
+                  <span>· {t('watch.leftOut', { count: removed.size })}</span>
+                  <Button variant="ghost" size="sm" onClick={() => setRemoved(new Set())}>{t('watch.bringBack')}</Button>
+                </>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              <Table
+                caption={t('watch.previewCaption')}
+                rowKey="key"
+                columns={[
+                  ...TARGETS.map((target) => ({ key: target, label: t(`watch.field.${target}`) })),
+                  { key: 'leave-out', label: <span className="sr-only">{t('watch.leaveOutColumn')}</span>, render: (row) => (
+                    <IconButton icon={X} label={t('watch.leaveOut', { name: row.name })} className="-my-2" onClick={() => leaveOut(row.key)} />
+                  ) },
+                ]}
+                rows={kept}
+                empty={<Notice tone="signal">{t('watch.noRows')}</Notice>}
+              />
+            </div>
           </div>
         )}
         {read.error && <ErrorBox message={read.error} />}
