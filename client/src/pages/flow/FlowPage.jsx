@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Bot, Sparkles } from 'lucide-react';
+import { Play, Bot, Sparkles, Download } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useLoad } from '../../hooks/useApi.js';
 import { toQuery } from '../../api.js';
@@ -15,6 +15,7 @@ import { usePolling } from '../research/MandatesPage.jsx';
 import { RunAgentDialog } from './RunAgentDialog.jsx';
 import { ACTION_ICONS, STAGE_ICONS, needsYou, useActionLabel, daysSince } from './journey.jsx';
 import { JOURNEY_STAGES } from '../../../../shared/enums.js';
+import { downloadCsv } from '../../lib/csv.js';
 
 function FlowCard({ card, showOwner }) {
   const { t } = useI18n();
@@ -94,6 +95,24 @@ function RunningAgents({ runs }) {
   );
 }
 
+/**
+ * The companies on the board as a CSV file. "Company", "Website", "Country" and "Notes" are the headers the
+ * watch-list import recognises, so the file can be uploaded back as a list; the other columns are for reading.
+ */
+function useExportCsv() {
+  const { t } = useI18n();
+  const format = useFormat();
+  const actionLabel = useActionLabel();
+  return (cards) => downloadCsv(`ymt-companies-${new Date().toISOString().slice(0, 10)}.csv`,
+    ['Company', 'Website', 'Country', 'Notes', 'Agent', 'Step', 'Next action', 'Score', 'Tier', 'Target country', 'Business need', 'Owner'],
+    cards.map((card) => [
+      card.company_name, card.company_website, card.company_country === 'unknown' ? '' : card.company_country,
+      [card.mandate_code, t(`journeyStage.${card.journey.stage}`)].filter(Boolean).join(' · '),
+      card.mandate_code ?? '', t(`journeyStage.${card.journey.stage}`), actionLabel(card.journey.next, format),
+      card.score, card.tier, card.target_country, card.business_need, card.owner_name ?? '',
+    ]));
+}
+
 export function FlowPage() {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -102,6 +121,7 @@ export function FlowPage() {
   const [scope, setScope] = useState('me');
   const [running, setRunning] = useState(false);
   const result = useLoad(`/flow${toQuery({ owner: scope })}`);
+  const exportCsv = useExportCsv();
   usePolling(result, Boolean(result.data && result.data.runs.length > 0));
 
   const header = (
@@ -115,6 +135,9 @@ export function FlowPage() {
               {scope === 'me' ? t('research.showAll') : t('research.showMine')}
             </Button>
           )}
+          <Button variant="secondary" icon={Download} disabled={!result.data || result.data.cards.length === 0} disabledReason={t('flow.nothingToExport')} onClick={() => exportCsv(result.data.cards)}>
+            {t('flow.exportCsv')}
+          </Button>
           <Button icon={Sparkles} onClick={() => setRunning(true)}>{t('flow.runAgent')}</Button>
         </>
       )}

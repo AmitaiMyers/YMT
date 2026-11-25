@@ -210,7 +210,7 @@ function dateRange(query) {
 const CARD_LIST_SQL = `
   SELECT o.id, o.status, o.verdict, o.flags, o.unknowns, o.evidence_date, o.target_country, o.need_type, o.business_need,
     o.relationship_role, o.created_at, o.decided_at, o.decision_reason, o.owner_id, o.mandate_id,
-    c.id AS company_id, c.name AS company_name, c.sector, c.israel_connection, c.employees_min, c.employees_max,
+    c.id AS company_id, c.name AS company_name, c.website AS company_website, c.country AS company_country, c.sector, c.israel_connection, c.employees_min, c.employees_max,
     c.revenue_usd_min, c.revenue_usd_max, m.code AS mandate_code, u.display_name AS owner_name
   FROM opportunities o
   JOIN companies c ON c.id = o.company_id
