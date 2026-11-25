@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YMT CRM – Install</title>
+<style>
+  :root { --bg: #F6F8FB; --surface: #FFFFFF; --text: #172B45; --muted: #56697F; --line: #E1E8F0; --blue: #0B4A8F; --code: #0A2E5C; --warn-bg: #FFF7E6; --warn: #92400E; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0A1220; --surface: #101B2E; --text: #E2E8F0; --muted: #94A3B8; --line: #1E2B45; --blue: #7EB3F2; --code: #081B36; --warn-bg: #2A2110; --warn: #FBBF24; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, "Segoe UI", Arial, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  .lede { margin: 0 0 28px; color: var(--muted); }
+  ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  ol.steps > li { counter-increment: step; position: relative; margin: 0 0 16px; padding: 18px 18px 18px 64px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  ol.steps > li::before { content: counter(step); position: absolute; left: 18px; top: 18px; width: 32px; height: 32px; border-radius: 50%; background: var(--blue); color: var(--surface); font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  h2 { margin: 2px 0 8px; font-size: 18px; }
+  p { margin: 6px 0; }
+  pre { margin: 10px 0 4px; padding: 12px 14px; background: var(--code); color: #E2E8F0; border-radius: 8px; overflow-x: auto; font: 14px/1.5 ui-monospace, Consolas, monospace; }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 0.92em; }
+  a { color: var(--blue); }
+  .note { margin: 10px 0 0; padding: 10px 12px; background: var(--warn-bg); color: var(--warn); border-radius: 8px; font-size: 14px; }
+  .small { color: var(--muted); font-size: 14px; }
+  section.extra { margin-top: 28px; padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+  section.extra h2 { margin-top: 0; }
+  ul { margin: 6px 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Install the YMT CRM on a new computer</h1>
+  <p class="lede">About 15 minutes. Windows commands are shown (PowerShell); on a Mac use Terminal – the commands are the same.</p>
+
+  <ol class="steps">
+    <li>
+      <h2>Install Node.js 22 and Git</h2>
+      <p>Node.js: <a href="https://nodejs.org">nodejs.org</a> → download <strong>22.x LTS</strong> → install with the defaults.</p>
+      <p>Git: <a href="https://git-scm.com/downloads">git-scm.com/downloads</a> → install with the defaults.</p>
+      <p>Close and reopen PowerShell, then check:</p>
+      <pre>node -v
+git --version</pre>
+      <p class="small"><code>node -v</code> must show <strong>v22.13</strong> or newer.</p>
+    </li>
+
+    <li>
+      <h2>Download the code</h2>
+      <pre>mkdir C:\code
+cd C:\code
+git clone https://github.com/AmitaiMyers/YMT.git ymt
+cd ymt
+git checkout claude/ymt-group-pwa-mvp-45memd</pre>
+      <p class="note">The repository is private: sign in with a GitHub account that has access when Git asks.</p>
+    </li>
+
+    <li>
+      <h2>Install the app's packages</h2>
+      <pre>npm install</pre>
+    </li>
+
+    <li>
+      <h2>Create the settings file</h2>
+      <pre>copy .env.example .env
+notepad .env</pre>
+      <p>To use the AI agents, add your Claude API key as a new line, then save:</p>
+      <pre>ANTHROPIC_API_KEY=sk-ant-...</pre>
+      <p class="small">Never share this file; it is not uploaded to GitHub.</p>
+    </li>
+
+    <li>
+      <h2>Create your admin user</h2>
+      <pre>npm run user:create -- --username amitai --name "Amitai" --password "choose-10-plus-chars" --admin</pre>
+      <p class="small">Optional – sample data to try things out: <code>npm run seed:demo</code></p>
+    </li>
+
+    <li>
+      <h2>Start the CRM</h2>
+      <pre>npm run dev</pre>
+      <p>Open <a href="http://localhost:5173">http://localhost:5173</a> and sign in. Keep the PowerShell window open while you work; <strong>Ctrl+C</strong> stops the app.</p>
+    </li>
+  </ol>
+
+  <section class="extra">
+    <h2>Every day after that</h2>
+    <pre>cd C:\code\ymt
+npm run dev</pre>
+    <h2>Get the latest version</h2>
+    <pre>cd C:\code\ymt
+git pull origin claude/ymt-group-pwa-mvp-45memd
+npm install
+npm run dev</pre>
+    <h2>If something goes wrong</h2>
+    <ul>
+      <li><strong>"engine" or "Unsupported engine" error</strong> – Node.js is older than 22.13. Install Node 22 (step 1) and run <code>npm install</code> again.</li>
+      <li><strong>"'npm' / 'git' is not recognized"</strong> – close and reopen PowerShell after installing.</li>
+      <li><strong>"address already in use"</strong> – the CRM is already running in another window; use that one or close it.</li>
+      <li><strong>The page doesn't change after an update</strong> – press <strong>Ctrl+F5</strong>.</li>
+    </ul>
+    <p class="small">Your data stays on this computer, in <code>C:\code\ymt\data</code>. Back up that folder.</p>
+  </section>
+</main>
+</body>
+</html>
