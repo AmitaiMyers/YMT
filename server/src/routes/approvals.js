@@ -3,7 +3,7 @@
 import { Router } from 'express';
 import { parseBody, parseId, parseOptionalEnum } from '../validate.js';
 import { findById } from '../db.js';
-import { editPendingApproval, approve, reject, markSent, SELECT_APPROVALS } from '../approvalQueue.js';
+import { editPendingApproval, approve, reject, markSent, approveAndSend, SELECT_APPROVALS } from '../approvalQueue.js';
 import { APPROVAL_STATUSES } from '../constants.js';
 
 const EDIT_SPEC = {
@@ -46,6 +46,11 @@ export function approvalRoutes(db) {
 
   router.post('/approvals/:id/reject', (req, res) => {
     reject(db, req.user.id, parseId(req.params.id), parseBody(REJECT_SPEC, req.body).note);
+    res.json({ ok: true });
+  });
+
+  router.post('/approvals/:id/approve-and-send', (req, res) => {
+    approveAndSend(db, req.user.id, parseId(req.params.id));
     res.json({ ok: true });
   });
 

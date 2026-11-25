@@ -134,3 +134,10 @@ export const VIEW_MODES = ['focus', 'full'];
 // ---------------------------------------------------------------- Data sources (25.11.2026)
 // Paid data providers YMT can connect with an API key (Settings → Data sources): companies into watch lists, decision makers on cards.
 export const DATA_SOURCES = ['apollo', 'lusha'];
+
+// ---------------------------------------------------------------- Lead flow (25.11.2026)
+// The board's columns: where a research card stands, from the agent's find to the closed deal (server/src/research/journey.js).
+export const JOURNEY_STAGES = ['review', 'approved', 'message', 'waiting', 'replied', 'meeting', 'closed'];
+// The one next action of a card at its stage.
+export const JOURNEY_ACTIONS = ['decide', 'assign', 'pick_contact', 'draft_message', 'send', 'wait', 'followup', 'answer', 'schedule',
+  'meeting_upcoming', 'summarize', 'close', 'done'];

@@ -22,6 +22,7 @@ import { replaceExclusions, MAX_EXCLUSION_ROWS } from '../research/exclusions.js
 import { recordInteraction } from '../timeline.js';
 import { isAdmin, assertCanSee } from '../research/access.js';
 import { outreachPanel } from '../outreach.js';
+import { journeyFor } from '../research/journey.js';
 
 const MANDATE_FIELDS_SPEC = {
   name: { type: 'string', max: 120 },
@@ -396,6 +397,27 @@ export function researchRoutes(db, { ai }) {
     res.json(withScores(rows, waiting));
   });
 
+  /**
+   * The lead flow board: every card still in the flow (not rejected or deferred) with its stage and next action, plus
+   * the agent runs in progress. Members see their own cards; admins can see everyone's (and cards without an owner).
+   */
+  router.get('/flow', (req, res) => {
+    const scope = parseOptionalEnum(req.query.owner, 'owner', ['me', 'all']) ?? 'me';
+    if (scope === 'all' && !isAdmin(req.user)) throw forbidden('Admin role required');
+    const conditions = ["o.status NOT IN ('rejected', 'deferred')"];
+    const params = [];
+    if (scope === 'me') {
+      conditions.push('o.owner_id = ?');
+      params.push(req.user.id);
+    }
+    const rows = db.prepare(`${CARD_LIST_SQL} WHERE ${conditions.join(' AND ')} ORDER BY o.id DESC LIMIT 500`).all(...params);
+    const now = new Date();
+    const cards = withScores(rows, false).map((card) => ({ ...card, journey: journeyFor(db, findById(db, 'opportunities', card.id), now) }));
+    const runs = db.prepare(`SELECT r.id, r.status, r.batch_size, r.created_at, m.code AS mandate_code, m.name AS mandate_name
+      FROM research_runs r JOIN mandates m ON m.id = r.mandate_id WHERE r.status IN ('queued', 'running') ORDER BY r.id`).all();
+    res.json({ cards, runs });
+  });
+
   router.get('/research/counts', (req, res) => {
     const queue = db.prepare(`SELECT COUNT(*) AS n FROM opportunities WHERE owner_id = ? AND status IN ('draft', 'needs_review')`).get(req.user.id).n;
     const manual = isAdmin(req.user) ? db.prepare("SELECT COUNT(*) AS n FROM opportunities WHERE status = 'manual_assignment'").get().n : 0;
@@ -440,6 +462,7 @@ export function researchRoutes(db, { ai }) {
       aliases: db.prepare('SELECT name, source_url FROM company_aliases WHERE company_id = ? ORDER BY name').all(company.id),
       mandate_floor_usd: card.mandate_version_id ? findById(db, 'mandate_versions', card.mandate_version_id).revenue_floor_usd : null,
       live_check: LIVE_TRIGGER_KINDS.includes(card.trigger_kind),
+      journey: journeyFor(db, findById(db, 'opportunities', id)),
     });
   });
 

@@ -76,6 +76,17 @@ export function followupsCommitted(db, dealId) {
 }
 
 /**
+ * "Approve & send" (25.11.2026): one click approves the message (if still pending) and records it as sent, while the
+ * screen opens it in the person's own Gmail, LinkedIn or WhatsApp to press Send there. Every check of both steps runs.
+ */
+export function approveAndSend(db, userId, id) {
+  const approval = findById(db, 'approvals', id);
+  if (!MESSAGE_KINDS.includes(approval.kind)) throw badRequest('Only messages can be sent');
+  if (approval.status === 'pending') approve(db, userId, id, null);
+  markSent(db, userId, id);
+}
+
+/**
  * A staff member confirms they personally sent this approved message (from their own mailbox, LinkedIn or WhatsApp).
  * The system records the touchpoint in the timeline; it never sends anything itself. An opt-out that arrived after
  * the approval still blocks it.
