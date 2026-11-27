@@ -8,12 +8,14 @@
 import { toCsv } from '../../../shared/csv.js';
 import { scoreOpportunity, servicesMap } from './scoring.js';
 import { journeyFor } from './journey.js';
-import { LIST_SEPARATOR as LIST, CONTACTS_COLUMN } from '../../../shared/cardColumns.js';
+import { LIST_SEPARATOR as LIST, CONTACTS_COLUMN, MESSAGES_COLUMN, MEETINGS_COLUMN } from '../../../shared/cardColumns.js';
 
 const PART = ' · ';
 const join = (values) => values.filter((value) => value !== null && value !== undefined && value !== '').join(PART);
 const parseList = (json) => (json ? JSON.parse(json) : []);
 const yesNo = (flag) => (flag === null ? '' : flag === 1 ? 'yes' : 'no');
+const jsonOrEmpty = (rows) => (rows.length === 0 ? '' : JSON.stringify(rows));
+const IMPORTABLE_MESSAGES = ['first_approach', 'approach_followup'];
 
 /** A contact as the import reads it back (see CONTACT_SPEC in importCards.js). */
 function contactData(contact) {
@@ -131,10 +133,21 @@ const COLUMNS = [
   ['Deal expected USD', (r) => (r.deal ? r.deal.expected_value_usd : '')],
   ['Deal actual USD', (r) => (r.deal ? r.deal.actual_revenue_usd : '')],
   ['Deal closed on', (r) => (r.deal ? r.deal.closed_at : '')],
+  ['Deal stage', (r) => (r.deal ? r.deal.stage : '')],
+  ['Deal status', (r) => (r.deal ? r.deal.status : '')],
   ['Messages sent', (r) => r.messages.filter((m) => m.status === 'sent').length],
   ['Messages', (r) => r.messages.map((m) => join([m.kind, m.channel, m.status, m.sent_at ?? m.created_at, m.subject])).join(LIST)],
   ['Replies', (r) => r.replies.map((p) => join([p.received_at, p.channel, p.classification, p.subject, p.summary])).join(LIST)],
   ['Meetings', (r) => r.meetings.map((m) => join([m.scheduled_at, m.status, m.title, m.location, m.attendees, m.summary, m.decisions])).join(LIST)],
+  // Read back by the import (shared/cardColumns.js): messages sent, meetings and the next open task.
+  [MESSAGES_COLUMN, (r) => jsonOrEmpty(r.messages.filter((m) => m.status === 'sent' && IMPORTABLE_MESSAGES.includes(m.kind)).map((m) => ({
+    kind: m.kind, channel: m.channel, sent_at: m.sent_at, contact_name: m.contact_name, subject: m.subject, content: m.content,
+  })))],
+  [MEETINGS_COLUMN, (r) => jsonOrEmpty(r.meetings.map((m) => ({
+    title: m.title, scheduled_at: m.scheduled_at, status: m.status, contact_name: m.contact_name, summary: m.summary,
+  })))],
+  ['Next step', (r) => (r.task ? r.task.description : '')],
+  ['Next step date', (r) => (r.task ? r.task.due_date : '')],
 ];
 
 const CARD_SQL = `SELECT o.*, s.url AS evidence_url, s.title AS evidence_title, m.code AS mandate_code, m.name AS mandate_name,
@@ -161,13 +174,16 @@ export function exportCardsCsv(db, { ownerId }, now = new Date()) {
     contacts: db.prepare('SELECT * FROM contacts WHERE company_id = ? ORDER BY full_name'),
     facts: db.prepare('SELECT f.field, f.value, s.url FROM facts f JOIN sources s ON s.id = f.source_id WHERE f.company_id = ? ORDER BY f.field, f.id'),
     replies: db.prepare('SELECT received_at, channel, classification, subject, summary FROM replies WHERE company_id = ? ORDER BY received_at'),
-    meetings: db.prepare('SELECT scheduled_at, status, title, location, attendees, summary, decisions FROM meetings WHERE company_id = ? ORDER BY scheduled_at'),
+    meetings: db.prepare(`SELECT m.scheduled_at, m.status, m.title, m.location, m.attendees, m.summary, m.decisions, c.full_name AS contact_name
+      FROM meetings m LEFT JOIN contacts c ON c.id = m.contact_id WHERE m.company_id = ? ORDER BY m.scheduled_at`),
+    task: db.prepare('SELECT description, due_date FROM tasks WHERE company_id = ? AND done = 0 ORDER BY due_date IS NULL, due_date, id LIMIT 1'),
   };
   const byCard = {
     proposals: db.prepare(`SELECT p.full_name, p.job_title, p.email, p.linkedin_url, p.status, p.dismiss_reason, s.url AS source_url
       FROM contact_proposals p JOIN sources s ON s.id = p.source_id WHERE p.opportunity_id = ? ORDER BY p.id`),
     deal: db.prepare('SELECT * FROM deals WHERE opportunity_id = ?'),
-    messages: db.prepare('SELECT kind, channel, status, subject, created_at, sent_at FROM approvals WHERE opportunity_id = ? ORDER BY id'),
+    messages: db.prepare(`SELECT a.kind, a.channel, a.status, a.subject, a.content, a.created_at, a.sent_at, c.full_name AS contact_name
+      FROM approvals a LEFT JOIN contacts c ON c.id = a.contact_id WHERE a.opportunity_id = ? ORDER BY a.id`),
   };
 
   const rows = cards.map((card) => {
@@ -180,6 +196,7 @@ export function exportCardsCsv(db, { ownerId }, now = new Date()) {
       facts: byCompany.facts.all(card.company_id),
       replies: byCompany.replies.all(card.company_id),
       meetings: byCompany.meetings.all(card.company_id),
+      task: byCompany.task.get(card.company_id) ?? null,
       proposals: byCard.proposals.all(card.id),
       deal: byCard.deal.get(card.id) ?? null,
       messages: byCard.messages.all(card.id),

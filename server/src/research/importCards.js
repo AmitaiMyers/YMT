@@ -2,6 +2,8 @@
 // it, built from the company-card columns its file carried (shared/cardColumns.js – e.g. this CRM's own full export);
 // a plain list (name, website, country) gives a card that only says where it came from. No AI runs here: "Run agent"
 // on the card researches the company afterwards. A company that already has a card keeps it (the entry links to it).
+// Progress columns put the card where it got to elsewhere: the decision, the deal and its stage, messages already sent
+// (logged as sent – nothing is sent now), meetings and the next step as a task. Without them the card starts at review.
 
 import { parseBody } from '../validate.js';
 import { badRequest } from '../http.js';
@@ -9,11 +11,16 @@ import { insert, update, findById, nowIso, transaction } from '../db.js';
 import { findExistingCompany, normalizeName } from './classification.js';
 import { upsertSource } from './runner.js';
 import { findVersion } from './mandates.js';
-import { CARD_COLUMNS, CARD_COLUMN_NAMES, CONTACTS_COLUMN, LIST_SEPARATOR } from '../../../shared/cardColumns.js';
-import { DEPARTMENTS, LANGUAGES, PREFERRED_CHANNELS } from '../../../shared/enums.js';
+import { openDefaultDeal } from './deals.js';
+import {
+  CARD_COLUMNS, CARD_COLUMN_NAMES, CONTACTS_COLUMN, MESSAGES_COLUMN, MEETINGS_COLUMN, LIST_SEPARATOR,
+} from '../../../shared/cardColumns.js';
+import { DEPARTMENTS, LANGUAGES, PREFERRED_CHANNELS, OUTREACH_CHANNELS } from '../../../shared/enums.js';
 
 export const MAX_SEND_TO_REVIEW = 200;
-const MAX_CONTACTS_PER_COMPANY = 50;
+const MAX_JSON_ROWS = 50;
+// A card imported as "draft" or "waiting for an owner" is the importer's card to review.
+const REVIEW_ON_IMPORT = ['draft', 'needs_review', 'manual_assignment'];
 
 const CARD_DATA_SPEC = Object.fromEntries(Object.entries(CARD_COLUMNS).map(([header, { to, column, ...spec }]) => [header, spec]));
 const CONTACT_SPEC = {
@@ -40,26 +47,54 @@ function typedCell(spec, value) {
   return value;
 }
 
-function parseContactsJson(text) {
+const MESSAGE_SPEC = {
+  kind: { type: 'string', required: true, enum: ['first_approach', 'approach_followup'] },
+  channel: { type: 'string', required: true, enum: OUTREACH_CHANNELS },
+  sent_at: { type: 'datetime', required: true },
+  contact_name: { type: 'string', max: 200 },
+  subject: { type: 'string', max: 300 },
+  content: { type: 'text', max: 20000 },
+};
+const MEETING_SPEC = {
+  title: { type: 'string', required: true, max: 200 },
+  scheduled_at: { type: 'datetime', required: true },
+  status: { type: 'string', required: true, enum: ['scheduled', 'done', 'cancelled'] },
+  contact_name: { type: 'string', max: 200 },
+  summary: { type: 'text', max: 20000 },
+};
+
+/** A "(data)" column: a JSON list whose items each match `spec`. */
+function parseJsonList(text, column, spec) {
   let rows;
   try {
     rows = JSON.parse(text);
   } catch (error) {
     if (!(error instanceof SyntaxError)) throw error;
-    throw badRequest(`${CONTACTS_COLUMN} is not valid JSON`);
+    throw badRequest(`${column} is not valid JSON`);
   }
-  if (!Array.isArray(rows)) throw badRequest(`${CONTACTS_COLUMN} must be a JSON list`);
-  if (rows.length > MAX_CONTACTS_PER_COMPANY) throw badRequest(`${CONTACTS_COLUMN}: at most ${MAX_CONTACTS_PER_COMPANY} contacts`);
+  if (!Array.isArray(rows)) throw badRequest(`${column} must be a JSON list`);
+  if (rows.length > MAX_JSON_ROWS) throw badRequest(`${column}: at most ${MAX_JSON_ROWS} items`);
   return rows.map((row, index) => {
-    const contact = parseBody(CONTACT_SPEC, row);
-    if (contact.full_name === '') throw badRequest(`${CONTACTS_COLUMN}: contact ${index + 1} needs a name`);
-    return contact;
+    if (typeof row !== 'object' || row === null || Array.isArray(row)) throw badRequest(`${column}: item ${index + 1} must be an object`);
+    return parseBody(spec, row);
   });
+}
+
+const JSON_LIST_SPECS = { contacts: [CONTACTS_COLUMN, CONTACT_SPEC], messages: [MESSAGES_COLUMN, MESSAGE_SPEC], meetings: [MEETINGS_COLUMN, MEETING_SPEC] };
+
+/** Combinations that cannot be a real card: fail with the reason instead of importing something half-true. */
+function assertProgress(progress) {
+  const status = progress.status ?? 'needs_review';
+  if (status === 'rejected' && progress.decision_reason === null) throw badRequest('Card status "rejected" needs a Decision reason');
+  if (status === 'deferred' && progress.defer_until === null) throw badRequest('Card status "deferred" needs a Come back on date');
+  const dealGiven = progress.deal_stage !== null || progress.deal_status !== null;
+  if (dealGiven && status !== 'accepted') throw badRequest('A deal stage or status needs Card status "accepted"');
+  if (progress.next_step === null && progress.next_step_date !== null) throw badRequest('Next step date needs a Next step');
 }
 
 /**
  * Validate the card columns of one imported row ({ header: cell text }). Throws a 400 naming the column.
- * @returns {{ card: object, company: object, aliases: string[], contacts: object[] }}
+ * @returns {{ card: object, company: object, progress: object, aliases: string[], contacts: object[] }}
  */
 export function parseCardData(raw) {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) throw badRequest('card_data must be an object');
@@ -70,13 +105,17 @@ export function parseCardData(raw) {
   }
   const typed = Object.fromEntries(Object.entries(raw).map(([header, value]) => [header, typedCell(CARD_DATA_SPEC[header], value)]));
   const values = parseBody(CARD_DATA_SPEC, typed);
-  const result = { card: {}, company: {}, aliases: [], contacts: [] };
+  const result = { card: {}, company: {}, progress: {}, aliases: [], contacts: [] };
   for (const [header, { to, column }] of Object.entries(CARD_COLUMNS)) {
     const value = values[header];
     if (to === 'aliases') result.aliases = value ?? [];
-    else if (to === 'contacts') result.contacts = value === null ? [] : parseContactsJson(value);
-    else result[to][column] = value;
+    else if (column in JSON_LIST_SPECS) {
+      const parsed = value === null ? [] : parseJsonList(value, ...JSON_LIST_SPECS[column]);
+      if (to === 'contacts') result.contacts = parsed;
+      else result[to][column] = parsed;
+    } else result[to][column] = value;
   }
+  assertProgress(result.progress);
   return result;
 }
 
@@ -125,7 +164,8 @@ function saveContacts(db, companyId, contacts) {
   const names = new Set(existing.map((row) => normalizeName(row.full_name)));
   for (const contact of contacts) {
     if ((contact.email && emails.has(contact.email.toLowerCase())) || names.has(normalizeName(contact.full_name))) continue;
-    insert(db, 'contacts', { ...contact, company_id: companyId });
+    // Consent and role check are "no" unless the file says yes.
+    insert(db, 'contacts', { ...contact, whatsapp_consent: contact.whatsapp_consent ?? 0, verified: contact.verified ?? 0, company_id: companyId });
     names.add(normalizeName(contact.full_name));
     if (contact.email) emails.add(contact.email.toLowerCase());
   }
@@ -160,7 +200,7 @@ function sendEntry(db, { entry, list, chosenMandate, user, today }) {
   const evidenceSourceId = upsertSource(db, {
     url: evidenceUrl, title: data.card.evidence_title, publishedOn: data.card.evidence_date, kind: data.card.evidence_url ? 'web' : 'list',
   });
-  const { card } = data;
+  const { card, progress } = data;
   const id = insert(db, 'opportunities', {
     company_id: companyId, mandate_id: mandate.id, mandate_version_id: version.id, owner_id: user.id,
     relationship_role: card.relationship_role ?? 'client',
@@ -178,7 +218,67 @@ function sendEntry(db, { entry, list, chosenMandate, user, today }) {
     unknowns: JSON.stringify(card.unknowns ?? []),
     status: 'needs_review',
   });
+  applyProgress(db, { opportunityId: id, companyName: entry.name, progress, user });
   return { cardId: id, created: true };
+}
+
+/** The contact a message or meeting was with: by name, else the company's only contact. */
+function contactFor(db, companyId, contactName, what, companyName) {
+  const contacts = db.prepare('SELECT * FROM contacts WHERE company_id = ? ORDER BY id').all(companyId);
+  if (contactName !== null) {
+    const named = contacts.find((contact) => normalizeName(contact.full_name) === normalizeName(contactName));
+    if (!named) throw badRequest(`${companyName}: ${what} is with "${contactName}", who is not among its contacts`);
+    return named;
+  }
+  if (contacts.length === 1) return contacts[0];
+  if (what === 'a meeting') return null;
+  throw badRequest(`${companyName}: ${what} needs ${contacts.length === 0 ? 'a contact' : 'a contact_name (the company has several contacts)'}`);
+}
+
+const RECIPIENT = { email: ['recipient_email', 'email'], linkedin: ['recipient_linkedin', 'linkedin_url'], whatsapp: ['recipient_phone', 'phone'] };
+
+/** Put a new card at the step the file says it reached. Nothing is sent: messages are logged as already sent. */
+function applyProgress(db, { opportunityId, companyName, progress, user }) {
+  const status = progress.status === null || REVIEW_ON_IMPORT.includes(progress.status) ? 'needs_review' : progress.status;
+  const decidedAt = progress.decided_at ?? nowIso();
+  if (status !== 'needs_review') {
+    update(db, 'opportunities', opportunityId, {
+      status, decision_reason: progress.decision_reason, decision_note: progress.decision_note, defer_until: progress.defer_until,
+      decided_by: user.id, decided_at: decidedAt,
+    });
+  }
+  const opportunity = findById(db, 'opportunities', opportunityId);
+  const dealId = status === 'accepted' ? openDefaultDeal(db, opportunity, user.id) : null;
+  if (dealId !== null && progress.deal_stage !== null) {
+    const deal = findById(db, 'deals', dealId);
+    const stages = JSON.parse(findById(db, 'workflows', deal.workflow_id).stages);
+    if (!stages.includes(progress.deal_stage)) throw badRequest(`${companyName}: Deal stage must be one of: ${stages.join(', ')}`);
+    update(db, 'deals', dealId, { stage: progress.deal_stage, stage_changed_at: decidedAt });
+  }
+  if (dealId !== null && progress.deal_status !== null && progress.deal_status !== 'open') {
+    update(db, 'deals', dealId, { status: progress.deal_status, closed_at: decidedAt });
+  }
+  for (const message of progress.messages) {
+    const contact = contactFor(db, opportunity.company_id, message.contact_name, 'a sent message', companyName);
+    const [recipientColumn, contactColumn] = RECIPIENT[message.channel];
+    insert(db, 'approvals', {
+      kind: message.kind, channel: message.channel, opportunity_id: opportunityId, company_id: opportunity.company_id, deal_id: dealId,
+      contact_id: contact.id, language: contact.preferred_language, subject: message.subject,
+      content: message.content ?? `Sent outside the CRM (${message.channel}) on ${message.sent_at.slice(0, 10)}; logged on import.`,
+      [recipientColumn]: contact[contactColumn], status: 'sent', created_by: user.id, created_at: message.sent_at,
+      reviewed_by: user.id, reviewed_at: message.sent_at, sent_by: user.id, sent_at: message.sent_at,
+    });
+  }
+  for (const meeting of progress.meetings) {
+    const contact = contactFor(db, opportunity.company_id, meeting.contact_name, 'a meeting', companyName);
+    insert(db, 'meetings', {
+      company_id: opportunity.company_id, deal_id: dealId, title: meeting.title, scheduled_at: meeting.scheduled_at, status: meeting.status,
+      summary: meeting.summary, contact_id: contact ? contact.id : null, organizer_id: user.id,
+    });
+  }
+  if (progress.next_step !== null) {
+    insert(db, 'tasks', { company_id: opportunity.company_id, description: progress.next_step, assignee: user.display_name, due_date: progress.next_step_date });
+  }
 }
 
 /**

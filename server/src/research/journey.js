@@ -9,6 +9,9 @@ const REVIEW_STATUSES = ['draft', 'needs_review', 'manual_assignment', 'verify']
 const OPEN_MESSAGE = ['pending', 'approved'];
 // A reply that ends the conversation: the next step is to close the deal (as lost).
 const CLOSING_REPLIES = ['not_interested', 'opt_out'];
+// Deal stages that mean the talks moved on even when no meeting is logged (e.g. a lead imported from another tracker).
+const TALKING_STAGES = ['call', 'meeting'];
+const CLOSING_STAGES = ['proposal', 'contract'];
 
 function latest(rows, field) {
   return rows.reduce((best, row) => (best === null || row[field] > best[field] ? row : best), null);
@@ -58,6 +61,9 @@ export function journeyFor(db, opportunity, now = new Date()) {
       next: upcoming ? { kind: 'meeting_upcoming', meeting_id: meeting.id, at: meeting.scheduled_at } : { kind: 'summarize', meeting_id: meeting.id },
     };
   }
+
+  if (deal && CLOSING_STAGES.includes(deal.stage)) return { stage: 'meeting', since: deal.stage_changed_at, next: { kind: 'close', deal_id: dealId } };
+  if (deal && TALKING_STAGES.includes(deal.stage)) return { stage: 'meeting', since: deal.stage_changed_at, next: { kind: 'schedule', contact_id: null, deal_id: dealId } };
 
   const messages = db.prepare(`SELECT id, kind, status, contact_id, created_at, sent_at FROM approvals WHERE opportunity_id = ?
     AND kind IN (${CONVERSATION_KINDS.map(() => '?').join(', ')})`).all(opportunity.id, ...CONVERSATION_KINDS);

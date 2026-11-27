@@ -203,3 +203,56 @@ test('the full export reads back: every card column the import knows is in the e
   assert.deepEqual(data.contacts.map((contact) => [contact.full_name, contact.verified]), [['Dana Levi', 1]]);
   assert.equal(data.company.general_email, 'info@acme.example');
 });
+
+test('progress columns put each card at the step it reached elsewhere', async () => {
+  const contact = (name, email = null) => JSON.stringify([{ full_name: name, department: 'management', email, preferred_language: 'he' }]);
+  const base = { 'Target country': 'India', 'Need type': 'market_entry_distribution', 'Business need': 'India distributor.' };
+  const bad = (cardData) => call('shir', 'POST', '/watch-lists', { name: 'Bad', entries: [{ name: 'X', website: 'https://x.example', card_data: cardData }] });
+  assert.equal((await bad({ 'Card status': 'rejected' })).data.error, 'Row 1: Card status "rejected" needs a Decision reason');
+  assert.equal((await bad({ 'Deal stage': 'proposal' })).data.error, 'Row 1: A deal stage or status needs Card status "accepted"');
+  assert.match((await bad({ 'Messages (data)': JSON.stringify([{ kind: 'first_approach', channel: 'fax', sent_at: '2026-09-14T09:00' }]) })).data.error, /channel must be one of/);
+
+  const created = await call('shir', 'POST', '/watch-lists', { name: 'Tracker', entries: [
+    { name: 'Waiting Co', website: 'https://waiting.example', card_data: {
+      ...base, 'Card status': 'accepted', 'Deal stage': 'outreach', [CONTACTS_COLUMN]: contact('יאיר', 'yair@waiting.example'),
+      'Messages (data)': JSON.stringify([
+        { kind: 'first_approach', channel: 'email', sent_at: '2026-09-14T09:00:00Z' },
+        { kind: 'approach_followup', channel: 'email', sent_at: '2026-09-24T09:00:00Z' },
+      ]),
+      'Next step': 'סגירה (נגיעה 3)', 'Next step date': '2026-10-06',
+    } },
+    { name: 'Proposal Co', website: 'https://proposal.example', card_data: { ...base, 'Card status': 'accepted', 'Deal stage': 'proposal' } },
+    { name: 'Lost Co', website: 'https://lost.example', card_data: { ...base, 'Card status': 'accepted', 'Deal status': 'lost', 'Decision note': 'Not interested' } },
+    { name: 'Rejected Co 2', website: 'https://rejected2.example', card_data: { ...base, 'Card status': 'rejected', 'Decision reason': 'other', 'Decision note': 'Not relevant' } },
+    { name: 'No Contact Co', website: 'https://nocontact.example', card_data: { ...base, 'Card status': 'accepted', 'Messages (data)': JSON.stringify([{ kind: 'first_approach', channel: 'email', sent_at: '2026-09-14T09:00:00Z' }]) } },
+  ] });
+  assert.equal(created.status, 201, created.data.error);
+  const entries = (await call('shir', 'GET', `/watch-lists/${created.data.id}`)).data.entries;
+  const idOf = (name) => String(entries.find((entry) => entry.name === name).id);
+  const send = (names) => call('shir', 'POST', `/watch-lists/${created.data.id}/send-to-review`, { entry_ids: names.map(idOf), mandate_id: sh1() });
+
+  assert.equal((await send(['No Contact Co'])).data.error, 'No Contact Co: a sent message needs a contact');
+  const sent = await send(['Waiting Co', 'Proposal Co', 'Lost Co', 'Rejected Co 2']);
+  assert.equal(sent.status, 200, sent.data.error);
+
+  const journeyOf = async (name) => (await call('shir', 'GET', `/opportunities/${cardOf(name).id}`)).data.journey;
+  const waiting = await journeyOf('Waiting Co');
+  assert.deepEqual([waiting.stage, waiting.since], ['waiting', '2026-09-24T09:00:00.000Z']);
+  assert.equal(waiting.next.kind, 'followup'); // last touch on 24.9: the next follow-up is due
+  const waitingDeal = db.prepare('SELECT stage FROM deals WHERE opportunity_id = ?').get(cardOf('Waiting Co').id);
+  assert.equal(waitingDeal.stage, 'outreach');
+  const task = db.prepare('SELECT t.* FROM tasks t JOIN companies c ON c.id = t.company_id WHERE c.name = ?').get('Waiting Co');
+  assert.deepEqual([task.description, task.due_date, task.assignee], ['סגירה (נגיעה 3)', '2026-10-06', 'Shir']);
+  assert.deepEqual(await journeyOf('Proposal Co').then((j) => [j.stage, j.next.kind]), ['meeting', 'close']);
+  assert.deepEqual(await journeyOf('Lost Co').then((j) => [j.stage, j.next.outcome]), ['closed', 'lost']);
+  assert.equal(await journeyOf('Rejected Co 2'), null);
+  assert.equal(cardOf('Rejected Co 2').decision_reason, 'other');
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM approvals WHERE status = 'sent'").get().n, 2);
+
+  // The full export carries the same progress, so a CRM-to-CRM move keeps it.
+  const [header, ...rows] = parseCsv(exportCardsCsv(db, { ownerId: null }).csv, ',');
+  const row = rows.find((cells) => cells[0] === 'Waiting Co');
+  const data = parseCardData(Object.fromEntries(CARD_COLUMN_NAMES.map((column) => [column, row[header.indexOf(column)]])));
+  assert.deepEqual([data.progress.status, data.progress.deal_stage, data.progress.messages.length, data.progress.next_step], ['accepted', 'outreach', 2, 'סגירה (נגיעה 3)']);
+  assert.equal(data.progress.messages[0].contact_name, 'יאיר');
+});

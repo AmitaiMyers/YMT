@@ -23,6 +23,7 @@ import { recordInteraction } from '../timeline.js';
 import { isAdmin, assertCanSee } from '../research/access.js';
 import { outreachPanel } from '../outreach.js';
 import { journeyFor } from '../research/journey.js';
+import { openDeal, openDefaultDeal } from '../research/deals.js';
 
 const MANDATE_FIELDS_SPEC = {
   name: { type: 'string', max: 120 },
@@ -66,7 +67,6 @@ const DECISION_SPEC = {
 // Decision 9: a deferred card comes back after 90 days by default (the owner can choose another date).
 const DEFER_DEFAULT_DAYS = 90;
 // Decision 21: Accept opens the deal itself. Mandates without defaults use the first active workflow and a retainer.
-const FALLBACK_DEAL_MODEL = 'retainer';
 const TRIGGER_CHECK_SPEC = { live: { type: 'bool', required: true } };
 const DISMISS_SPEC = { reason: { type: 'string', enum: PROPOSAL_DISMISS_REASONS } };
 const SERVICE_STATUS_SPEC = { status: { type: 'string', required: true, enum: SERVICE_STATUSES } };
@@ -259,36 +259,6 @@ export function researchRoutes(db, { ai }) {
     });
     if (!sortByScore) return scored;
     return scored.sort((a, b) => Number(b.has_trigger) - Number(a.has_trigger) || b.score - a.score || a.id - b.id);
-  }
-
-  /** Open the one deal of a card (the stable link). Returns the deal id. */
-  function openDeal(opportunity, { title, workflowId, dealModel, expectedValue }, userId) {
-    const workflow = findById(db, 'workflows', workflowId);
-    if (!workflow.active) throw badRequest('Workflow is inactive');
-    const stages = JSON.parse(workflow.stages);
-    const dealId = insert(db, 'deals', {
-      company_id: opportunity.company_id, workflow_id: workflow.id, title, stage: stages[0],
-      owner_id: opportunity.owner_id ?? userId, deal_model: dealModel, expected_value_usd: expectedValue ?? 0, opportunity_id: opportunity.id,
-    });
-    recordInteraction(db, {
-      company_id: opportunity.company_id, deal_id: dealId, channel: 'note', direction: 'internal', user_id: userId,
-      occurred_at: nowIso(), summary: `Deal opened from research card: ${opportunity.business_need}`,
-    });
-    audit(db, userId, 'deal.created_from_research', 'deals', dealId, `opportunity ${opportunity.id}`);
-    return dealId;
-  }
-
-  /** Decision 21: Accept opens a "Not started" deal with the mandate's defaults. */
-  function openDefaultDeal(opportunity, userId) {
-    if (db.prepare('SELECT 1 FROM deals WHERE opportunity_id = ?').get(opportunity.id)) return;
-    const mandate = opportunity.mandate_id ? findById(db, 'mandates', opportunity.mandate_id) : null;
-    const workflowId = mandate && mandate.default_workflow_id !== null ? mandate.default_workflow_id
-      : db.prepare('SELECT id FROM workflows WHERE active = 1 ORDER BY id LIMIT 1').get().id;
-    const TITLE_MAX = 120;
-    openDeal(opportunity, {
-      title: `${mandate ? `${mandate.code}: ` : ''}${opportunity.business_need}`.slice(0, TITLE_MAX),
-      workflowId, dealModel: mandate && mandate.default_deal_model !== null ? mandate.default_deal_model : FALLBACK_DEAL_MODEL, expectedValue: 0,
-    }, userId);
   }
 
   // ---------------------------------------------------------- mandates
@@ -536,7 +506,7 @@ export function researchRoutes(db, { ai }) {
         });
         // Contacts were searched before the review (spec step 5); search only if that never happened.
         if (!db.prepare('SELECT 1 FROM contact_searches WHERE opportunity_id = ?').get(id)) queueSearch(id, req.user.id);
-        openDefaultDeal(opportunity, req.user.id);
+        openDefaultDeal(db, opportunity, req.user.id);
       }
       if (decision === 'defer') {
         const owner = findById(db, 'users', opportunity.owner_id ?? req.user.id);
@@ -562,7 +532,7 @@ export function researchRoutes(db, { ai }) {
     const existing = db.prepare('SELECT id FROM deals WHERE opportunity_id = ?').get(id);
     if (existing) throw conflict(`This card already has deal #${existing.id}`);
     const values = parseBody(OPEN_DEAL_SPEC, req.body);
-    const dealId = transaction(db, () => openDeal(opportunity, {
+    const dealId = transaction(db, () => openDeal(db, opportunity, {
       title: values.title, workflowId: values.workflow_id, dealModel: values.deal_model, expectedValue: values.expected_value_usd,
     }, req.user.id));
     res.status(201).json({ id: dealId });

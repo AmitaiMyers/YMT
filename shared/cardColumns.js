@@ -1,15 +1,18 @@
 // Company-card columns that come back from a CSV (25.11.2026). The full company export (server/src/research/exportCards.js)
 // writes these headers; a watch-list import keeps them with each company, and "Send to review" builds the card from them.
 // One place for the header names, their target and their type, used by the import dialog (which columns to keep) and the
-// server (validation). Lists are joined with LIST_SEPARATOR; "Contacts (data)" holds the contacts as JSON.
+// server (validation). Lists are joined with LIST_SEPARATOR; the "(data)" columns hold contacts, sent messages and
+// meetings as JSON. The progress columns put the card at the step it reached (decision, deal, messages, meetings, task).
 
 import {
   NEED_TYPES, RELATIONSHIP_ROLES, JUDGE_VERDICTS, TRIGGER_KINDS, SUBSECTOR_FITS, OPPORTUNITY_FLAGS, ISRAEL_CONNECTIONS,
-  BUSINESS_MODELS, SECTORS, CUSTOMER_TYPES, REVENUE_BASES, EXPORT_PROOFS,
+  BUSINESS_MODELS, SECTORS, CUSTOMER_TYPES, REVENUE_BASES, EXPORT_PROOFS, OPPORTUNITY_STATUSES, REJECT_REASONS, DEAL_STATUSES,
 } from './enums.js';
 
 export const LIST_SEPARATOR = ' | ';
 export const CONTACTS_COLUMN = 'Contacts (data)';
+export const MESSAGES_COLUMN = 'Messages (data)';
+export const MEETINGS_COLUMN = 'Meetings (data)';
 
 const text = (max) => ({ type: 'text', max });
 const choice = (values) => ({ type: 'string', enum: values });
@@ -71,6 +74,18 @@ export const CARD_COLUMNS = {
   'Routes source': { to: 'company', column: 'routes_source_url', type: 'url' },
   'Other names': { to: 'aliases', column: 'names', ...list() },
   [CONTACTS_COLUMN]: { to: 'contacts', column: 'contacts', ...text(50_000) },
+  // Progress: where the card stands
+  'Card status': { to: 'progress', column: 'status', ...choice(OPPORTUNITY_STATUSES) },
+  'Decision reason': { to: 'progress', column: 'decision_reason', ...choice(REJECT_REASONS) },
+  'Decision note': { to: 'progress', column: 'decision_note', ...text(2000) },
+  'Decided on': { to: 'progress', column: 'decided_at', type: 'datetime' },
+  'Come back on': { to: 'progress', column: 'defer_until', type: 'date' },
+  'Deal stage': { to: 'progress', column: 'deal_stage', ...text(40) },
+  'Deal status': { to: 'progress', column: 'deal_status', ...choice(DEAL_STATUSES) },
+  [MESSAGES_COLUMN]: { to: 'progress', column: 'messages', ...text(100_000) },
+  [MEETINGS_COLUMN]: { to: 'progress', column: 'meetings', ...text(50_000) },
+  'Next step': { to: 'progress', column: 'next_step', ...text(1000) },
+  'Next step date': { to: 'progress', column: 'next_step_date', type: 'date' },
 };
 
 export const CARD_COLUMN_NAMES = Object.keys(CARD_COLUMNS);
