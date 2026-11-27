@@ -6,7 +6,7 @@
 // (logged as sent – nothing is sent now), meetings and the next step as a task. Without them the card starts at review.
 
 import { parseBody } from '../validate.js';
-import { badRequest } from '../http.js';
+import { badRequest, HttpError } from '../http.js';
 import { insert, update, findById, nowIso, transaction } from '../db.js';
 import { findExistingCompany, normalizeName } from './classification.js';
 import { upsertSource } from './runner.js';
@@ -286,8 +286,9 @@ function applyProgress(db, { opportunityId, companyName, progress, user }) {
 }
 
 /**
- * Send chosen entries of a watch list to Research review. All or nothing: one company that cannot become a card stops
- * the batch with its name, so nothing is half-imported. Returns { created, existing } with the entry and card ids.
+ * Send chosen entries of a watch list to Research review. A company that cannot become a card (no website, on the
+ * "Don't suggest" list, a contact missing for a sent message…) is skipped with its reason and leaves nothing behind:
+ * each company is written inside its own savepoint. Returns { created, existing, skipped }.
  */
 export function sendToReview(db, { list, entryIds, mandateId, user, now = new Date() }) {
   const chosenMandate = findById(db, 'mandates', mandateId);
@@ -299,11 +300,20 @@ export function sendToReview(db, { list, entryIds, mandateId, user, now = new Da
   });
   const today = now.toISOString().slice(0, 10);
   return transaction(db, () => {
-    const result = { created: [], existing: [] };
+    const result = { created: [], existing: [], skipped: [] };
     for (const entry of entries) {
-      const { cardId, created } = sendEntry(db, { entry, list, chosenMandate, user, today });
-      update(db, 'watch_list_entries', entry.id, { opportunity_id: cardId });
-      result[created ? 'created' : 'existing'].push({ entry_id: entry.id, card_id: cardId });
+      db.exec('SAVEPOINT send_entry');
+      try {
+        const { cardId, created } = sendEntry(db, { entry, list, chosenMandate, user, today });
+        update(db, 'watch_list_entries', entry.id, { opportunity_id: cardId });
+        db.exec('RELEASE send_entry');
+        result[created ? 'created' : 'existing'].push({ entry_id: entry.id, card_id: cardId });
+      } catch (error) {
+        db.exec('ROLLBACK TO send_entry');
+        db.exec('RELEASE send_entry');
+        if (!(error instanceof HttpError)) throw error; // only "this company cannot become a card" is skipped
+        result.skipped.push({ entry_id: entry.id, name: entry.name, reason: error.message });
+      }
     }
     return result;
   });

@@ -4,7 +4,7 @@
 import { Router } from 'express';
 import { parseBody, parseId, parseOptionalEnum } from '../validate.js';
 import { insert, update, findById, transaction, audit, nowIso } from '../db.js';
-import { badRequest, forbidden, conflict, notFound } from '../http.js';
+import { badRequest, forbidden, conflict, notFound, HttpError } from '../http.js';
 import { requireAdmin } from '../auth.js';
 import {
   NEED_TYPES, SECTORS, RELATIONSHIP_ROLES, REVIEW_DECISIONS, REJECT_REASONS, MANDATE_STATUSES, MANDATE_SCHEDULES,
@@ -58,6 +58,8 @@ const CRITERIA_SPEC = {
 
 const CREATE_MANDATE_SPEC = { code: { type: 'string', required: true, max: 12 }, ...MANDATE_FIELDS_SPEC, name: { type: 'string', required: true, max: 120 }, ...CRITERIA_SPEC };
 const VERSION_SPEC = { ...CRITERIA_SPEC, change_note: { type: 'text', required: true, max: 500 } };
+// The board's "Run agent on N companies": one research run per card, queued one after the other.
+const BATCH_RESEARCH_SPEC = { opportunity_ids: { type: 'list', required: true, minItems: 1, maxItems: 100 } };
 const RUN_SPEC = { batch_size: { type: 'int', required: true, min: 1, max: MAX_RUN_BATCH }, watch_list_id: { type: 'id' } };
 const DECISION_SPEC = {
   decision: { type: 'string', required: true, enum: REVIEW_DECISIONS },
@@ -355,6 +357,28 @@ export function researchRoutes(db, { ai }) {
     res.status(201).json(findById(db, 'research_runs', id));
   });
 
+  /** Why the agent cannot research this card now ({ status, message }), or null when it can. */
+  function cardResearchProblem(opportunity) {
+    if (blockOf(findById(db, 'companies', opportunity.company_id))) return { status: 409, message: 'This company is on the "Don\'t suggest" list; remove it there first' };
+    if (opportunity.mandate_id === null) return { status: 400, message: 'Choose an agent for this card first' };
+    const mandate = findById(db, 'mandates', opportunity.mandate_id);
+    if (mandate.current_version_id === null) return { status: 400, message: `Agent ${mandate.code} has no criteria yet` };
+    if (db.prepare("SELECT 1 FROM research_runs WHERE opportunity_id = ? AND status IN ('queued', 'running', 'waiting_budget')").get(opportunity.id)) {
+      return { status: 409, message: 'The agent is already researching this company' };
+    }
+    return null;
+  }
+
+  function queueCardResearch(opportunity, userId) {
+    const mandate = findById(db, 'mandates', opportunity.mandate_id);
+    const id = insert(db, 'research_runs', {
+      mandate_id: mandate.id, mandate_version_id: mandate.current_version_id, trigger: 'manual', requested_by: userId, batch_size: 1,
+      opportunity_id: opportunity.id,
+    });
+    audit(db, userId, 'research.card_research_requested', 'opportunities', opportunity.id, mandate.code);
+    return id;
+  }
+
   /**
    * "Run agent" on one card: the card's agent researches its company again (fresh initiative, profile, verdict) and
    * searches for decision makers; the same card is updated (research/runner.js researchCard).
@@ -362,20 +386,32 @@ export function researchRoutes(db, { ai }) {
   router.post('/opportunities/:id/research', (req, res) => {
     const opportunity = findById(db, 'opportunities', parseId(req.params.id));
     assertCanSee(req.user, opportunity);
-    if (blockOf(findById(db, 'companies', opportunity.company_id))) throw conflict('This company is on the "Don\'t suggest" list; remove it there first');
-    if (opportunity.mandate_id === null) throw badRequest('Choose an agent for this card first');
-    const mandate = findById(db, 'mandates', opportunity.mandate_id);
-    if (mandate.current_version_id === null) throw badRequest(`Agent ${mandate.code} has no criteria yet`);
-    if (db.prepare("SELECT 1 FROM research_runs WHERE opportunity_id = ? AND status IN ('queued', 'running', 'waiting_budget')").get(opportunity.id)) {
-      throw conflict('The agent is already researching this company');
-    }
+    const problem = cardResearchProblem(opportunity);
+    if (problem) throw new HttpError(problem.status, problem.message);
     assertAiReady();
-    const id = insert(db, 'research_runs', {
-      mandate_id: mandate.id, mandate_version_id: mandate.current_version_id, trigger: 'manual', requested_by: req.user.id, batch_size: 1,
-      opportunity_id: opportunity.id,
+    res.status(201).json(findById(db, 'research_runs', queueCardResearch(opportunity, req.user.id)));
+  });
+
+  /** "Run agent" on several cards chosen on the lead-flow board; cards that cannot run now are skipped with the reason. */
+  router.post('/opportunities/research', (req, res) => {
+    const { opportunity_ids: ids } = parseBody(BATCH_RESEARCH_SPEC, req.body);
+    assertAiReady();
+    const opportunities = ids.map((id) => {
+      if (!/^[1-9]\d*$/.test(id)) throw badRequest('opportunity_ids must be card ids');
+      const opportunity = findById(db, 'opportunities', Number(id));
+      assertCanSee(req.user, opportunity);
+      return opportunity;
     });
-    audit(db, req.user.id, 'research.card_research_requested', 'opportunities', opportunity.id, mandate.code);
-    res.status(201).json(findById(db, 'research_runs', id));
+    const result = transaction(db, () => {
+      const outcome = { queued: [], skipped: [] };
+      for (const opportunity of opportunities) {
+        const problem = cardResearchProblem(opportunity);
+        if (problem) outcome.skipped.push({ id: opportunity.id, reason: problem.message });
+        else outcome.queued.push({ id: opportunity.id, run_id: queueCardResearch(opportunity, req.user.id) });
+      }
+      return outcome;
+    });
+    res.status(201).json(result);
   });
 
   router.get('/research/runs/:id', (req, res) => {

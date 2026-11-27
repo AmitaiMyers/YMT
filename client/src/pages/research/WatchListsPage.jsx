@@ -13,7 +13,7 @@ import { Card, Loaded, PageHeader, Table, Button, SkeletonRows, EmptyState, Exte
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { ImportListDialog } from './ImportListDialog.jsx';
 import { FindCompaniesDialog } from './FindCompaniesDialog.jsx';
-import { SendToReviewDialog } from './SendToReviewDialog.jsx';
+import { SendToReviewDialog, useSentToast } from './SendToReviewDialog.jsx';
 
 function useImportedToast() {
   const { t } = useI18n();
@@ -89,6 +89,7 @@ export function WatchListPage() {
   const { user } = useAuth();
   const toast = useToast();
   const prompt = usePrompt();
+  const sentToast = useSentToast();
   const result = useLoad(`/watch-lists/${id}`);
   const [importing, setImporting] = useState(false);
   const [query, setQuery] = useState('');
@@ -211,7 +212,7 @@ export function WatchListPage() {
                 onSent={(sent) => {
                   setSending(false);
                   setSelected(new Set());
-                  toast({ title: t('watch.sent', { count: sent.created.length }), body: sent.existing.length > 0 ? t('watch.alreadyHadCard', { count: sent.existing.length }) : undefined });
+                  sentToast(sent);
                   result.reload();
                 }}
               />

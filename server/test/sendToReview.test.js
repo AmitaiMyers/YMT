@@ -130,20 +130,18 @@ test('card columns are checked on import and kept with the company', async () =>
     [['Acme', 1, null], ['Nameonly Co', 0, null], ['Old Co', 0, null], ['Plain Co', 0, null]]);
 });
 
-test('chosen companies become cards in review; a company with a card keeps it; all or nothing', async () => {
+test('chosen companies become cards in review; a company with a card keeps it; one that cannot is skipped', async () => {
   const list = (await call('shir', 'GET', '/watch-lists')).data.find((row) => row.name === 'From the old CRM');
   const entries = Object.fromEntries((await call('shir', 'GET', `/watch-lists/${list.id}`)).data.entries.map((entry) => [entry.name, String(entry.id)]));
   const send = (ids, mandateId = sh1()) => call('shir', 'POST', `/watch-lists/${list.id}/send-to-review`, { entry_ids: ids, mandate_id: mandateId });
 
-  // A company without a website or evidence link cannot become a card – and nothing else is sent with it.
-  const blocked = await send([entries.Acme, entries['Nameonly Co']]);
-  assert.equal(blocked.status, 400);
-  assert.equal(blocked.data.error, 'Nameonly Co: needs a website (or an evidence link) to become a card');
-  assert.equal(cardOf('Acme'), undefined);
-
-  const sent = await send([entries.Acme, entries['Plain Co'], entries['Old Co']]);
+  // A company without a website or evidence link cannot become a card: it is skipped with the reason, nothing of it is
+  // written, and the others go through.
+  const sent = await send([entries.Acme, entries['Nameonly Co'], entries['Plain Co'], entries['Old Co']]);
   assert.equal(sent.status, 200, sent.data.error);
   assert.equal(sent.data.created.length, 2);
+  assert.deepEqual(sent.data.skipped, [{ entry_id: Number(entries['Nameonly Co']), name: 'Nameonly Co', reason: 'Nameonly Co: needs a website (or an evidence link) to become a card' }]);
+  assert.equal(db.prepare("SELECT 1 FROM companies WHERE name = 'Nameonly Co'").get(), undefined);
   assert.deepEqual(sent.data.existing, [{ entry_id: Number(entries['Old Co']), card_id: cardOf('Old Co').id }]);
 
   // The card from the full export: its own fields, profile, other names and contacts.
@@ -171,7 +169,7 @@ test('chosen companies become cards in review; a company with a card keeps it; a
   // The list links each company to its card; sending again changes nothing.
   const after = (await call('shir', 'GET', `/watch-lists/${list.id}`)).data.entries;
   assert.equal(after.find((entry) => entry.name === 'Acme').opportunity_id, acme.id);
-  assert.deepEqual((await send([entries.Acme])).data, { created: [], existing: [{ entry_id: Number(entries.Acme), card_id: acme.id }] });
+  assert.deepEqual((await send([entries.Acme])).data, { created: [], existing: [{ entry_id: Number(entries.Acme), card_id: acme.id }], skipped: [] });
 });
 
 test('"Run agent" researches the card\'s company again and updates the same card', async () => {
@@ -231,9 +229,10 @@ test('progress columns put each card at the step it reached elsewhere', async ()
   const idOf = (name) => String(entries.find((entry) => entry.name === name).id);
   const send = (names) => call('shir', 'POST', `/watch-lists/${created.data.id}/send-to-review`, { entry_ids: names.map(idOf), mandate_id: sh1() });
 
-  assert.equal((await send(['No Contact Co'])).data.error, 'No Contact Co: a sent message needs a contact');
-  const sent = await send(['Waiting Co', 'Proposal Co', 'Lost Co', 'Rejected Co 2']);
+  const sent = await send(['Waiting Co', 'Proposal Co', 'Lost Co', 'Rejected Co 2', 'No Contact Co']);
   assert.equal(sent.status, 200, sent.data.error);
+  assert.deepEqual(sent.data.skipped.map((row) => row.reason), ['No Contact Co: a sent message needs a contact']);
+  assert.equal(cardOf('No Contact Co'), undefined);
 
   const journeyOf = async (name) => (await call('shir', 'GET', `/opportunities/${cardOf(name).id}`)).data.journey;
   const waiting = await journeyOf('Waiting Co');
@@ -255,4 +254,16 @@ test('progress columns put each card at the step it reached elsewhere', async ()
   const data = parseCardData(Object.fromEntries(CARD_COLUMN_NAMES.map((column) => [column, row[header.indexOf(column)]])));
   assert.deepEqual([data.progress.status, data.progress.deal_stage, data.progress.messages.length, data.progress.next_step], ['accepted', 'outreach', 2, 'סגירה (נגיעה 3)']);
   assert.equal(data.progress.messages[0].contact_name, 'יאיר');
+});
+
+test('"Run agent" on several cards from the board: each queued once; cards that cannot run are skipped with the reason', async () => {
+  const ids = [cardOf('Plain Co').id, cardOf('Acme').id];
+  const first = await call('shir', 'POST', '/opportunities/research', { opportunity_ids: ids.map(String) });
+  assert.equal(first.status, 201, first.data.error);
+  assert.deepEqual([first.data.queued.map((row) => row.id), first.data.skipped], [ids, []]);
+  const again = (await call('shir', 'POST', '/opportunities/research', { opportunity_ids: ids.map(String) })).data;
+  assert.deepEqual([again.queued, again.skipped.map((row) => row.reason)], [[], ['The agent is already researching this company', 'The agent is already researching this company']]);
+  assert.equal((await call('tom', 'POST', '/opportunities/research', { opportunity_ids: ['abc'] })).status, 400);
+  while (await processNext(db, ai, NOW)) { /* both card runs and their decision-maker searches */ }
+  assert.deepEqual(ids.map((id) => db.prepare('SELECT status FROM research_runs WHERE opportunity_id = ? ORDER BY id DESC').get(id).status), ['done', 'done']);
 });

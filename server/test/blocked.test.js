@@ -108,7 +108,7 @@ test('watch-list companies can be blocked; the rotation skips them', async () =>
 
   // A blocked entry cannot be sent to review.
   const sent = await call('shir', 'POST', `/watch-lists/${created.data.id}/send-to-review`, { entry_ids: [String(alpha.id)], mandate_id: sh1 });
-  assert.equal(sent.data.error, 'Alpha Ltd: is on the "Don\'t suggest" list – remove it there to send it to review');
+  assert.deepEqual(sent.data.skipped.map((row) => row.reason), ['Alpha Ltd: is on the "Don\'t suggest" list – remove it there to send it to review']);
 });
 
 test('the agents are told to skip blocked companies and drop any they still report', async () => {
