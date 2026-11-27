@@ -23,7 +23,7 @@ const ENTRY_SPEC = {
 
 const SEND_SPEC = {
   entry_ids: { type: 'list', required: true },
-  mandate_id: { type: 'id', required: true },
+  mandate_id: { type: 'id' }, // optional: the agent for later runs, when the file names none
 };
 
 /** One imported row: the list columns plus, optionally, the company-card columns of the file (card_data). */

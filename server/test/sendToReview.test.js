@@ -267,3 +267,19 @@ test('"Run agent" on several cards from the board: each queued once; cards that 
   while (await processNext(db, ai, NOW)) { /* both card runs and their decision-maker searches */ }
   assert.deepEqual(ids.map((id) => db.prepare('SELECT status FROM research_runs WHERE opportunity_id = ? ORDER BY id DESC').get(id).status), ['done', 'done']);
 });
+
+test('no agent needed to load companies: the file\'s own fields are enough; an agent is only for later runs', async () => {
+  const created = await call('shir', 'POST', '/watch-lists', { name: 'No agent', entries: [
+    { name: 'Free Co', website: 'https://free.example', card_data: { 'Target country': 'India', 'Need type': 'market_entry_distribution', 'Card status': 'accepted' } },
+    { name: 'Bare Co', website: 'https://bare.example' },
+  ] });
+  const entries = (await call('shir', 'GET', `/watch-lists/${created.data.id}`)).data.entries;
+  const sent = await call('shir', 'POST', `/watch-lists/${created.data.id}/send-to-review`, { entry_ids: entries.map((entry) => String(entry.id)) });
+  assert.equal(sent.status, 200, sent.data.error);
+  assert.equal(sent.data.created.length, 1);
+  assert.deepEqual(sent.data.skipped.map((row) => row.reason), ['Bare Co: needs a Target country and Need type in the file, or an agent to take them from']);
+  const free = cardOf('Free Co');
+  assert.deepEqual([free.mandate_id, free.status], [null, 'accepted']);
+  assert.equal((await call('shir', 'GET', `/opportunities/${free.id}`)).data.journey.stage, 'approved');
+  assert.equal(db.prepare('SELECT 1 FROM research_runs WHERE opportunity_id = ?').get(free.id), undefined); // nothing ran
+});

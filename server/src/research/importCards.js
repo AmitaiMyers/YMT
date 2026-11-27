@@ -194,9 +194,15 @@ function sendEntry(db, { entry, list, chosenMandate, user, today }) {
 
   const evidenceUrl = data.card.evidence_url ?? entry.website;
   if (evidenceUrl === null) throw badRequest(`${entry.name}: needs a website (or an evidence link) to become a card`);
+  // The agent only matters for later runs ("Run agent"): the file's agent, else the chosen one, else none.
   const mandate = mandateByCode(db, data.card.mandate_code) ?? chosenMandate;
-  if (mandate.current_version_id === null) throw badRequest(`Agent ${mandate.code} has no criteria yet`);
-  const version = findVersion(db, mandate.current_version_id);
+  if (mandate !== null && mandate.current_version_id === null) throw badRequest(`Agent ${mandate.code} has no criteria yet`);
+  const version = mandate === null ? null : findVersion(db, mandate.current_version_id);
+  const targetCountry = data.card.target_country ?? (version ? version.target_countries[0] : null);
+  const needType = data.card.need_type ?? (version ? version.need_types[0] : null);
+  if (targetCountry === null || needType === null) {
+    throw badRequest(`${entry.name}: needs a Target country and Need type in the file, or an agent to take them from`);
+  }
 
   const companyId = saveCompany(db, entry, data, found);
   saveAliases(db, companyId, data.aliases);
@@ -206,17 +212,17 @@ function sendEntry(db, { entry, list, chosenMandate, user, today }) {
   });
   const { card, progress } = data;
   const id = insert(db, 'opportunities', {
-    company_id: companyId, mandate_id: mandate.id, mandate_version_id: version.id, owner_id: user.id,
+    company_id: companyId, mandate_id: mandate ? mandate.id : null, mandate_version_id: version ? version.id : null, owner_id: user.id,
     relationship_role: card.relationship_role ?? 'client',
-    target_country: card.target_country ?? version.target_countries[0],
-    need_type: card.need_type ?? version.need_types[0],
+    target_country: targetCountry,
+    need_type: needType,
     business_need: card.business_need ?? `Imported from the watch list "${list.name}" – not researched yet.`,
     evidence_source_id: evidenceSourceId,
     evidence_date: card.evidence_date ?? today,
     evidence_quote: card.evidence_quote ?? `Listed in "${list.name}".`,
     verdict: card.verdict, verdict_reason: card.verdict_reason, reason_to_act: card.reason_to_act,
     trigger_kind: card.trigger_kind, trigger_strength: card.trigger_strength, subsector_fit: card.subsector_fit,
-    service_code: card.service_code, proposed_service: card.proposed_service ?? version.proposed_service,
+    service_code: card.service_code, proposed_service: card.proposed_service ?? (version ? version.proposed_service : null),
     originator: card.originator ?? `staff:${user.username}`,
     flags: JSON.stringify(card.flags ?? []),
     unknowns: JSON.stringify(card.unknowns ?? []),
@@ -291,7 +297,7 @@ function applyProgress(db, { opportunityId, companyName, progress, user }) {
  * each company is written inside its own savepoint. Returns { created, existing, skipped }.
  */
 export function sendToReview(db, { list, entryIds, mandateId, user, now = new Date() }) {
-  const chosenMandate = findById(db, 'mandates', mandateId);
+  const chosenMandate = mandateId === null ? null : findById(db, 'mandates', mandateId);
   const entryById = db.prepare('SELECT * FROM watch_list_entries WHERE id = ? AND list_id = ?');
   const entries = entryIds.map((id) => {
     const entry = entryById.get(id, list.id);

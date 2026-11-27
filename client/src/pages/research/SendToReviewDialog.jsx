@@ -4,7 +4,6 @@
 // A company that cannot become a card is skipped; the result lists it with the reason.
 
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { Send } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nProvider.jsx';
 import { useLoad, useAction } from '../../hooks/useApi.js';
@@ -31,16 +30,18 @@ export function SendToReviewDialog({ list, entryIds, onClose, onSent }) {
     <Dialog open onClose={onClose} title={t('watch.sendTitle', { count: entryIds.length })} description={t('watch.sendHint')} width="max-w-2xl">
       <Loaded result={agents} skeleton={<SkeletonRows rows={4} />}>
         {(all) => {
-          const ready = all.filter((agent) => agent.status === 'active' && agent.owner_id !== null);
-          const selectedAgentId = selectedId ?? (ready.length === 1 ? ready[0].id : null);
+          // Optional: no agent runs now. A chosen agent is only the card's agent for a later "Run agent".
           return (
             <div className="space-y-5">
-              {ready.length === 0 && <Notice tone="signal">{t('flow.noAgentReady')} <Link className="text-link underline" to="/research/mandates">{t('nav.mandates')}</Link></Notice>}
-              <AgentChoice agents={all} selectedId={selectedAgentId} onSelect={setSelectedId} />
-              <p className="text-[13px] text-subtle">{t('watch.sendAgentNote')}</p>
+              <Notice tone="info">{t('watch.noAgentRuns')}</Notice>
+              <AgentChoice agents={all} selectedId={selectedId} onSelect={setSelectedId} />
+              <div className="flex flex-wrap items-center gap-3 text-[13px] text-subtle">
+                <span>{t('watch.sendAgentNote')}</span>
+                {selectedId !== null && <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)}>{t('watch.noAgent')}</Button>}
+              </div>
               {send.error && <ErrorBox message={send.error} />}
               <div className="flex flex-wrap gap-2">
-                <Button icon={Send} loading={send.busy} disabled={selectedAgentId === null} disabledReason={t('watch.chooseAgentFirst')} onClick={() => send.run(selectedAgentId)}>
+                <Button icon={Send} loading={send.busy} onClick={() => send.run(selectedId)}>
                   {t('watch.sendCount', { count: entryIds.length })}
                 </Button>
                 <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
