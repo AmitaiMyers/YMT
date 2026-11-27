@@ -22,6 +22,7 @@ import { dataSourceRoutes } from './routes/dataSources.js';
 import { googleRoutes, googleCallbackRoutes } from './routes/google.js';
 import { researchRoutes } from './routes/research.js';
 import { watchListRoutes } from './routes/watchLists.js';
+import { blockedRoutes } from './routes/blocked.js';
 import { outreachRoutes } from './routes/outreach.js';
 import { conversationRoutes } from './routes/conversations.js';
 import { discoveryRoutes, publicDiscoveryRoutes } from './routes/discovery.js';
@@ -68,7 +69,7 @@ export function createApp(db, { dbPath, hostingLocation, clientDist, trustProxy 
     userRoutes(db), companyRoutes(db), approvalRoutes(db), crmRoutes(db), meetingRoutes(db, { google, ai }),
     documentRoutes(db), directoryRoutes(db), dashboardRoutes(db),
     settingsRoutes(db, { dbPath, hostingLocation, googleEnabled: Boolean(google), aiProviders: ai.configuredProviders() }),
-    shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }), researchRoutes(db, { ai }), watchListRoutes(db), outreachRoutes(db, { ai }), conversationRoutes(db, { ai, google }), discoveryRoutes(db),
+    shareRoutes(db), inboxRoutes(db), googleRoutes(db, { google }), researchRoutes(db, { ai }), watchListRoutes(db), blockedRoutes(db), outreachRoutes(db, { ai }), conversationRoutes(db, { ai, google }), discoveryRoutes(db),
     dataSourceRoutes(db, { fetchImpl }),
   ]) {
     api.use(routes);

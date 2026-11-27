@@ -24,6 +24,7 @@ import { isAdmin, assertCanSee } from '../research/access.js';
 import { outreachPanel } from '../outreach.js';
 import { journeyFor } from '../research/journey.js';
 import { openDeal, openDefaultDeal } from '../research/deals.js';
+import { NOT_BLOCKED_SQL, findBlock } from '../research/blocked.js';
 
 const MANDATE_FIELDS_SPEC = {
   name: { type: 'string', max: 120 },
@@ -235,9 +236,17 @@ export function researchRoutes(db, { ai }) {
 
   const router = Router();
 
+  /** The company's "Don't suggest" block with who added it, or null. */
+  function blockOf(company) {
+    const block = findBlock(db, { companyId: company.id, name: company.name, website: company.website });
+    if (!block) return null;
+    const by = block.blocked_by ? db.prepare('SELECT display_name FROM users WHERE id = ?').get(block.blocked_by) : null;
+    return { ...block, blocked_by_name: by ? by.display_name : null };
+  }
+
   function mandateSummary(mandate) {
     const lastRun = db.prepare('SELECT id, status, created_at, finished_at, cards_created, cost_usd FROM research_runs WHERE mandate_id = ? ORDER BY id DESC LIMIT 1').get(mandate.id);
-    const pending = db.prepare(`SELECT COUNT(*) AS n FROM opportunities WHERE mandate_id = ? AND status IN ('draft', 'needs_review')`).get(mandate.id).n;
+    const pending = db.prepare(`SELECT COUNT(*) AS n FROM opportunities o WHERE o.mandate_id = ? AND o.status IN ('draft', 'needs_review') AND ${NOT_BLOCKED_SQL}`).get(mandate.id).n;
     const owner = mandate.owner_id ? db.prepare('SELECT display_name FROM users WHERE id = ?').get(mandate.owner_id) : null;
     return { ...mandate, owner_name: owner ? owner.display_name : null, last_run: lastRun ?? null, pending_cards: pending };
   }
@@ -353,6 +362,7 @@ export function researchRoutes(db, { ai }) {
   router.post('/opportunities/:id/research', (req, res) => {
     const opportunity = findById(db, 'opportunities', parseId(req.params.id));
     assertCanSee(req.user, opportunity);
+    if (blockOf(findById(db, 'companies', opportunity.company_id))) throw conflict('This company is on the "Don\'t suggest" list; remove it there first');
     if (opportunity.mandate_id === null) throw badRequest('Choose an agent for this card first');
     const mandate = findById(db, 'mandates', opportunity.mandate_id);
     if (mandate.current_version_id === null) throw badRequest(`Agent ${mandate.code} has no criteria yet`);
@@ -378,7 +388,7 @@ export function researchRoutes(db, { ai }) {
     const scope = parseOptionalEnum(req.query.owner, 'owner', ['me', 'all']) ?? 'me';
     if ((view === 'manual' || scope === 'all') && !isAdmin(req.user)) throw forbidden('Admin role required');
     const statuses = VIEWS[view];
-    const conditions = [`o.status IN (${statuses.map(() => '?').join(', ')})`];
+    const conditions = [`o.status IN (${statuses.map(() => '?').join(', ')})`, NOT_BLOCKED_SQL];
     const params = [...statuses];
     if (view !== 'manual' && scope === 'me') {
       conditions.push('o.owner_id = ?');
@@ -401,7 +411,7 @@ export function researchRoutes(db, { ai }) {
   router.get('/flow', (req, res) => {
     const scope = parseOptionalEnum(req.query.owner, 'owner', ['me', 'all']) ?? 'me';
     if (scope === 'all' && !isAdmin(req.user)) throw forbidden('Admin role required');
-    const conditions = ["o.status NOT IN ('rejected', 'deferred')"];
+    const conditions = ["o.status NOT IN ('rejected', 'deferred')", NOT_BLOCKED_SQL];
     const params = [];
     if (scope === 'me') {
       conditions.push('o.owner_id = ?');
@@ -418,8 +428,8 @@ export function researchRoutes(db, { ai }) {
   });
 
   router.get('/research/counts', (req, res) => {
-    const queue = db.prepare(`SELECT COUNT(*) AS n FROM opportunities WHERE owner_id = ? AND status IN ('draft', 'needs_review')`).get(req.user.id).n;
-    const manual = isAdmin(req.user) ? db.prepare("SELECT COUNT(*) AS n FROM opportunities WHERE status = 'manual_assignment'").get().n : 0;
+    const queue = db.prepare(`SELECT COUNT(*) AS n FROM opportunities o WHERE o.owner_id = ? AND o.status IN ('draft', 'needs_review') AND ${NOT_BLOCKED_SQL}`).get(req.user.id).n;
+    const manual = isAdmin(req.user) ? db.prepare(`SELECT COUNT(*) AS n FROM opportunities o WHERE o.status = 'manual_assignment' AND ${NOT_BLOCKED_SQL}`).get().n : 0;
     res.json({ queue, manual });
   });
 
@@ -462,6 +472,7 @@ export function researchRoutes(db, { ai }) {
       mandate_floor_usd: card.mandate_version_id ? findById(db, 'mandate_versions', card.mandate_version_id).revenue_floor_usd : null,
       live_check: LIVE_TRIGGER_KINDS.includes(card.trigger_kind),
       journey: journeyFor(db, findById(db, 'opportunities', id)),
+      blocked: blockOf(company),
       agent_run: db.prepare(`SELECT id, status, error, cost_usd, candidates_found, created_at, finished_at FROM research_runs
         WHERE opportunity_id = ? ORDER BY id DESC LIMIT 1`).get(id) ?? null,
     });
@@ -777,7 +788,7 @@ export function researchRoutes(db, { ai }) {
     const runs = db.prepare(`SELECT mandate_id, COUNT(*) AS runs, SUM(cards_created) AS cards_created, SUM(duplicates) AS duplicates,
         SUM(filtered) AS filtered, SUM(cost_usd) AS cost_usd
       FROM research_runs WHERE created_at BETWEEN ? AND ? GROUP BY mandate_id`).all(range.fromIso, range.toIso);
-    const pending = db.prepare(`SELECT mandate_id, COUNT(*) AS n FROM opportunities WHERE status IN ('draft', 'needs_review') GROUP BY mandate_id`).all();
+    const pending = db.prepare(`SELECT o.mandate_id, COUNT(*) AS n FROM opportunities o WHERE o.status IN ('draft', 'needs_review') AND ${NOT_BLOCKED_SQL} GROUP BY o.mandate_id`).all();
     // Spec quality measures: why companies were dropped, contacts found wrong or outdated, review time per mandate version.
     const drops = db.prepare(`SELECT r.mandate_id, d.reason, COUNT(*) AS n FROM run_drops d JOIN research_runs r ON r.id = d.run_id
       WHERE d.created_at BETWEEN ? AND ? GROUP BY r.mandate_id, d.reason`).all(range.fromIso, range.toIso);

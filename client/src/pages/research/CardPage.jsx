@@ -22,6 +22,7 @@ import { NextAction } from '../flow/NextAction.jsx';
 import { FirstApproachPanel } from './ApproachPanel.jsx';
 import { usePolling } from './MandatesPage.jsx';
 import { CardAgentButton, CardAgentStatus, isAgentResearching } from './CardAgentRun.jsx';
+import { CardBlockButton, CardBlockedNotice } from './CardBlock.jsx';
 import { REJECT_REASONS, EXAMPLE_LABELS, CUSTOMER_TYPES } from '../../../../shared/enums.js';
 
 const DECIDABLE = ['draft', 'needs_review', 'verify', 'deferred'];
@@ -262,8 +263,14 @@ export function CardPage() {
                   <span>{card.mandate_code ? `${card.mandate_code} · ${card.owner_name ?? t('research.noOwner')}` : t('research.noMandate')}</span>
                 </span>
               )}
-              actions={canAct ? <CardAgentButton card={card} onStarted={result.reload} /> : undefined}
+              actions={canAct && card.blocked === null ? (
+                <>
+                  <CardBlockButton card={card} />
+                  <CardAgentButton card={card} onStarted={result.reload} />
+                </>
+              ) : undefined}
             />
+            {card.blocked !== null && <CardBlockedNotice card={card} onChanged={result.reload} />}
             <CardAgentStatus card={card} />
             {card.journey && (
               <div className="mb-6 space-y-5">

@@ -362,6 +362,19 @@ CREATE TABLE IF NOT EXISTS watch_list_entries (
   UNIQUE (list_id, name_key)
 );
 
+-- Companies YMT told the agents never to suggest (27.11.2026), e.g. after an approach that failed. All agents, until
+-- removed. Matched by company, website domain or normalised name; the company's cards leave the board and the review.
+CREATE TABLE IF NOT EXISTS blocked_companies (
+  id INTEGER PRIMARY KEY,
+  company_id INTEGER REFERENCES companies(id) ON DELETE CASCADE, -- set when the company is in the CRM
+  name TEXT NOT NULL,
+  name_key TEXT NOT NULL,
+  domain TEXT,
+  reason TEXT,
+  blocked_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+
 -- When each listed company was last checked for each mandate (rotation order).
 CREATE TABLE IF NOT EXISTS watch_checks (
   entry_id INTEGER NOT NULL REFERENCES watch_list_entries(id) ON DELETE CASCADE,
@@ -707,7 +720,7 @@ CREATE TABLE IF NOT EXISTS run_drops (
   run_id INTEGER NOT NULL REFERENCES research_runs(id) ON DELETE CASCADE,
   company_name TEXT NOT NULL,
   website TEXT,
-  reason TEXT NOT NULL CHECK (reason IN ('shepha_exclusion', 'no_israeli_connection', 'no_export', 'already_established', 'below_floor',
+  reason TEXT NOT NULL CHECK (reason IN ('shepha_exclusion', 'ymt_blocked', 'no_israeli_connection', 'no_export', 'already_established', 'below_floor',
     'below_minimum', 'not_a_match', 'stale', 'unverifiable_source', 'invalid_result')),
   detail TEXT,
   source_url TEXT,

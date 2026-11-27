@@ -4,12 +4,12 @@
 
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ClipboardList, Upload, Trash2, Search, Send, FileCheck2 } from 'lucide-react';
+import { ClipboardList, Upload, Trash2, Search, Send, FileCheck2, Ban } from 'lucide-react';
 import { useI18n, useFormat } from '../../i18n/I18nProvider.jsx';
 import { useLoad, useAction } from '../../hooks/useApi.js';
-import { del } from '../../api.js';
+import { del, post } from '../../api.js';
 import { useAuth } from '../../auth/AuthProvider.jsx';
-import { Card, Loaded, PageHeader, Table, Button, SkeletonRows, EmptyState, ExternalLink, ErrorBox, Badge, useToast, useConfirm } from '../../ui/index.js';
+import { Card, Loaded, PageHeader, Table, Button, SkeletonRows, EmptyState, ExternalLink, ErrorBox, Badge, useToast, useConfirm, usePrompt } from '../../ui/index.js';
 import { FieldRow, FieldInput } from '../../components/EntityForm.jsx';
 import { ImportListDialog } from './ImportListDialog.jsx';
 import { FindCompaniesDialog } from './FindCompaniesDialog.jsx';
@@ -88,6 +88,7 @@ export function WatchListPage() {
   const importedToast = useImportedToast();
   const { user } = useAuth();
   const toast = useToast();
+  const prompt = usePrompt();
   const result = useLoad(`/watch-lists/${id}`);
   const [importing, setImporting] = useState(false);
   const [query, setQuery] = useState('');
@@ -100,6 +101,14 @@ export function WatchListPage() {
       else next.delete(entryId);
     }
     return next;
+  });
+  const block = useAction(async (entryIds) => {
+    const reason = await prompt({ title: t('blocked.blockTitle', { count: entryIds.length }), label: t('blocked.reasonOptional'), confirmLabel: t('blocked.block'), minLength: 0 });
+    if (reason === null) return;
+    const done = await post(`/watch-lists/${id}/block`, { entry_ids: entryIds.map(String), reason: reason.trim() || null });
+    setSelected(new Set());
+    toast({ title: t('blocked.blockedCount', { count: done.blocked }) });
+    result.reload();
   });
   const remove = useAction(async (list) => {
     const ok = await confirm({ title: t('watch.delete'), body: t('watch.deleteBody', { name: list.name }), confirmLabel: t('watch.delete'), tone: 'danger' });
@@ -114,10 +123,10 @@ export function WatchListPage() {
         const canDelete = user.role === 'admin' || list.created_by === user.id;
         const needle = query.trim().toLowerCase();
         const shown = needle ? list.entries.filter((entry) => `${entry.name} ${entry.website ?? ''}`.toLowerCase().includes(needle)) : list.entries;
-        // Companies that already have a card are linked to it and cannot be chosen again.
-        const choosable = shown.filter((entry) => entry.opportunity_id === null).map((entry) => entry.id);
+        // Companies on the "Don't suggest" list cannot be chosen (remove them there first).
+        const choosable = shown.filter((entry) => !entry.blocked).map((entry) => entry.id);
         const allShownChosen = choosable.length > 0 && choosable.every((entryId) => selected.has(entryId));
-        const chosen = list.entries.filter((entry) => selected.has(entry.id) && entry.opportunity_id === null).map((entry) => entry.id);
+        const chosen = list.entries.filter((entry) => selected.has(entry.id) && !entry.blocked).map((entry) => entry.id);
         return (
           <>
             <PageHeader
@@ -138,6 +147,7 @@ export function WatchListPage() {
               )}
             />
             {remove.error && <ErrorBox message={remove.error} />}
+            {block.error && <ErrorBox message={block.error} />}
             <Card padded>
               <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
                 <div className="w-full max-w-sm">
@@ -147,6 +157,9 @@ export function WatchListPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="text-sm text-muted" aria-live="polite">{t('watch.chosenCount', { count: chosen.length })}</span>
+                  <Button variant="secondary" icon={Ban} loading={block.busy} disabled={chosen.length === 0} disabledReason={t('watch.chooseFirst')} onClick={() => block.run(chosen)}>
+                    {t('blocked.block')}
+                  </Button>
                   <Button icon={Send} disabled={chosen.length === 0} disabledReason={t('watch.chooseFirst')} onClick={() => setSending(true)}>
                     {t('watch.sendToReview')}
                   </Button>
@@ -163,7 +176,7 @@ export function WatchListPage() {
                         checked={allShownChosen} disabled={choosable.length === 0} onChange={(event) => toggle(choosable, event.target.checked)}
                       />
                     ),
-                    render: (entry) => (entry.opportunity_id === null ? (
+                    render: (entry) => (!entry.blocked ? (
                       <input
                         type="checkbox" className="h-4 w-4 align-middle" aria-label={t('watch.choose', { name: entry.name })}
                         checked={selected.has(entry.id)} onChange={(event) => toggle([entry.id], event.target.checked)}
@@ -179,6 +192,7 @@ export function WatchListPage() {
                     key: 'card',
                     label: t('watch.card'),
                     render: (entry) => {
+                      if (entry.blocked) return <Link to="/research/blocked"><Badge tone="danger"><Ban aria-hidden="true" size={13} />{t('blocked.badge')}</Badge></Link>;
                       if (entry.opportunity_id !== null) return <Link className="whitespace-nowrap font-medium text-link hover:underline" to={`/research/cards/${entry.opportunity_id}`}>{t('watch.openCard')}</Link>;
                       if (entry.has_card_data) return <Badge tone="info"><FileCheck2 aria-hidden="true" size={13} />{t('watch.cardInFile')}</Badge>;
                       return '—';

@@ -7,6 +7,7 @@ import { badRequest, forbidden, HttpError } from '../http.js';
 import { normalizeDomain } from '../research/classification.js';
 import { importEntries, MAX_IMPORT_ROWS } from '../research/watchLists.js';
 import { cardDataJson, sendToReview, MAX_SEND_TO_REVIEW } from '../research/importCards.js';
+import { ENTRY_NOT_BLOCKED_SQL } from '../research/blocked.js';
 
 const LIST_SPEC = {
   name: { type: 'string', required: true, max: 120 },
@@ -76,7 +77,7 @@ export function watchListRoutes(db) {
 
   router.get('/watch-lists/:id', (req, res) => {
     const list = findById(db, 'watch_lists', parseId(req.params.id));
-    const entries = db.prepare(`SELECT e.id, e.name, e.website, e.country, e.notes, e.opportunity_id, e.card_data IS NOT NULL AS has_card_data,
+    const entries = db.prepare(`SELECT e.id, e.name, e.website, e.country, e.notes, e.opportunity_id, e.card_data IS NOT NULL AS has_card_data, NOT (${ENTRY_NOT_BLOCKED_SQL}) AS blocked,
         MAX(c.last_checked_at) AS last_checked_at
       FROM watch_list_entries e LEFT JOIN watch_checks c ON c.entry_id = e.id
       WHERE e.list_id = ? GROUP BY e.id ORDER BY e.name LIMIT ${MAX_IMPORT_ROWS}`).all(list.id);

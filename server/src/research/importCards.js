@@ -12,6 +12,7 @@ import { findExistingCompany, normalizeName } from './classification.js';
 import { upsertSource } from './runner.js';
 import { findVersion } from './mandates.js';
 import { openDefaultDeal } from './deals.js';
+import { findBlock } from './blocked.js';
 import {
   CARD_COLUMNS, CARD_COLUMN_NAMES, CONTACTS_COLUMN, MESSAGES_COLUMN, MEETINGS_COLUMN, LIST_SEPARATOR,
 } from '../../../shared/cardColumns.js';
@@ -187,6 +188,9 @@ function sendEntry(db, { entry, list, chosenMandate, user, today }) {
   const found = findExistingCompany(db, { website: entry.website, name: entry.name, hqCountry: entry.country ?? data.company.hq_country ?? 'Israel', registryNumber: data.company.registry_number ?? null });
   const cardId = found ? existingCard(db, found.company.id) : null;
   if (cardId !== null) return { cardId, created: false };
+  if (findBlock(db, { companyId: found ? found.company.id : null, name: entry.name, website: entry.website })) {
+    throw badRequest(`${entry.name}: is on the "Don't suggest" list – remove it there to send it to review`);
+  }
 
   const evidenceUrl = data.card.evidence_url ?? entry.website;
   if (evidenceUrl === null) throw badRequest(`${entry.name}: needs a website (or an evidence link) to become a card`);

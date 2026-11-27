@@ -2,6 +2,7 @@
 
 import { insert } from '../db.js';
 import { normalizeDomain, normalizeName } from './classification.js';
+import { ENTRY_NOT_BLOCKED_SQL } from './blocked.js';
 
 export const MAX_IMPORT_ROWS = 5000;
 
@@ -33,11 +34,11 @@ export function importEntries(db, listId, entries) {
   return { added, skipped: entries.length - added };
 }
 
-/** The `count` entries this mandate checked longest ago (never-checked first). */
+/** The `count` entries this mandate checked longest ago (never-checked first). Companies on the "Don't suggest" list are skipped. */
 export function pickEntries(db, listId, mandateId, count) {
   return db.prepare(`SELECT e.id, e.name, e.website, e.domain, e.country FROM watch_list_entries e
     LEFT JOIN watch_checks c ON c.entry_id = e.id AND c.mandate_id = ?
-    WHERE e.list_id = ?
+    WHERE e.list_id = ? AND ${ENTRY_NOT_BLOCKED_SQL}
     ORDER BY c.last_checked_at ASC NULLS FIRST, e.id ASC
     LIMIT ?`).all(mandateId, listId, count);
 }

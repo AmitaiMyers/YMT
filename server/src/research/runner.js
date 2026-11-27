@@ -6,6 +6,7 @@ import { BudgetError } from '../ai/service.js';
 import { findExistingCompany, normalizeDomain, normalizeUrl, normalizeName } from './classification.js';
 import { assignOpportunity, isStale } from './assign.js';
 import { findExclusion } from './exclusions.js';
+import { findBlock, blockedNames } from './blocked.js';
 import { isStrongTrigger } from './score.js';
 import { loadServices } from './catalogue.js';
 import { contactKeywordsFor, marketOf } from './spec.js';
@@ -268,6 +269,7 @@ async function researchCard(db, ai, { run, runMandate, services, publishedAfter,
 async function processCandidate(db, ai, { run, runMandate, mandates, candidate, searchSources, services, now }) {
   // Step 2, before any AI cost: SHEPHA's exclusion list and the company bank.
   if (findExclusion(db, { name: candidate.companyName, website: candidate.website })) return recordDrop(db, run.id, candidate, 'shepha_exclusion');
+  if (findBlock(db, { name: candidate.companyName, website: candidate.website })) return recordDrop(db, run.id, candidate, 'ymt_blocked');
   const foundFirst = findExistingCompany(db, { website: candidate.website, name: candidate.companyName, hqCountry: 'Israel' });
   if (foundFirst && isKnownInitiative(db, foundFirst.company.id, candidate)) return 'duplicate';
 
@@ -280,6 +282,7 @@ async function processCandidate(db, ai, { run, runMandate, mandates, candidate, 
   };
 
   if (findExclusion(db, identity)) return recordDrop(db, run.id, candidate, 'shepha_exclusion');
+  if (findBlock(db, { name: identity.name, website: identity.website, otherNames: identity.otherNames })) return recordDrop(db, run.id, candidate, 'ymt_blocked');
   const disqualified = disqualify(profile, classified.markets, candidate.targetCountry);
   if (disqualified) return recordDrop(db, run.id, candidate, disqualified.reason, disqualified.detail);
   const marketEntry = targetMarketEntry(classified.markets, candidate.targetCountry);
@@ -349,9 +352,9 @@ export async function executeRun(db, ai, runId, now = new Date()) {
       return;
     }
     const watched = run.watch_list_id === null ? null : pickEntries(db, run.watch_list_id, base.id, entriesPerRun(run.batch_size));
-    if (watched !== null && watched.length === 0) throw new Error('The watch list has no companies');
+    if (watched !== null && watched.length === 0) throw new Error('The watch list has no companies the agents may check (the rest are on the "Don\'t suggest" list)');
     const discovery = await ai.call('discover', discoverRequest({
-      mandate: runMandate, version: runMandate.version, batchSize: run.batch_size, knownCompanies: knownCompanyNames(db), publishedAfter,
+      mandate: runMandate, version: runMandate.version, batchSize: run.batch_size, knownCompanies: [...new Set([...knownCompanyNames(db), ...blockedNames(db)])], publishedAfter,
       watchCompanies: watched,
     }), { runId, now });
     if (watched !== null) {

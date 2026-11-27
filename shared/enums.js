@@ -123,7 +123,7 @@ export const ORIGINATOR_KINDS = ['agent', 'staff', 'partner', 'referral', 'web']
 export const PREFERRED_CHANNELS = ['email', 'linkedin', 'phone', 'whatsapp', 'switchboard'];
 export const PROPOSAL_DISMISS_REASONS = ['not_relevant', 'wrong_or_outdated'];
 // Why a found company did not become a card (kept per run, so owners can see what the agent dropped).
-export const DROP_REASONS = ['shepha_exclusion', 'no_israeli_connection', 'no_export', 'already_established', 'below_floor', 'below_minimum',
+export const DROP_REASONS = ['shepha_exclusion', 'ymt_blocked', 'no_israeli_connection', 'no_export', 'already_established', 'below_floor', 'below_minimum',
   'not_a_match', 'stale', 'unverifiable_source', 'invalid_result'];
 
 // ---------------------------------------------------------------- View mode (24.11.2026)
